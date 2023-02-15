@@ -19,8 +19,8 @@
 # limitations under the License.
 #
 ################################################################################
-# File name: bin/search_cells
-# Purpose:   Look for missing LEF/LIB/GDS/AOCV files
+# Filename: bin/search_cells
+# Purpose:  Look for missing LEF/LIB/GDS/AOCV files
 ################################################################################
 
 GF_TOOL_PATH="$(readlink -m "$0/..")"

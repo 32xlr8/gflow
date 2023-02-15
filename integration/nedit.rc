@@ -17,8 +17,8 @@
 # limitations under the License.
 #
 ################################################################################
-# File name: integration/nedit.rc
-# Purpose:   Resources file for nedit text editor
+# Filename: integration/nedit.rc
+# Purpose:  Resources file for nedit text editor
 ################################################################################
 ! This resources file provides syntax highlight and extra macros in nedit for Generic Flow (*.gf) files
 ! Usage: nedit -import $GF_ROOT/integration/nedit.rc

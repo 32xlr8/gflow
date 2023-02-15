@@ -19,8 +19,8 @@
 # limitations under the License.
 #
 ################################################################################
-# File name: bin/disk_usage
-# Purpose:   Report size of the most heavy directories
+# Filename: bin/disk_usage
+# Purpose:  Report size of the most heavy directories
 ################################################################################
 
 GF_TOOL_PATH="$(readlink -m "$0/..")"

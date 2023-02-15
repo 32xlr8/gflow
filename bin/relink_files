@@ -19,8 +19,8 @@
 # limitations under the License.
 #
 ################################################################################
-# File name: bin/relink_files
-# Purpose:   Utility to repair broken symbolic links
+# Filename: bin/relink_files
+# Purpose:  Utility to repair broken symbolic links
 ################################################################################
 
 GF_TOOL_PATH="$(readlink -m "$0/..")"

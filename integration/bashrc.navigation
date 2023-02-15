@@ -17,8 +17,8 @@
 # limitations under the License.
 #
 ################################################################################
-# File name: integration/bashrc.navigation
-# Purpose:   Navigation functions (a*, c*, f*, s*, v*, x*, z*)
+# Filename: integration/bashrc.navigation
+# Purpose:  Navigation functions (a*, c*, f*, s*, v*, x*, z*)
 ################################################################################
 
 gf_help_bashrc='

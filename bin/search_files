@@ -19,8 +19,8 @@
 # limitations under the License.
 #
 ################################################################################
-# File name: bin/search_files
-# Purpose:   Look for files on the disk and replace it in the script
+# Filename: bin/search_files
+# Purpose:  Look for files on the disk and replace it in the script
 ################################################################################
 
 GF_TOOL_PATH="$(readlink -m "$0/..")"

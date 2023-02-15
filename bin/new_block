@@ -19,8 +19,8 @@
 # limitations under the License.
 #
 ################################################################################
-# File name: bin/new_block
-# Purpose:   Utility to create environment for new digital block
+# Filename: bin/new_block
+# Purpose:  Utility to create environment for new digital block
 ################################################################################
 
 GF_TOOL_PATH="$(readlink -m "$0/..")"

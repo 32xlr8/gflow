@@ -17,8 +17,8 @@
 # limitations under the License.
 #
 ################################################################################
-# File name: integration/bashrc.history
-# Purpose:   Filter history (h command)
+# Filename: integration/bashrc.history
+# Purpose:  Filter history (h command)
 ################################################################################
 
 # Filter history: h command

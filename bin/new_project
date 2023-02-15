@@ -19,8 +19,8 @@
 # limitations under the License.
 #
 ################################################################################
-# File name: bin/new_project
-# Purpose:   Utility to create environment for new digital project
+# Filename: bin/new_project
+# Purpose:  Utility to create environment for new digital project
 ################################################################################
 
 GF_TOOL_PATH="$(readlink -m "$0/..")"

@@ -19,8 +19,8 @@
 # limitations under the License.
 #
 ################################################################################
-# File name: bin/less_colored
-# Purpose:   Less logs and other files with highlight
+# Filename: bin/less_colored
+# Purpose:  Less logs and other files with highlight
 ################################################################################
 
 GF_TOOL_PATH="$(readlink -m "$0/..")"

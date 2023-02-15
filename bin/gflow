@@ -19,8 +19,8 @@
 # limitations under the License.
 #
 ################################################################################
-# File name: bin/gflow
-# Purpose:   Generic Flow task control tool
+# Filename: bin/gflow
+# Purpose:  Generic Flow task control tool
 ################################################################################
 
 ##################################################

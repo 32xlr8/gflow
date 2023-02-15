@@ -17,8 +17,8 @@
 # limitations under the License.
 #
 ################################################################################
-# File name: bin/gconfig.tcl
-# Purpose:   Generic Configuration toolkit
+# Filename: bin/gconfig.tcl
+# Purpose:  Generic Configuration toolkit
 ################################################################################
 
 # Generic configuration namespace

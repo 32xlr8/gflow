@@ -17,8 +17,8 @@
 # limitations under the License.
 #
 ################################################################################
-# File name: integration/bashrc.shell
-# Purpose:   Shell functions
+# Filename: integration/bashrc.shell
+# Purpose:  Shell functions
 ################################################################################
 
 # Prompt

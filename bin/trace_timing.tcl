@@ -17,8 +17,8 @@
 # limitations under the License.
 #
 ################################################################################
-# File name: bin/trace_timing.tcl
-# Purpose:   Innovus trace timing tool
+# Filename: bin/trace_timing.tcl
+# Purpose:  Innovus trace timing tool
 ################################################################################
 
 ################################################################################

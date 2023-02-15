@@ -19,8 +19,8 @@
 # limitations under the License.
 #
 ################################################################################
-# File name: bin/new_flow
-# Purpose:   Utility to create environment for new digital flow
+# Filename: bin/new_flow
+# Purpose:  Utility to create environment for new digital flow
 ################################################################################
 
 GF_TOOL_PATH="$(readlink -m "$0/..")"

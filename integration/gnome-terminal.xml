@@ -1,0 +1,80 @@
+################################################################################
+# Generic Flow v5.0 (February 2023)
+################################################################################
+#
+# Copyright 2011-2023 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+################################################################################
+# File name: integration/gnome-terminal.xml
+################################################################################
+<?xml version="1.0"?>
+<gconf>
+    <entry name="visible_name" type="string"><stringvalue>GF demo</stringvalue></entry>
+    <entry name="title" type="string"><stringvalue>Generic Flow Demo</stringvalue></entry>
+    
+    <entry name="foreground_color" type="string"><stringvalue>#400040004000</stringvalue></entry>
+    <entry name="background_color" type="string"><stringvalue>#FFFFFFFFFFFF</stringvalue></entry>
+    <entry name="palette" type="string">
+        <stringvalue>#BFFFBFFFBFFF:#B33335C235C2:#000080000000:#800080000000:#23D76B85B333:#800040008000:#000080008000:#000000000000:#800080008000:#FFFF40004000:#0000BFFF0000:#B333B3330000:#2E158A3DE666:#CCCC0000CCCC:#0000B333B333:#599959995999</stringvalue>
+    </entry>
+    <entry name="palette_bkp" type="string">
+        <stringvalue>
+#BFFFBFFFBFFF:#B33335C235C2:#000080000000:#800080000000:#35C26A06B333:#800040008000:#000080008000:#000000000000:#800080008000:#FFFF40004000:#0000BFFF0000:#B333B3330000:#33338888FFFF:#CCCC0000CCCC:#0000CCCCCCCC:#666666666666
+#BFFFBFFFBFFF:#B33335C235C2:#000080000000:#800080000000:#23D76B85B333:#800040008000:#000080008000:#000000000000:#800080008000:#FFFF40004000:#0000BFFF0000:#B333B3330000:#2E158A3DE666:#CCCC0000CCCC:#0000B333B333:#599959995999
+</stringvalue>
+    </entry>
+    <entry name="bold_color" type="string"><stringvalue>#000000000000</stringvalue></entry>
+    <entry name="bold_color_same_as_fg" type="bool" value="false"/>
+    <entry name="allow_bold" type="bool" value="true"/>
+
+    <entry name="background_type" type="string"><stringvalue>solid</stringvalue></entry>
+    <entry name="background_image" type="string"><stringvalue></stringvalue></entry>
+    <entry name="background_darkness" type="float" value="0.5"/>
+    
+    <entry name="use_theme_colors" type="bool" value="false"/>
+    <entry name="use_system_font" type="bool" value="false"/>
+    <entry name="font" type="string"><stringvalue>Monospace 11</stringvalue></entry>
+    
+    <entry name="scroll_on_output" type="bool" value="true"/>
+    <entry name="scroll_background" type="bool" value="true"/>
+    <entry name="scroll_on_keystroke" type="bool" value="true"/>
+    <entry name="scrollback_lines" type="int" value="10000"/>
+    <entry name="scrollbar_position" type="string"><stringvalue>hidden</stringvalue></entry>
+    <entry name="scrollback_unlimited" type="bool" value="true"/>
+    <entry name="default_show_menubar" type="bool" value="false"/>
+    
+    <entry name="silent_bell" type="bool" value="true"/>
+    <entry name="login_shell" type="bool" value="false"/>
+    <entry name="update_records" type="bool" value="true"/>
+    <entry name="exit_action" type="string"><stringvalue>close</stringvalue></entry>
+    
+    <entry name="custom_command" type="string"><stringvalue></stringvalue></entry>
+    <entry name="use_custom_command" type="bool" value="false"/>
+    
+    <entry name="use_custom_default_size" type="bool" value="false"/>
+    <entry name="title_mode" type="string"><stringvalue>replace</stringvalue></entry>
+    
+    <entry name="use_skey" type="bool" value="true"/>
+
+    <entry name="default_size_columns" type="int" value="80"/>
+    <entry name="default_size_rows" type="int" value="24"/>
+
+    <entry name="cursor_blink_mode" type="string"><stringvalue>system</stringvalue></entry>
+    <entry name="cursor_shape" type="string"><stringvalue>block</stringvalue></entry>
+    
+    <entry name="word_chars" type="string"><stringvalue>-A-Za-z0-9,./?%&amp;#:_=+@~</stringvalue></entry>
+    <entry name="delete_binding" type="string"><stringvalue>escape-sequence</stringvalue></entry>
+    <entry name="backspace_binding" type="string"><stringvalue>ascii-del</stringvalue></entry>
+</gconf>

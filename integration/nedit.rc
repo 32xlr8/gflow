@@ -1,0 +1,299 @@
+################################################################################
+# Generic Flow v5.0 (February 2023)
+################################################################################
+#
+# Copyright 2011-2023 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+################################################################################
+# File name: integration/nedit.rc
+# Purpose:   Resources file for nedit text editor
+################################################################################
+! This resources file provides syntax highlight and extra macros in nedit for Generic Flow (*.gf) files
+! Usage: nedit -import $GF_ROOT/integration/nedit.rc
+
+nedit.fileVersion: 5.6
+nedit.macroCommands: \
+    Generic Flow># Comment@Generic Flow@Sh Ksh Bash@TCL:Ctrl+D::: {\n\
+        start = $selection_start\n\
+        end = $selection_end\n\
+        if (start == -1) {\n\
+            start = search("\\n", $cursor-1, "backward") + 1\n\
+            end = search("\\n", $cursor, "forward")\n\
+        } else {\n\
+            start = search("\\n", start-1, "backward") + 1\n\
+            end = search("\\n", end-1, "forward")\n\
+        }\n\
+        if (end == -1) end = $text_length\n\
+        select(start, end)\n\
+        text = replace_in_string(get_selection(), "(^[ \\\\t]*)(.*)$", "\\\\1# \\\\2", "regex")\n\
+        if (text != "") {\n\
+            replace_selection(text)\n\
+            select(start, start+length(text))\n\
+        }\n\
+    }\n\
+    Generic Flow># Uncomment@Generic Flow@Sh Ksh Bash@Tcl:Ctrl+Alt+D::: {\n\
+        start = $selection_start\n\
+        end = $selection_end\n\
+        if (start == -1) {\n\
+            start = search("\\n", $cursor-1, "backward") + 1\n\
+            end = search("\\n", $cursor, "forward")\n\
+        } else {\n\
+            start = search("\\n", start-1, "backward") + 1\n\
+            end = search("\\n", end-1, "forward")\n\
+        }\n\
+        if (end == -1) end = $text_length\n\
+        select(start, end)\n\
+        text = replace_in_string(get_selection(), "(^[ \\\\t]*)# ?([ \\\\t]*)(.*)$", "\\\\1\\\\2\\\\3", "regex")\n\
+        if (text != "") {\n\
+            replace_selection(text)\n\
+            select(start, start+length(text))\n\
+        }\n\
+    }\n\
+    Generic Flow>Add/fix carry line@Generic Flow@Sh Ksh Bash@Tcl:Ctrl+Backslash::: {\n\
+        start = $selection_start\n\
+        end = $selection_end\n\
+        if (start == -1) {\n\
+            start = search("\\n", $cursor-1, "backward") + 1\n\
+            end = search("\\n", $cursor, "forward")\n\
+        } else {\n\
+            start = search("\\n", start-1, "backward") + 1\n\
+            end = search("\\n", end-1, "forward")\n\
+        }\n\
+        if (end == -1) end = $text_length\n\
+        select(start, end)\n\
+        text = replace_in_string(get_selection(), "^(.*?)[ \\t\\\\\\\\]*$", "\\\\1 \\\\", "regex")\n\
+        if (text != "") {\n\
+            replace_selection(text)\n\
+            select(start, start+length(text))\n\
+        }\n\
+    }\n\
+    Generic Flow>Remove carry line@Generic Flow@Sh Ksh Bash@Tcl:Ctrl+Alt+Backslash::: {\n\
+        start = $selection_start\n\
+        end = $selection_end\n\
+        if (start == -1) {\n\
+            start = search("\\n", $cursor-1, "backward") + 1\n\
+            end = search("\\n", $cursor, "forward")\n\
+        } else {\n\
+            start = search("\\n", start-1, "backward") + 1\n\
+            end = search("\\n", end-1, "forward")\n\
+        }\n\
+        if (end == -1) end = $text_length\n\
+        select(start, end)\n\
+        text = replace_in_string(get_selection(), "[ \\t]*\\\\\\\\[ \\t]*$", "", "regex")\n\
+        if (text != "") {\n\
+            replace_selection(text)\n\
+            select(start, start+length(text))\n\
+        }\n\
+    }\n\
+    Generic Flow>Single Quote@Generic Flow@Sh Ksh Bash@Tcl:Ctrl+Apostrophe::R: {\n\
+        start = $selection_start\n\
+        text = replace_in_string(get_selection(), "\\'", "\\'\\"\\'\\"\\'", "regex")\n\
+        if (text != "") {\n\
+            replace_selection(text)\n\
+            select(start, start+length(text))\n\
+        }\n\
+    }\n\
+    Generic Flow>Single Unquote@Generic Flow@Sh Ksh Bash@Tcl:Ctrl+Alt+Apostrophe::R: {\n\
+        start = $selection_start\n\
+        text = replace_in_string(get_selection(), "\\'\\"\\'\\"\\'", "\\'", "regex")\n\
+        if (text != "") {\n\
+            replace_selection(text)\n\
+            select(start, start+length(text))\n\
+        }\n\
+    }\n\
+    Generic Flow>Double Quote@Generic Flow@Sh Ksh Bash:Shift+Ctrl+Apostrophe::R: {\n\
+        start = $selection_start\n\
+        text = replace_in_string(get_selection(), "([\\\"\\\\\\$])", "\\\\\\\\\\\\1", "regex")\n\
+        if (text != "") {\n\
+            replace_selection(text)\n\
+            select(start, start+length(text))\n\
+        }\n\
+    }\n\
+    Generic Flow>Double Unquote@Generic Flow@Sh Ksh Bash:Shift+Ctrl+Alt+Apostrophe::R: {\n\
+        start = $selection_start\n\
+        text = replace_in_string(get_selection(), "\\\\\\\\([\\\"\\\\\\$])", "\\\\1", "regex")\n\
+        if (text != "") {\n\
+            replace_selection(text)\n\
+            select(start, start+length(text))\n\
+        }\n\
+    }\n\
+    Generic Flow>Tabulate@Generic Flow@Sh Ksh Bash@Tcl@Perl:Ctrl+Tab::R: {\n\
+        start = $selection_start\n\
+        end = $selection_end\n\
+        if (start == -1) {\n\
+            start = search("\\n", $cursor-1, "backward") + 1\n\
+            end = search("\\n", $cursor, "forward")\n\
+        } else {\n\
+            start = search("\\n", start-1, "backward") + 1\n\
+            end = search("\\n", end-1, "forward")\n\
+        }\n\
+        if (end == -1) end = $text_length\n\
+        select(start, end)\n\
+        text = replace_in_string(get_selection(), "^", "    ", "regex")\n\
+        if (text != "") {\n\
+            replace_selection(text)\n\
+            select(start, start+length(text))\n\
+        }\n\
+    }\n\
+    Generic Flow>Untabulate@Generic Flow@Sh Ksh Bash@Tcl@Perl:Shift+Tab::R: {\n\
+        start = $selection_start\n\
+        end = $selection_end\n\
+        if (start == -1) {\n\
+            start = search("\\n", $cursor-1, "backward") + 1\n\
+            end = search("\\n", $cursor, "forward")\n\
+        } else {\n\
+            start = search("\\n", start-1, "backward") + 1\n\
+            end = search("\\n", end-1, "forward")\n\
+        }\n\
+        if (end == -1) end = $text_length\n\
+        select(start, end)\n\
+        text = replace_in_string(get_selection(), "^    ", "", "regex")\n\
+        if (text != "") {\n\
+            replace_selection(text)\n\
+            select(start, start+length(text))\n\
+        }\n\
+    }\n
+nedit.highlightPatterns: Generic Flow:1:0{\n\
+        Keyword:"(?<!\\Y)(if|fi|then|else|elif|case|esac|while|for|do|done|in|select|time|until|function|\\[\\[|\\]\\])(?!\\Y)[\\s\\n]":::GFKeyword::D\n\
+        Option:"(?<=\\s)-\\w+(?=[\\s\\n])":::GFOption::D\n\
+        Comment:"#":"$"::GFComment::\n\
+        Var1:"\\$([-*@#?$!0-9]|[a-zA-Z_][0-9a-zA-Z_]*)":::GFVar::\n\
+        Var2:"\\$\\{":"}":"\\n":GFVar::D\n\
+        Var3:"(^|(?<=;|export))\\s*\\w+(\\+?)=":::GFVar::\n\
+        Command:"(^|(?<=;))\\s*gf_\\w+":::GFCommand::\n\
+        Escaped:"\\\\[\\\\""$`']":::GFEsc::\n\
+        SContent:"'":"'"::GFSContent::\n\
+        DContent:"""":""""::GFDContent::\n\
+        SComment:"#":"$":"'":GFSComment:SContent:\n\
+        DComment:"#":"$":"""":GFDComment:DContent:\n\
+        SVar1:"\\$([-*@#?$!0-9]|[a-zA-Z_][0-9a-zA-Z_]*)":::GFSVar:SContent:\n\
+        DVar1:"\\$([-*@#?$!0-9]|[a-zA-Z_][0-9a-zA-Z_]*)":::GFDVar:DContent:\n\
+        SVar2:"\\$\\{":"}":"\\n":GFSVar:SContent:\n\
+        DVar2:"\\$\\{":"}":"\\n":GFDVar:DContent:\n\
+        SStep:"(?<=(^|\\s)gf_paste_step\\s)(\\s*\\w+)\\s*$":::GFSStep:SContent:\n\
+        DStep:"(?<=(^|\\s)gf_paste_step\\s)(\\s*\\w+)\\s*$":::GFDStep:DContent:\n\
+        File:"(?<![\\./\\w])[\\./\\w]*/[\\./\\w]+(?![\\./\\w])":::GFFile::\n\
+        SFile:"(?<![\\./\\w])[\\./\\w]*/[\\./\\w]+(?![\\./\\w])":::GFSFile:SContent:\n\
+        DFile:"(?<![\\./\\w])[\\./\\w]*/[\\./\\w]+(?![\\./\\w])":::GFDFile:DContent:\n\
+        Placeholder:"\\<?PLACEHOLDER(:[^\\>]*\\>)?":::GFWarning::D\n\
+        SPlaceholder:"\\<?PLACEHOLDER(:[^\\>]*\\>)?":::GFSWarning:SContent:\n\
+        DPlaceholder:"\\<?PLACEHOLDER(:[^\\>]*\\>)?":::GFDWarning:DContent:\n\
+        SString:"""":"""":"'":GFSString:SContent:\n\
+        DEscaped:"\\\\[\\\\""$`']":::GFDEsc:DContent:\n\
+        DCommand:"\\$\\(":"\\)":"""":Plain:DContent:\n\
+        DRed:"\\\\e\\[\\d1(;\\d+)?m.+?(?=\\\\e\\[[\\d;]+m)":::GFDRed:DContent:\n\
+        DGreen:"\\\\e\\[\\d2(;\\d+)?m.+?(?=\\\\e\\[[\\d;]+m)":::GFDGreen:DContent:\n\
+        DYellow:"\\\\e\\[\\d3(;\\d+)?m.+?(?=\\\\e\\[[\\d;]+m)":::GFDYellow:DContent:\n\
+        DBlue:"\\\\e\\[\\d4(;\\d+)?m.+?(?=\\\\e\\[[\\d;]+m)":::GFDBlue:DContent:\n\
+        DMagenta:"\\\\e\\[\\d5(;\\d+)?m.+?(?=\\\\e\\[[\\d;]+m)":::GFDMagenta:DContent:\n\
+        DCyan:"\\\\e\\[\\d6(;\\d+)?m.+?(?=\\\\e\\[[\\d;]+m)":::GFDCyan:DContent:\n\
+        DColor:"\\\\e\\[[\\d;]+m":::GFDEsc:DContent:\n\
+        CEscaped:"\\\\[\\\\""$`']":::GFEsc:DCommand:\n\
+    }\n\
+    Logs:1:0{\n\
+        Warning:"^[\\s\\*\\\\#]*WARN.*$":::LWarning::\n\
+        Error:"^[\\s\\*\\\\#]*ERROR.*$":::LError::\n\
+        WCode:"[A-Z_]+-\\d+":::LWCode:Warning:\n\
+        ECode:"[A-Z_]+-\\d+":::LECode:Error:\n\
+        Option:"(?<=[\\s\\\\'\\\\""])-[a-z]\\w+":::Operator::\n\
+        String:"""":""""::String2::\n\
+    }
+nedit.languageModes: Generic Flow:.gf:"^[ \\t]*#[ \\t]*![ \\t]*.*gflow":Smart:None:4:4:"!""#$%&'()*+,-./:;<=>?@[\\\\]^`{|}~":\n\
+    Logs:.log .log1 .log2 .log3 .log4 .log5 .log6 .log7::::::"!""#$%&'()*+,:;<=>?@[\\\\]^`{|}~":
+nedit.styles: \
+    Comment:blue:Plain\n\
+    Operator:dark blue:Bold\n\
+    GFKeyword:black:Bold\n\
+    GFCommand:black:Bold\n\
+    GFOption:brown:Bold\n\
+    GFWarning:red:Bold\n\
+    GFSWarning:red/#FFFFF0:Bold\n\
+    GFDWarning:red/#F5F5FF:Bold\n\
+    GFSContent:black/#FFFFF0:Plain\n\
+    GFDContent:black/#F5F5FF:Plain\n\
+    GFComment:blue:Plain\n\
+    GFSComment:blue/#FFFFF0:Plain\n\
+    GFDComment:blue/#F5F5FF:Plain\n\
+    GFSString:darkblue/#FFFFF0:Plain\n\
+    GFVar:#007700:Bold\n\
+    GFSVar:#007700/#FFFFF0:Plain\n\
+    GFDVar:#007700/#F5F5FF:Bold\n\
+    GFSStep:#007700/#FFFFF0:Bold\n\
+    GFDStep:#007700/#F5F5FF:Bold\n\
+    GFFile:#777700:Plain\n\
+    GFSFile:#777700/#FFFFF0:Plain\n\
+    GFDFile:#777700/#F5F5FF:Plain\n\
+    GFEsc:gray50:Plain\n\
+    GFDEsc:gray50/#F5F5FF:Plain\n\
+    GFDRed:red/#F5F5FF:Plain\n\
+    GFDGreen:#00BB00/#F5F5FF:Plain\n\
+    GFDYellow:#BBBB00/#F5F5FF:Plain\n\
+    GFDBlue:#0000BB/#F5F5FF:Plain\n\
+    GFDMagenta:#BB00BB/#F5F5FF:Plain\n\
+    GFDCyan:#00BBBB/#F5F5FF:Plain\n\
+    LWarning:black/lightyellow:Plain\n\
+    LError:red/lightyellow:Bold\n\
+    LWCode:black/gold:Bold\n\
+    LECode:yellow/red:Bold
+nedit.wrapMargin: 0
+!nedit.autoIndent: Auto
+!nedit.openInTab: True
+!nedit.saveOldVersion: False
+!nedit.showMatching: Delimiter
+!nedit.matchSyntaxBased: True
+nedit.highlightSyntax: True
+!nedit.backlightChars: False
+!nedit.searchDialogs: False
+!nedit.beepOnSearchWrap: False
+!nedit.retainSearchDialogs: True
+!nedit.searchWraps: True
+!nedit.stickyCaseSenseButton: True
+!nedit.repositionDialogs: True
+!nedit.autoScroll: False
+!nedit.appendLF: True
+!nedit.sortOpenPrevMenu: True
+!nedit.statisticsLine: False
+!nedit.iSearchLine: False
+!nedit.sortTabs: False
+!nedit.tabBar: True
+!nedit.tabBarHideOne: True
+!nedit.toolTips: True
+!nedit.globalTabNavigate: False
+nedit.lineNumbers: True
+!nedit.pathInWindowsMenu: True
+!nedit.warnFileMods: True
+!nedit.warnRealFileMods: True
+!nedit.warnExit: False
+!nedit.searchMethod: Literal
+!nedit.textRows: 50
+!nedit.textCols: 150
+nedit.tabDistance: 4
+nedit.emulateTabs: 4
+nedit.insertTabs: False
+nedit.textFont: -dec-terminal-medium-r-normal--14-140-75-75-c-80-iso8859-1
+nedit.boldHighlightFont: -dec-terminal-bold-r-normal--14-140-75-75-c-80-iso8859-1
+nedit.italicHighlightFont: -dec-terminal-medium-o-normal--14-140-75-75-c-80-iso8859-1
+nedit.boldItalicHighlightFont: -dec-terminal-bold-o-normal--14-140-75-75-c-80-iso8859-1
+nedit.textFgColor: black
+nedit.textBgColor: rgb:ff/ff/ff
+nedit.selectFgColor: black
+nedit.selectBgColor: rgb:cc/cc/cc
+nedit.hiliteFgColor: white
+nedit.hiliteBgColor: red
+nedit.lineNoFgColor: black
+nedit.cursorFgColor: black
+!nedit.smartTags: True
+nedit.prefFileRead: True
+!nedit.titleFormat: {%c} [%s] %f (%S) - %d

@@ -1,0 +1,55 @@
+################################################################################
+# Generic Flow v5.0 (February 2023)
+################################################################################
+#
+# Copyright 2011-2023 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+################################################################################
+# File name: integration/bashrc.history
+# Purpose:   Filter history (h command)
+################################################################################
+
+# Filter history: h command
+function h {
+    history | perl -e '
+        my %commands; 
+        my $counter = 0; my %counter;
+        while (<STDIN>) {
+            if (s/^  \d+  \s*// && !/\s{4,}/) {
+                s/\s{2,}/ /g; 
+                s/\s*$//;
+                # && !/^(function|if|while|for|exit|ls|done)(\s|$)/
+                if (/^(\S{2,})(([ =].{0,10}))/ || /^(\S{3,})$/) {
+                    $counter{$1}++;
+                    $commands{$1.$2}{name} = $1;
+                    $commands{$1.$2}{index} = ++$counter;
+                    $commands{$1.$2}{command} = $_;
+                }
+            }
+        }
+        foreach my $key (sort {$commands{$a}{index} <=> $commands{$b}{index}} keys %commands) {
+            if ($counter{$commands{$key}{name}} > 15) {
+                print "\e[31;41m \e[0m ";
+            } elsif ($counter{$commands{$key}{name}} > 6) {
+                print "\e[32;42m \e[0m ";
+            } elsif ($counter{$commands{$key}{name}} > 1) {
+                print "\e[33;43m \e[0m ";
+            } else {
+                print "\e[35;45m \e[0m ";
+            }
+            print "$commands{$key}{command}\n";
+        }
+    '
+}

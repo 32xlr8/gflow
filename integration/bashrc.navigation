@@ -1,0 +1,593 @@
+################################################################################
+# Generic Flow v5.0 (February 2023)
+################################################################################
+#
+# Copyright 2011-2023 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+################################################################################
+# File name: integration/bashrc.navigation
+# Purpose:   Navigation functions (a*, c*, f*, s*, v*, x*, z*)
+################################################################################
+
+gf_help_bashrc='
+    #######################
+    # Navigation commands #
+    #######################
+
+    v           # list current directory 
+    v1          # list ./*/ directory    
+    v3          # list ./*/*/*/ directory    
+    v $dir      # list inside specific directory
+    v $pattern  # list matching pattern
+    v $file     # less file contents
+    vz1         # list ../*/ directory
+    vz3         # list ../../../*/*/*/ directory
+    vf          # less last found files
+    vr          # list all found results
+    vxf $cmd    # execute command on last found files
+    vxd $cmd    # execute command on last found directories
+
+    f           # find files and directories
+    f1          # find with 1 max depth
+    f8          # find with 8 max depth
+    ff          # find files
+    fd          # find directories
+    f $dir      # find inside specific directory
+    f $pattern  # find matching pattern
+    fx          # repeat find for previous pattern
+    fz          # find at ../ directory
+    fz1         # find at ../ directory
+    fz3         # find at ../../../ directory
+    
+    c           # show subdirectories to change
+    c1          # show ./*/ subdirectories
+    c6          # show ./*/*/*/*/*/*/ subdirectories
+    c $filter   # filter directories to change
+    c $dir      # change to directory
+    cz          # show alternative subdirectories
+    cz1         # show ../*/ subdirectories
+    cz3         # show ../../../*/*/*/ subdirectories
+    
+    x           # show directory change history
+    xc          # change to the previous directory
+    x $filter   # show filtered directory history
+    
+    z           # Change to ../ directory
+    z3          # Change to ../../../ directory
+
+    a           # Show bookmarks
+    ac $dir     # Add directory to bookmarks
+    av $file    # Add file to bookmarks
+    ac          # Add current directory to bookmarks
+
+    ####################
+    # Pattern examples #
+    ####################
+    
+    ! word        =>      *word*
+    ! .ext        =>      *.ext
+    ! /begin      =>      begin*
+    ! end/        =>      *end
+    ! /exact/     =>      exact
+    
+    ###################
+    # Display options #
+    ###################
+    
+    s 3         # limit display to 3 lines
+    s 5         # limit display to 5 lines
+    s 10        # limit display to 10 lines
+    s 20        # limit display to 20 lines
+    s 50        # limit display to 50 lines
+    
+    sc 5        # limit cd history to 5 lines
+    sc 10       # limit cd history to 10 lines
+    sc 20       # limit cd history to 20 lines
+    
+    s brief     # display results in brief format
+    s long      # display results in long format
+    
+    s time      # sort results by modification time
+    s name      # sort results by file name
+    
+    s color     # colored display
+    s black     # not colored display
+'
+
+# Settings
+function s { gf_set_option "$@"; }
+function s1 { gf_set_option 1; }
+function s2 { gf_set_option 2; }
+function s3 { gf_set_option 3; }
+function s4 { gf_set_option 4; }
+function s5 { gf_set_option 5; }
+function s6 { gf_set_option 6; }
+function s7 { gf_set_option 7; }
+function s8 { gf_set_option 8; }
+function s9 { gf_set_option 9; }
+function s10 { gf_set_option 10; }
+function s15 { gf_set_option 20; }
+function sc { gf_set_option cd $1; }
+function st { gf_set_option time; }
+function sn { gf_set_option name; }
+function sb { gf_set_option brief; }
+function sl { gf_set_option long; }
+
+# List
+function l { v "$@"; }
+function lf { vf "$@"; }
+function lr { vr "$@"; }
+function lz { vz "$@"; }
+function lx { vx "$@"; }
+function lxf { vxf "$@"; }
+function lxd { vxd "$@"; }
+function l1 { v1 "$@"; }
+function l2 { v2 "$@"; }
+function l3 { v3 "$@"; }
+function l4 { v4 "$@"; }
+function l5 { v5 "$@"; }
+function l6 { v6 "$@"; }
+function l7 { v7 "$@"; }
+function lz1 { vz1 "$@"; }
+function lz2 { vz2 "$@"; }
+function lz3 { vz3 "$@"; }
+function lz4 { vz4 "$@"; }
+function lz5 { vz5 "$@"; }
+function lz6 { vz6 "$@"; }
+function lz7 { vz7 "$@"; }
+function lz8 { vz8 "$@"; }
+
+function v { gf_ls "$@"; }
+function vf { gf_ls $gf_files; }
+function vx { vxf "$@"; }
+function vxf { if [ -n "$gf_files" -a -n "$1" ]; then echo "${gf_gr} ${gf_0}" $@ $gf_files; $@ $gf_files; fi; }
+function vxd { if [ -n "$gf_dirs"  -a -n "$1" ]; then echo "${gf_gr} ${gf_0}" $@ $gf_dirs; $@ $gf_dirs; fi; }
+function vr { echo "$gf_results"; }
+function vz { gf_ls '../*' "$@"; }
+function v1 { gf_ls '.' "$@"; }
+function v2 { gf_ls './*' "$@"; }
+function v3 { gf_ls './*/*' "$@"; }
+function v4 { gf_ls './*/*/*' "$@"; }
+function v5 { gf_ls './*/*/*/*' "$@"; }
+function v6 { gf_ls './*/*/*/*/*' "$@"; }
+function v7 { gf_ls './*/*/*/*/*/*' "$@"; }
+function v8 { gf_ls '../*/*/*/*/*/*/*' "$@"; }
+function vz1 { gf_ls '../*' "$@"; }
+function vz2 { gf_ls '../../*/*' "$@"; }
+function vz3 { gf_ls '../../../*/*/*' "$@"; }
+function vz4 { gf_ls '../../../../*/*/*/*' "$@"; }
+function vz5 { gf_ls '../../../../../*/*/*/*/*' "$@"; }
+function vz6 { gf_ls '../../../../../../*/*/*/*/*/*' "$@"; }
+function vz7 { gf_ls '../../../../../../../*/*/*/*/*/*/*' "$@"; }
+function vz8 { gf_ls '../../../../../../../../*/*/*/*/*/*/*/*' "$@"; }
+
+# Find
+function f { gf_find_type=; gf_find "$@"; }
+function ff { gf_find -type f "$@"; }
+function fd { gf_find -type d "$@"; }
+function fx { gf_find -repeat "$@"; }
+function fxf { gf_find -type f -repeat "$@"; }
+function fxd { gf_find -type d -repeat "$@"; }
+function fz { gf_find ".." "$@"; }
+function f1 { gf_find -maxdepth 1 "$@"; }
+function f2 { gf_find -maxdepth 2 "$@"; }
+function f3 { gf_find -maxdepth 3 "$@"; }
+function f4 { gf_find -maxdepth 4 "$@"; }
+function f5 { gf_find -maxdepth 5 "$@"; }
+function f6 { gf_find -maxdepth 6 "$@"; }
+function f7 { gf_find -maxdepth 7 "$@"; }
+function f8 { gf_find -maxdepth 8 "$@"; }
+function fd1 { gf_find -type d -maxdepth 1 "$@"; }
+function fd2 { gf_find -type d -maxdepth 2 "$@"; }
+function fd3 { gf_find -type d -maxdepth 3 "$@"; }
+function fd4 { gf_find -type d -maxdepth 4 "$@"; }
+function fd5 { gf_find -type d -maxdepth 5 "$@"; }
+function fd6 { gf_find -type d -maxdepth 6 "$@"; }
+function fd7 { gf_find -type d -maxdepth 7 "$@"; }
+function fd8 { gf_find -type d -maxdepth 8 "$@"; }
+function ff1 { gf_find -type f -maxdepth 1 "$@"; }
+function ff2 { gf_find -type f -maxdepth 2 "$@"; }
+function ff3 { gf_find -type f -maxdepth 3 "$@"; }
+function ff4 { gf_find -type f -maxdepth 4 "$@"; }
+function ff5 { gf_find -type f -maxdepth 5 "$@"; }
+function ff6 { gf_find -type f -maxdepth 6 "$@"; }
+function ff7 { gf_find -type f -maxdepth 7 "$@"; }
+function ff8 { gf_find -type f -maxdepth 8 "$@"; }
+function fx1 { gf_find -maxdepth 1 -repeat "$@"; }
+function fx2 { gf_find -maxdepth 2 -repeat "$@"; }
+function fx3 { gf_find -maxdepth 3 -repeat "$@"; }
+function fx4 { gf_find -maxdepth 4 -repeat "$@"; }
+function fx5 { gf_find -maxdepth 5 -repeat "$@"; }
+function fx6 { gf_find -maxdepth 6 -repeat "$@"; }
+function fx7 { gf_find -maxdepth 7 -repeat "$@"; }
+function fx8 { gf_find -maxdepth 8 -repeat "$@"; }
+function fz1 { gf_find ".." "$@"; }
+function fz2 { gf_find "../.." "$@"; }
+function fz3 { gf_find "../../.." "$@"; }
+function fz4 { gf_find "../../../.." "$@"; }
+function fz5 { gf_find "../../../../.." "$@"; }
+function fz6 { gf_find "../../../../../.." "$@"; }
+function fz7 { gf_find "../../../../../../.." "$@"; }
+function fz8 { gf_find "../../../../../../../.." "$@"; }
+
+# Navigate deeper
+function c { gf_cd_pattern="$c_pattern"; gf_cd "$@"; }
+function c1 { c_pattern='./*/'; c "$@"; }
+function c2 { c_pattern='./*/*/'; c "$@"; }
+function c3 { c_pattern='./*/*/*/'; c "$@"; }
+function c4 { c_pattern='./*/*/*/*/'; c "$@"; }
+function c5 { c_pattern='./*/*/*/*/*/'; c "$@"; }
+function c6 { c_pattern='./*/*/*/*/*/*/'; c "$@"; }
+function cd1 { c_pattern='./*/'; c "$@"; }
+function cd2 { c_pattern='./*/*/'; c "$@"; }
+function cd3 { c_pattern='./*/*/*/'; c "$@"; }
+function cd4 { c_pattern='./*/*/*/*/'; c "$@"; }
+function cd5 { c_pattern='./*/*/*/*/*/'; c "$@"; }
+function cd6 { c_pattern='./*/*/*/*/*/*/'; c "$@"; }
+
+# Navigate similar dirs
+function cz { gf_cd_pattern="$cz_pattern"; gf_cd "$@"; }
+function cz1 { cz_pattern='../*/'; cz "$@"; }
+function cz2 { cz_pattern='../../*/*/'; cz "$@"; }
+function cz3 { cz_pattern='../../../*/*/*/'; cz "$@"; }
+function cz4 { cz_pattern='../../../../*/*/*/*/'; cz "$@"; }
+function cz5 { cz_pattern='../../../../../*/*/*/*/*/'; cz "$@"; }
+function cz6 { cz_pattern='../../../../../../*/*/*/*/*/*/'; cz "$@"; }
+function cz7 { cz_pattern='../../../../../../../*/*/*/*/*/*/*/'; cz "$@"; }
+
+# Show change directory history
+function x { gf_cd_history "$@"; }
+function xc { c $(echo "$gf_cd_dirs" | tail -1); }
+
+# Navigate up
+function z { local pattern=".."; if [[ $1 =~ ^[1-9][0-9]*$ ]]; then local count=$1; while [ $count -gt 1 ]; do pattern="$pattern/.."; count=$((count-1)); done; fi; gf_cd $pattern; }
+function z1 { z 1; }
+function z2 { z 2; }
+function z3 { z 3; }
+function z4 { z 4; }
+function z5 { z 5; }
+
+# Bookmarks
+function a { gf_bookmark show; }
+function ac { gf_bookmark add "$@"; }
+function ad { gf_bookmark delete "$@"; }
+function av { ac "$@"; }
+function az { ad "$@"; }
+function acc { ac "$@"; }
+function avc { ac "$@"; }
+function adc { ad "$@"; }
+function azc { ad "$@"; }
+
+# Colors
+gf_rd=$'\e[91;41m'
+gf_gr=$'\e[92;42m'
+gf_yl=$'\e[93;43m'
+gf_wt=$'\e[97;47m'
+gf_0=$'\e[0m'
+gf_1=$'\e[1m'
+
+# Set options function
+gf_options_ls='-1dp --color=always'
+gf_options_lines=15
+gf_cd_lines=15
+gf_files=
+gf_dirs=
+function gf_set_option {
+    local is_error=
+    if [ -z "$1" ]; then
+        echo "$gf_help_bashrc" | sed -e "s|^\s*||; s|^\(\w\+\)|${gf_gr}\\1${gf_0}|; s|! ||"
+        echo "${gf_gr} ${gf_0} Results display limited to ${gf_1}$gf_options_lines${gf_0} lines"
+        echo "${gf_gr} ${gf_0} Change dir history limited to ${gf_1}$gf_cd_lines${gf_0} lines"
+        echo "${gf_gr} ${gf_0} Display options ${gf_1}$gf_options_ls${gf_0} used"
+    elif [[ "$1" =~ ^[1-9][0-9]*$ ]]; then
+        gf_options_lines=$1
+        echo "${gf_gr} ${gf_0} Results display limited to ${gf_1}$gf_options_lines${gf_0} lines"
+    elif [ "$1" == "long" ]; then
+        gf_options_ls=$(echo $gf_options_ls | sed -e 's|1|l|')
+        echo "${gf_gr} ${gf_0} Display options ${gf_1}$gf_options_ls${gf_0} used"
+    elif [ "$1" == "brief" ]; then
+        gf_options_ls=$(echo $gf_options_ls | sed -e 's|l|1|')
+        echo "${gf_gr} ${gf_0} Display options ${gf_1}$gf_options_ls${gf_0} used"
+    elif [ "$1" == "time" ]; then
+        gf_options_ls=$(echo $gf_options_ls | sed -e 's|d|trd|; s|trtr|tr|')
+        echo "${gf_gr} ${gf_0} Display options ${gf_1}$gf_options_ls${gf_0} used"
+    elif [ "$1" == "name" ]; then
+        gf_options_ls=$(echo $gf_options_ls | sed -e 's|trd|d|')
+        echo "${gf_gr} ${gf_0} Display options ${gf_1}$gf_options_ls${gf_0} used"
+    elif [ "$1" == "color" ]; then
+        gf_options_ls=$(echo $gf_options_ls | sed -e 's|=none|=always|')
+        echo "${gf_gr} ${gf_0} Display options ${gf_1}$gf_options_ls${gf_0} used"
+    elif [ "$1" == "black" ]; then
+        gf_options_ls=$(echo $gf_options_ls | sed -e 's|=always|=none|')
+        echo "${gf_gr} ${gf_0} Display options ${gf_1}$gf_options_ls${gf_0} used"
+    elif [ "$1" == "cd" ]; then
+        if [[ $2 =~ ^[1-9][0-9]*$ ]]; then gf_cd_lines=$2; fi
+        echo "${gf_gr} ${gf_0} Change dir history limited to ${gf_1}$gf_cd_lines${gf_0} lines"
+    else
+        echo "${gf_rd} ${gf_0} Incorrect ${gf_1}$1${gf_0} option"
+    fi
+}
+
+# Display results with lines limit, directories first
+gf_results=
+function gf_display_results {
+    local count="$(echo $@ | wc -w)"
+    if [ $count -gt 0 ]; then
+        count=$((count-$gf_options_lines))
+        [[ $count -gt 0 ]] && echo "... $count more results (see ${gf_1}\$gf_results${gf_0} for full list)"
+        gf_files=; gf_dirs=; local result=
+        gf_results="$(ls -1trdp $(ls -1d $@ 2> /dev/null | sed -e 's|/$||g'))"
+        for result in $(echo "$gf_results" | tail -$gf_options_lines | sed -e 's|/$||g'); do
+            if [ -d "$result" ]; then
+                gf_dirs="$gf_dirs $result"
+            else
+                gf_files="$gf_files $result"
+            fi
+        done
+        [[ -n "$gf_dirs" ]] && ls $gf_options_ls $gf_dirs | grep -v $'^\e\[m$' | sed -e "s|^|${gf_gr}c${gf_0} |"
+        [[ -n "$gf_files" ]] && ls $gf_options_ls $gf_files | grep -v $'^\e\[m$' | sed -e "s|^|${gf_gr}v${gf_0} |"
+    fi
+}
+
+# List directory content
+function gf_ls {
+    local pattern=; local dir=; local files=
+    while [ -n "$1" ]; do
+        if [ -z "$dir" -a -d "$1" ]; then
+            dir="$1"
+        elif [ ! -d "$1" -a -z "$dir" -a -e "$1" ]; then
+            files="$files$1"$'\n'
+        elif [[ $1 =~ / ]]; then
+            dir="$1"
+        elif [[ $1 =~ ^\. ]]; then
+            pattern="*$1"
+        elif [[ $1 =~ [\\\?\\\*] ]]; then
+            pattern="$1"
+        else
+            pattern="*$1*"
+        fi
+        shift
+    done
+    if [ -n "$files" -a -z "$dir" ]; then
+        less -NR $files > /dev/tty
+        echo "${gf_gr} ${gf_0} less -NR ${gf_1}\$files${gf_0} > /dev/tty"
+        gf_dirs=; gf_files="$files"
+    else
+        echo "${gf_wt}c${gf_0} $PWD"$'\n'
+        [[ -z "$dir" ]] && dir="."
+        [[ -z "$pattern" ]] && pattern='*'
+        files="$(ls -1trd $dir/$pattern 2> /dev/null)"
+        if [ -n "$files" ]; then
+            gf_display_results $files
+            echo $'\n'"${gf_gr} ${gf_0} ls $gf_options_ls $dir/${gf_1}$pattern${gf_0}"
+        else
+            echo "${gf_rd} ${gf_0} ls $gf_options_ls $dir/${gf_1}$pattern${gf_0}"
+        fi
+    fi
+}
+
+# Find function
+gf_find_maxdepth="-maxdepth 3"
+gf_find_type=
+gf_find_dir=
+gf_find_pattern='*'
+function gf_find {
+    local is_repeat=0
+    local type=
+    local dir=
+    local pattern=
+    while [ -n "$1" ]; do
+        if [ -z "$dir" -a -d "$1" ]; then
+            dir="$1"; gf_find_dir="$dir"
+        elif [[ $1 =~ ^-repeat$ ]]; then
+            is_repeat=1
+        elif [[ $1 =~ ^-maxdepth$ ]]; then
+            if [[ $2 =~ ^[1-9][0-9]*$ ]]; then 
+                gf_find_maxdepth="-maxdepth $2"
+            fi
+            shift
+        elif [[ $1 =~ ^[1-9][0-9]*$ ]]; then 
+            gf_find_maxdepth="-maxdepth $1"
+        elif [[ $1 =~ ^-type$ ]]; then
+            gf_find_type="-type $2 "
+            type="$gf_find_type"
+            shift
+        elif [[ $1 =~ ^\. ]]; then
+            pattern="*$1"; gf_find_pattern="$pattern"
+        elif [[ $1 =~ [\\\?\\\*] ]]; then
+            pattern="$1"; gf_find_pattern="$pattern"
+        elif [[ $1 =~ / ]]; then
+            pattern="$(echo "*$1*" | sed -e 's|/\*\?$||g; s|^.*/\*\?||g')"; gf_find_pattern="$pattern"
+        else
+            pattern="*$1*"; gf_find_pattern="$pattern"
+        fi
+        shift
+    done
+    if [ "$is_repeat" == "1" ]; then
+        type="$gf_find_type"
+        dir="$gf_find_dir"
+        pattern="$gf_find_pattern"
+    fi
+    [[ -z "$dir" ]] && dir="."
+    [[ -z "$pattern" ]] && pattern='*'
+    if [ "$pattern" != "*" ]; then gf_find_pattern="$pattern"; fi
+    echo "${gf_wt}c${gf_0} $PWD"$'\n'
+    local files="$(find "$dir" $gf_find_type$gf_find_maxdepth -iname "$pattern" -not -path "$dir" 2> /dev/null)"
+    if [ -n "$files" ]; then
+        gf_display_results $files
+        echo $'\n'"${gf_gr} ${gf_0} find ${gf_1}'$dir'${gf_0} $gf_find_type$gf_find_maxdepth -iname '${gf_1}$pattern${gf_0}'"
+    else
+        echo "${gf_rd} ${gf_0} find ${gf_1}'$dir'${gf_0} $gf_find_type$gf_find_maxdepth -iname '${gf_1}$pattern${gf_0}'"
+    fi
+}
+
+# Change directory
+c_pattern='./*/'
+cz_pattern='../*/'
+gf_cd_pattern="$c_pattern"
+function gf_cd {
+    local pattern="$gf_cd_pattern"
+    local pattern_error=
+    local dirs=
+    while [ -n "$1" ]; do
+        local dir=
+        local filter=
+        if [ -d "$1" ]; then
+            dir="$1"
+        else
+            filter="$1"
+        fi
+        shift
+    done
+    local changed=
+    if [ -d "$dir" ]; then
+        gf_cd_dirs="$(echo "$(echo "$gf_cd_dirs" | grep -Fxv "$PWD")"$'\n'"$PWD" | tail -$gf_cd_lines)"
+        cd "$dir"
+        changed=1
+        pattern="./*/"
+    else
+        if [ -n "$filter" ]; then
+            dirs="$(ls -1trd $pattern 2> /dev/null | grep -ie "$filter")"
+            [[ -z "$dirs" ]] && pattern_error=1
+        fi
+    fi
+    echo "${gf_wt}c${gf_0} $PWD"$'\n'
+    [[ -z "$dirs" ]] && dirs="$(ls -1trd $pattern 2> /dev/null)"
+    if [ -n "$dirs" ]; then
+        gf_display_results $dirs
+        if [ -n "$pattern_error" ]; then
+            echo $'\n'"${gf_rd} ${gf_0} ls $gf_options_ls ${gf_1}$pattern${gf_0} | grep -ie ${gf_1}\"$filter\"${gf_0}"
+        elif [ -n "$filter" ]; then
+            echo $'\n'"${gf_gr} ${gf_0} ls $gf_options_ls ${gf_1}$pattern${gf_0} | grep -ie ${gf_1}\"$filter\"${gf_0}"
+        else
+            echo $'\n'"${gf_gr} ${gf_0} ls $gf_options_ls ${gf_1}$pattern${gf_0}"
+        fi
+    else
+        local files="$(ls -1trd ./* 2> /dev/null)"
+        if [ -n "$files" ]; then
+            gf_display_results $files
+            echo
+        fi
+        echo "${gf_rd} ${gf_0} ls $gf_options_ls ${gf_1}$pattern${gf_0}"
+    fi
+}
+
+# Change dir history
+gf_cd_dirs=
+function gf_cd_history {
+    local filter="$1"
+    echo "${gf_wt}c${gf_0} $PWD"$'\n'
+    if [ -n "$gf_cd_dirs" ]; then
+        if [ -n "$filter" ]; then
+            local dirs="$(echo "$gf_cd_dirs" | grep -ie "$filter")"
+            if [ -n "$dirs" ]; then
+                gf_display_results $dirs
+                echo $'\n'"${gf_gr} ${gf_0} echo \"${gf_1}\$gf_cd_dirs${gf_0}\" | grep -ie \"${gf_1}$filter${gf_0}\""
+            else
+                gf_display_results $gf_cd_dirs
+                echo $'\n'"${gf_rd} ${gf_0} echo \"${gf_1}\$gf_cd_dirs${gf_0}\" | grep -ie \"${gf_1}$filter${gf_0}\""
+            fi
+        else
+            gf_display_results $gf_cd_dirs
+            echo $'\n'"${gf_gr} ${gf_0} echo \"${gf_1}\$gf_cd_dirs${gf_0}\""
+        fi
+    else
+        echo "${gf_rd} ${gf_0} echo \"${gf_1}\$gf_cd_dirs${gf_0}\""
+    fi
+}
+
+# Bookmarks
+gf_bookmarks=
+function gf_bookmark {
+    local cmd="$1"; shift
+    local filter=
+    if [ "$cmd" == "add" ]; then
+        if [ -z "$1" ]; then
+            local dir="$PWD"
+        else
+            local dir="$1"; shift
+        fi
+        gf_bookmarks="$(echo "$PWD"$'\n'"$dir"$'\n'"$gf_bookmarks"| perl -e '
+            my $pwd = "";
+            my $dir = "";
+            while (<STDIN>) {
+                s/^\s+//;
+                s/\s*$//;
+                if ($pwd eq "") {
+                    $pwd = $_;
+                } elsif ($dir eq "") {
+                    $_ = $pwd."/".$_ if (/^[^\/]/);
+                    $_ .= "/";
+                    1 while s|/{2,}|/|;
+                    1 while (s|/\./|/|);
+                    1 while (s|/[^/]+/\.\./|/|);
+                    s|/$||;
+                    $dir = $_;
+print STDERR "$dir\n";
+                } elsif ($_ ne $dir) {
+                    print "$_\n" if ($_ ne "");
+                }
+            }
+            print "$dir\n" if ($dir ne "");
+        ')"
+    elif [ "$cmd" == "delete" ]; then
+        if [ -z "$1" ]; then
+            local dir="$PWD"
+        else
+            local dir="$1"; shift
+        fi
+        gf_bookmarks="$(echo "$PWD"$'\n'"$dir"$'\n'"$gf_bookmarks"| perl -e '
+            my $pwd = "";
+            my $dir = "";
+            while (<STDIN>) {
+                s/^\s+//;
+                s/\s*$//;
+                if ($pwd eq "") {
+                    $pwd = $_;
+                } elsif ($dir eq "") {
+                    $_ = $pwd."/".$_ if (/^[^\/]/);
+                    $_ .= "/";
+                    1 while s|/{2,}|/|;
+                    1 while (s|/\./|/|);
+                    1 while (s|/[^/]+/\.\./|/|);
+                    s|/$||;
+                    $dir = $_;
+                } elsif ($_ ne $dir) {
+                    print "$_\n" if ($_ ne "");
+                }
+            }
+        ')"
+    else
+        filter="$1"
+    fi
+    echo "${gf_wt}c${gf_0} $PWD"$'\n'
+    if [ -n "$gf_bookmarks" ]; then
+        if [ -n "$filter" ]; then
+            local bookmarks="$(echo "$gf_bookmarks" | grep -ie "$filter")"
+            if [ -n "$bookmarks" ]; then
+                gf_display_results $bookmarks
+                echo $'\n'"${gf_gr} ${gf_0} echo \"${gf_1}\$gf_bookmarks${gf_0}\" | grep -ie \"${gf_1}$filter${gf_0}\""
+            else
+                gf_display_results $gf_bookmarks
+                echo $'\n'"${gf_rd} ${gf_0} echo \"${gf_1}\$gf_bookmarks${gf_0}\" | grep -ie \"${gf_1}$filter${gf_0}\""
+            fi
+        else
+            gf_display_results $gf_bookmarks
+            echo $'\n'"${gf_gr} ${gf_0} echo \"${gf_1}\$gf_bookmarks${gf_0}\""
+        fi
+    else
+        echo "${gf_rd} ${gf_0} echo \"${gf_1}\$gf_bookmarks${gf_0}\""
+    fi
+}

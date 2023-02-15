@@ -17,8 +17,8 @@
 # limitations under the License.
 #
 ################################################################################
-# File name: templates/tools_template.cadence.2022/tool_steps.innovus.gf
-# Purpose:   Innovus steps to use in the Generic Flow
+# Filename: templates/tools_template.cadence.2022/tool_steps.innovus.gf
+# Purpose:  Innovus steps to use in the Generic Flow
 ################################################################################
 
 gf_info "Loading tool-specific Innovus steps ..."
@@ -59,7 +59,7 @@ gf_create_step -name innovus_set_propagated_clocks '
 
 # Update IO latency
 gf_create_step -name innovus_update_io_latency '
-    `gf_paste_step innovus_reset_propagated_clocks`
+    `@innovus_reset_propagated_clocks`
     update_io_latency
 '
 
@@ -178,12 +178,12 @@ gf_create_step -name innovus_time_design_late_early_summary '
 gf_create_step -name innovus_reports_pre_place '
 
     # Start metric collection
-    `gf_paste_step collect_metrics`
+    `@collect_metrics`
 
     # Create reports directory
     exec mkdir -p ./reports/$TASK_NAME
 
-    `gf_paste_step innovus_time_design_late_early_summary`
+    `@innovus_time_design_late_early_summary`
 
     # Basic timing check
     check_timing -verbose > ./reports/$TASK_NAME/check.timing.rpt
@@ -206,66 +206,66 @@ gf_create_step -name innovus_reports_pre_place '
     }
     
     # Report collected metrics
-    `gf_paste_step report_metrics`
+    `@report_metrics`
 '
 
 # Pre-clock Innovus reports
 gf_create_step -name innovus_reports_pre_clock '
 
     # Start metric collection
-    `gf_paste_step collect_metrics`
+    `@collect_metrics`
 
     # Create reports directory
     exec mkdir -p ./reports/$TASK_NAME
     
-    `gf_paste_step innovus_time_design_late_early_summary`
+    `@innovus_time_design_late_early_summary`
 
-    `gf_paste_step innovus_report_timing_late`
+    `@innovus_report_timing_late`
 
     # Report collected metrics
-    `gf_paste_step report_metrics`
+    `@report_metrics`
 '
 
 # Pre-route Innovus reports
 gf_create_step -name innovus_reports_pre_route '
 
     # Start metric collection
-    `gf_paste_step collect_metrics`
+    `@collect_metrics`
 
     # Create reports directory
     exec mkdir -p ./reports/$TASK_NAME
     
-    `gf_paste_step innovus_time_design_late_early_summary`
+    `@innovus_time_design_late_early_summary`
 
-    `gf_paste_step innovus_report_timing_late`
-    `gf_paste_step innovus_report_timing_early`
-    `gf_paste_step innovus_report_clock_timing`
+    `@innovus_report_timing_late`
+    `@innovus_report_timing_early`
+    `@innovus_report_clock_timing`
 
     # Report collected metrics
-    `gf_paste_step report_metrics`
+    `@report_metrics`
 '
 
 # Pre-route Innovus reports
 gf_create_step -name innovus_reports_post_route '
 
     # Start metric collection
-    `gf_paste_step collect_metrics`
+    `@collect_metrics`
 
     # Create reports directory
     exec mkdir -p ./reports/$TASK_NAME
     
-    `gf_paste_step innovus_time_design_late_early_summary`
+    `@innovus_time_design_late_early_summary`
 
-    `gf_paste_step innovus_report_timing_late`
-    `gf_paste_step innovus_report_timing_early`
-    `gf_paste_step innovus_report_clock_timing`
-    `gf_paste_step innovus_report_power`
-    `gf_paste_step innovus_report_route_drc`
-    `gf_paste_step innovus_report_route_process`
-    `gf_paste_step innovus_report_density`
+    `@innovus_report_timing_late`
+    `@innovus_report_timing_early`
+    `@innovus_report_clock_timing`
+    `@innovus_report_power`
+    `@innovus_report_route_drc`
+    `@innovus_report_route_process`
+    `@innovus_report_density`
 
     # Report collected metrics
-    `gf_paste_step report_metrics`
+    `@report_metrics`
 '
 
 ################################################################################

@@ -17,8 +17,8 @@
 # limitations under the License.
 #
 ################################################################################
-# File name: templates/tools_template.common.2022/tool_steps.gconfig.gf
-# Purpose:   TCL procedures to work with file lists
+# Filename: templates/tools_template.common.2022/tool_steps.gconfig.gf
+# Purpose:  TCL procedures to work with file lists
 ################################################################################
 
 gf_info "Loading tool-specific gconfig steps ..."

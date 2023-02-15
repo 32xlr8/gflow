@@ -17,8 +17,8 @@
 # limitations under the License.
 #
 ################################################################################
-# File name: templates/project_template.cadence.2022/blocks/block_template.frontend/block.genus.gf
-# Purpose:   Block-specific Genus configuration and flow steps
+# Filename: templates/project_template.cadence.2022/blocks/block_template.frontend/block.genus.gf
+# Purpose:  Block-specific Genus configuration and flow steps
 ################################################################################
 
 gf_info "Loading block-specific Genus steps ..."

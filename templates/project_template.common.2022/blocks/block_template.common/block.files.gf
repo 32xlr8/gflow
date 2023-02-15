@@ -17,8 +17,8 @@
 # limitations under the License.
 #
 ################################################################################
-# File name: templates/project_template.common.2022/blocks/block_template.common/block.files.gf
-# Purpose:   Block-specific files configuration
+# Filename: templates/project_template.common.2022/blocks/block_template.common/block.files.gf
+# Purpose:  Block-specific files configuration
 ################################################################################
 
 gf_info "Loading block-specific files setup ..."

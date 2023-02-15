@@ -17,8 +17,8 @@
 # limitations under the License.
 #
 ################################################################################
-# File name: templates/project_template.common.2022/project.common.gf
-# Purpose:   Project-specific configuration and flow steps
+# Filename: templates/project_template.common.2022/project.common.gf
+# Purpose:  Project-specific configuration and flow steps
 ################################################################################
 
 gf_info "Loading project-specific setup ..."
@@ -44,6 +44,9 @@ gf_set_flow_options -today
 # # Raise main window when done
 # gf_set_flow_options -raise
 
+# # Use TrueType font
+# gf_set_flow_options -smooth
+
 # # Verbose logs of failed tasks
 # gf_set_flow_options -verbose
 
@@ -60,15 +63,19 @@ gf_create_step -name init_shell_environment '
     # Remove tool paths from path environment
     export PATH="$(echo ":$PATH" | sed -e "s|:<PLACEHOLDER:/PATH_TO/SOFT/ROOT/>[^:]\+||g; s/^://;")"
 
-    # Fix OpenAccess issues
+    # Bypass OpenAccess issues
     # export OA_UNSUPPORTED_PLAT=linux_rhel60
     unset OA_HOME
 
-    # License and startup settings
-    export CDS_AUTO_64BIT=ALL
-    export CDS_STYLUS_SOURCE_VERBOSE=0
+    # License options
+    # export CDS_LIC_ONLY=1
     # export CDS_LIC_FILE=5280@<PLACEHOLDER:lic_server1>:5280@<PLACEHOLDER:lic_server2>
     export LM_LICENSE_FILE=5280@<PLACEHOLDER:lic_server1>:5280@<PLACEHOLDER:lic_server2>
+
+    # Startup options
+    export CDS_AUTO_32BIT=NONE
+    export CDS_AUTO_64BIT=ALL
+    export CDS_STYLUS_SOURCE_VERBOSE=0
 
     # # Temporary directory
     # export TMPDIR="."

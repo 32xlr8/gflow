@@ -17,8 +17,8 @@
 # limitations under the License.
 #
 ################################################################################
-# File name: templates/tools_template.cadence.2022/gflow_plugin.genus.gf
-# Purpose:   Generic Flow Genus plugin
+# Filename: templates/tools_template.cadence.2022/gflow_plugin.genus.gf
+# Purpose:  Generic Flow Genus plugin
 ################################################################################
 
 gf_info "Loading Genus plugin ..."
@@ -92,10 +92,10 @@ function gf_use_genus_batch {
     # Shell commands to run
     gf_set_task_command "bash run.bash"
     gf_add_tool_commands -comment '#' -file "./tasks/$TASK_NAME/run.bash" '
-        `gf_paste_step init_shell_environment`
-        `gf_paste_step init_genus_environment`
-        `gf_paste_step -optional init_modus_environment`
-        `gf_paste_step -optional init_innovus_environment`
+        `@init_shell_environment`
+        `@init_genus_environment`
+        `@init_modus_environment -optional`
+        `@init_innovus_environment -optional`
         
         # Run the tool
         genus -batch -no_gui -files ./scripts/`$TASK_NAME`.tcl

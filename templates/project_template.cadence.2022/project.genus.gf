@@ -17,8 +17,8 @@
 # limitations under the License.
 #
 ################################################################################
-# File name: templates/project_template.cadence.2022/project.genus.gf
-# Purpose:   Project-specific Genus configuration and flow steps
+# Filename: templates/project_template.cadence.2022/project.genus.gf
+# Purpose:  Project-specific Genus configuration and flow steps
 ################################################################################
 
 # Load tool plugin, tool and technology steps to use in GF scripts

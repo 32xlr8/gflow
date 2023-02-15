@@ -17,8 +17,8 @@
 # limitations under the License.
 #
 ################################################################################
-# File name: templates/project_template.cadence.2022/blocks/block_template.backend/block.innovus.gf
-# Purpose:   Block-specific Innovus configuration and flow steps
+# Filename: templates/project_template.cadence.2022/blocks/block_template.backend/block.innovus.gf
+# Purpose:  Block-specific Innovus configuration and flow steps
 ################################################################################
 
 # # Load Quantus if high effort extraction used

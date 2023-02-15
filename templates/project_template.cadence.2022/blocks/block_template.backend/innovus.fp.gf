@@ -19,8 +19,8 @@
 # limitations under the License.
 #
 ################################################################################
-# File name: templates/project_template.cadence.2022/blocks/block_template.backend/innovus.fp.gf
-# Purpose:   Interactive floorplan creation flow
+# Filename: templates/project_template.cadence.2022/blocks/block_template.backend/innovus.fp.gf
+# Purpose:  Interactive floorplan creation flow
 ################################################################################
 
 ########################################

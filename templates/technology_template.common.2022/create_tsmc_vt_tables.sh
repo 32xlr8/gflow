@@ -19,8 +19,8 @@
 # limitations under the License.
 #
 ################################################################################
-# File name: templates/technology_template.common.2022/create_tsmc_vt_tables.sh
-# Purpose:   Parse TSMC PDF files to extract dV/dT derates
+# Filename: templates/technology_template.common.2022/create_tsmc_vt_tables.sh
+# Purpose:  Parse TSMC PDF files to extract dV/dT derates
 ################################################################################
 
 script_name=$(basename "$0" .sh)

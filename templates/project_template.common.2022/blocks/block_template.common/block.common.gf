@@ -17,8 +17,8 @@
 # limitations under the License.
 #
 ################################################################################
-# File name: templates/project_template.common.2022/blocks/block_template.common/block.common.gf
-# Purpose:   Block-specific configuration and flow steps
+# Filename: templates/project_template.common.2022/blocks/block_template.common/block.common.gf
+# Purpose:  Block-specific configuration and flow steps
 ################################################################################
 
 gf_info "Loading block-specific setup ..."

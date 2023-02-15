@@ -17,8 +17,8 @@
 # limitations under the License.
 #
 ################################################################################
-# File name: templates/tools_template.cadence.2022/gflow_plugin.innovus.gf
-# Purpose:   Generic Flow Innovus plugin
+# Filename: templates/tools_template.cadence.2022/gflow_plugin.innovus.gf
+# Purpose:  Generic Flow Innovus plugin
 ################################################################################
 
 gf_info "Loading Innovus plugin ..."
@@ -39,36 +39,38 @@ function gf_use_innovus {
 
     # Shell commands to run
     gf_set_task_command "bash run.bash"
-    gf_add_tool_commands -comment '#' -file "./tasks/$TASK_NAME/run.bash" "
-        `gf_paste_step init_shell_environment`
-        `gf_paste_step init_innovus_environment`
-        `gf_paste_step -optional init_quantus_environment`
-        `gf_paste_step -optional init_genus_environment`
+    gf_add_tool_commands -comment '#' -file "./tasks/$TASK_NAME/run.bash" '
+        `@init_shell_environment`
+        `@init_innovus_environment`
+        `@init_quantus_environment -optional`
+        `@init_genus_environment -optional`
         
         # Run the tool
-        innovus -stylus -files ./scripts/$TASK_NAME.tcl
-    "
+        innovus -stylus -files ./scripts/`$TASK_NAME`.tcl
+    '
 
     # TCL script initialization
-    gf_add_tool_commands -comment '#' -file "./scripts/$TASK_NAME.tcl" "
+    gf_add_tool_commands -comment '#' -file "./scripts/$TASK_NAME.tcl" '
         # Current task variables
-        set RUN_INDEX {$GF_RUN_INDEX}
-        set MOTHER_TASK_NAME {$MOTHER_TASK_NAME}
-        set TASK_NAME {$TASK_NAME}
+        set RUN_INDEX {`$GF_RUN_INDEX`}
+        set MOTHER_TASK_NAME {`$MOTHER_TASK_NAME`}
+        set TASK_NAME {`$TASK_NAME`}
         
         # Generic Flow directories
-        set GF_ROOT {$GF_ROOT}
-        set GF_SCRIPT_DIR {$GF_SCRIPT_DIR}
+        set GF_ROOT {`$GF_ROOT`}
+        set GF_SCRIPT_DIR {`$GF_SCRIPT_DIR`}
         
         # Interactive aliases
         alias man {exec /usr/bin/man > /dev/tty}
         alias less {exec /usr/bin/less > /dev/tty}
         alias vi {exec /usr/bin/vim > /dev/tty}
-    "
+    '
 
     # Multi-CPU mode
     if [ -n "$GF_TASK_CPU" ]; then
-        gf_add_tool_commands "set_multi_cpu_usage -local_cpu $GF_TASK_CPU"
+        gf_add_tool_commands '
+            set_multi_cpu_usage -local_cpu `$GF_TASK_CPU`
+        '
     fi
 
     # Status marks
@@ -104,36 +106,38 @@ function gf_use_innovus_legacy {
 
     # Shell commands to run
     gf_set_task_command "bash run.bash"
-    gf_add_tool_commands -comment '#' -file "./tasks/$TASK_NAME/run.bash" "
-        `gf_paste_step init_shell_environment`
-        `gf_paste_step init_innovus_environment`
-        `gf_paste_step -optional init_quantus_environment`
-        `gf_paste_step -optional init_genus_environment`
+    gf_add_tool_commands -comment '#' -file "./tasks/$TASK_NAME/run.bash" '
+        `@init_shell_environment`
+        `@init_innovus_environment`
+        `@init_quantus_environment -optional`
+        `@init_genus_environment -optional`
         
         # Run the tool
-        innovus -files ./scripts/$TASK_NAME.tcl
-    "
+        innovus -files ./scripts/`$TASK_NAME`.tcl
+    '
 
     # TCL script initialization
-    gf_add_tool_commands -comment '#' -file "./scripts/$TASK_NAME.tcl" "
+    gf_add_tool_commands -comment '#' -file "./scripts/$TASK_NAME.tcl" '
         # Current task variables
-        set RUN_INDEX {$GF_RUN_INDEX}
-        set MOTHER_TASK_NAME {$MOTHER_TASK_NAME}
-        set TASK_NAME {$TASK_NAME}
+        set RUN_INDEX {`$GF_RUN_INDEX`}
+        set MOTHER_TASK_NAME {`$MOTHER_TASK_NAME`}
+        set TASK_NAME {`$TASK_NAME`}
         
         # Generic Flow directories
-        set GF_ROOT {$GF_ROOT}
-        set GF_SCRIPT_DIR {$GF_SCRIPT_DIR}
+        set GF_ROOT {`$GF_ROOT`}
+        set GF_SCRIPT_DIR {`$GF_SCRIPT_DIR`}
         
         # Interactive aliases
         alias man {exec /usr/bin/man > /dev/tty}
         alias less {exec /usr/bin/less > /dev/tty}
         alias vi {exec /usr/bin/vim > /dev/tty}
-    "
+    '
 
     # Multi-CPU mode
     if [ -n "$GF_TASK_CPU" ]; then
-        gf_add_tool_commands "setMultiCpuUsage -local $GF_TASK_CPU"
+        gf_add_tool_commands '
+            setMultiCpuUsage -local `$GF_TASK_CPU`
+        '
     fi
 
     # Success marks
@@ -156,36 +160,38 @@ function gf_use_innovus_batch {
 
     # Shell commands to run
     gf_set_task_command "bash run.bash"
-    gf_add_tool_commands -comment '#' -file "./tasks/$TASK_NAME/run.bash" "
-        `gf_paste_step init_shell_environment`
-        `gf_paste_step init_innovus_environment`
-        `gf_paste_step -optional init_quantus_environment`
-        `gf_paste_step -optional init_genus_environment`
+    gf_add_tool_commands -comment '#' -file "./tasks/$TASK_NAME/run.bash" '
+        `@init_shell_environment`
+        `@init_innovus_environment`
+        `@init_quantus_environment -optional`
+        `@init_genus_environment -optional`
         
         # Run the tool
-        innovus -stylus -batch -no_gui -files ./scripts/$TASK_NAME.tcl
-    "
+        innovus -stylus -batch -no_gui -files ./scripts/`$TASK_NAME`.tcl
+    '
 
     # TCL script initialization
-    gf_add_tool_commands -comment '#' -file "./scripts/$TASK_NAME.tcl" "
+    gf_add_tool_commands -comment '#' -file "./scripts/$TASK_NAME.tcl" '
         # Current task variables
-        set RUN_INDEX {$GF_RUN_INDEX}
-        set MOTHER_TASK_NAME {$MOTHER_TASK_NAME}
-        set TASK_NAME {$TASK_NAME}
+        set RUN_INDEX {`$GF_RUN_INDEX`}
+        set MOTHER_TASK_NAME {`$MOTHER_TASK_NAME`}
+        set TASK_NAME {`$TASK_NAME`}
         
         # Generic Flow directories
-        set GF_ROOT {$GF_ROOT}
-        set GF_SCRIPT_DIR {$GF_SCRIPT_DIR}
+        set GF_ROOT {`$GF_ROOT`}
+        set GF_SCRIPT_DIR {`$GF_SCRIPT_DIR`}
         
         # Interactive aliases
         alias man {exec /usr/bin/man > /dev/tty}
         alias less {exec /usr/bin/less > /dev/tty}
         alias vi {exec /usr/bin/vim > /dev/tty}
-    "
+    '
 
     # Multi-CPU mode
     if [ -n "$GF_TASK_CPU" ]; then
-        gf_add_tool_commands "set_multi_cpu_usage -local_cpu $GF_TASK_CPU"
+        gf_add_tool_commands '
+            set_multi_cpu_usage -local_cpu `$GF_TASK_CPU`
+        '
     fi
 
     # Status marks

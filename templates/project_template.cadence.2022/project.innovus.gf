@@ -17,8 +17,8 @@
 # limitations under the License.
 #
 ################################################################################
-# File name: templates/project_template.cadence.2022/project.innovus.gf
-# Purpose:   Project-specific Innovus configuration and flow steps
+# Filename: templates/project_template.cadence.2022/project.innovus.gf
+# Purpose:  Project-specific Innovus configuration and flow steps
 ################################################################################
 
 # Load tool plugin, tool and technology steps to use in GF scripts

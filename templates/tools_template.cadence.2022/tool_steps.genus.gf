@@ -17,8 +17,8 @@
 # limitations under the License.
 #
 ################################################################################
-# File name: templates/tools_template.cadence.2022/tool_steps.genus.gf
-# Purpose:   Genus steps to use in the Generic Flow
+# Filename: templates/tools_template.cadence.2022/tool_steps.genus.gf
+# Purpose:  Genus steps to use in the Generic Flow
 ################################################################################
 
 gf_info "Loading tool-specific Genus steps ..."

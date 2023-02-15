@@ -17,8 +17,8 @@
 # limitations under the License.
 #
 ################################################################################
-# File name: templates/technology_template.common.2022/technology.common.gf
-# Purpose:   Technology configuration for Generic Config toolkit
+# Filename: templates/technology_template.common.2022/technology.common.gf
+# Purpose:  Technology configuration for Generic Config toolkit
 ################################################################################
 
 gf_info "Loading technology-specific configuration steps ..."

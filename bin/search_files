@@ -1,0 +1,660 @@
+#!/bin/bash
+
+################################################################################
+# Generic Flow v5.0 (February 2023)
+################################################################################
+#
+# Copyright 2011-2023 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+################################################################################
+# File name: bin/search_files
+# Purpose:   Look for files on the disk and replace it in the script
+################################################################################
+
+GF_TOOL_PATH="$(readlink -m "$0/..")"
+GF_TOOL_NAME="$(basename "$0")"
+
+# Load common procedures
+source "$GF_TOOL_PATH/gflow" -fatal_exit 2> /dev/null
+[[ $? != 0 ]] && echo -e "\n\e[31;41m \e[0m Required Generic Flow binary \e[1m$GF_BIN\e[0m not found\n" && exit 1
+
+gf_echo "
+#############################################################################
+#  Utility to search files on disk and repair file paths in custom scripts  #
+#############################################################################
+"; GF_IS_SPACE=1
+
+GF_TOOL_USAGE="${GFM6} ${GFC0} Usage:
+
+  ${GFM4}#${GFC0} To search files on disk:
+    $GF_TOOL_NAME <directory> -f <files>
+    
+  ${GFM4}#${GFC0} To repair files in multiple scripts:
+    $GF_TOOL_NAME <directory> -s <script1> <script2> -w <script1> <script2>
+    
+  ${GFM4}#${GFC0} To search files in the script on disk and write out found files:
+    $GF_TOOL_NAME <directory> -s <script> -o <replace_file>
+
+  ${GFM4}#${GFC0} To revert files in the script based on saved earlier (-o) found files:
+    $GF_TOOL_NAME -i <replace_file> -s <script> -b -w <reverted_script>
+    
+  ${GFM4}#${GFC0} To write out list of missing files in the script:
+    $GF_TOOL_NAME <directory> -s <script> -m <file>
+    
+  ${GFM4}#${GFC0} To write out script to pack missing or updated files:
+    $GF_TOOL_NAME <directory> -s <script> -p <script>
+    
+  ${GFM4}#${GFC0} To write out script with valid files and md5sum to check in the future:
+    $GF_TOOL_NAME <directory> -c <script>
+    $GF_TOOL_NAME <directory> -s <script> -c <script>
+    
+  ${GFM4}#${GFC0} Full syntax:
+    $GF_TOOL_NAME {[-i|-in] <directory>|<file>} [-o|-out <file>]\\
+        {-f|-files <files> | -s|-script <file> [-w|-write <file>|<directory>]} \\
+        [-x|-exclude <regexp>] [-high <regexp>] [-low <regexp>] [-replace <from>=<to>] \\
+        [-l|-links] [-d|-depth <value>] \\
+        [-m|-missing <file>] [-c|-compare <script>] [-p|-pack <script>] \\
+        [-a|-all] [-r|-relative]
+    
+${GFM6} ${GFC0} Command line arguments:
+
+    -i, -in <directory>     directory to search files in
+    -i, -in <file>          read in list of found files to replace
+    -o, -out <file>         write out list of found files to replace
+
+    -f, -files <files>      files to search on disk
+    -s, -script <file>      script file to check files in
+    -w, -write <file>       write out script with repaired file paths
+    -w, -write <directory>  write out every script with repaired file paths 
+                            with original name to specified directory
+    -b, -backport           replace files in reversed order (backport mode)
+
+    -l, -links              follow symbolic links during scan
+    -d, -depth <value>      limit search directory scan depth
+    
+    -x, -exclude <regexp>   exclude file names matching regexp from search
+    -low <regexp>           decrease priority of files matching regexp
+    -high <regexp>          increase priority of files matching regexp
+    -replace <from>=<to>    replace parts of result file names
+
+    -a, -all                repair also correct file paths
+    -r, -relative <dir>     use file paths relative to specified dir
+    
+    -m, -missing <file>     write out list of missing files
+    -c, -compare <script>   write out script to identify modified files in the future
+    -p, -pack <script>      write out script to pack missing and modified files
+
+${GFM6} ${GFC0} Notes:
+    
+    Exclude regexp used to skip files and directories.
+        This speeds up the search process.
+    
+    High-priority and low-priority regexp used to narrow result files list 
+        when more than 1 found per cell.
+
+    Each of case insensitive regexp when found in file name or directory 
+        will increase (-high <mask>) or decrease (-low <mask>) it's priority.
+    Script will return only files with highest priority.
+    
+    Replace patterns used to return the parameterized result.
+    For example, LIB files are corner-specific, so it is useful
+        to replace delay corner with * to return file mask.
+
+"
+
+##################################################
+# Process options
+##################################################
+
+GF_SEARCH_DIRS=
+GF_IN_REPLACES=
+GF_OUT_REPLACES=
+
+GF_TARGET_FILES=
+GF_TARGET_SCRIPTS=
+GF_OUT_SCRIPTS=
+GF_REVERSE=0
+
+GF_FOLLOW_LINKS=0
+GF_MAX_DEPTH=
+
+GF_EXCLUDE=
+GF_HIGH_PRIORITY=
+GF_LOW_PRIORITY=
+GF_REPLACES=
+
+GF_REPAIR_VALID=
+GF_RELATIVE_DIR=
+
+GF_OUT_MISSING_FILES=
+GF_OUT_COMPARE_SCRIPT=
+GF_OUT_PACK_SCRIPT=
+
+# Parse command line
+gf_last_key=
+while [ $# -gt 0 ]; do
+    if [[ "$1" != -* ]]; then key="$gf_last_key"; else key=; fi
+    if [ -z "$key" ]; then key="$1"; shift; fi
+    gf_last_key=; case "$key" in
+        -i|-in )
+            if [ -z "$1" ]; then
+                gf_fatal "Argument ${GFCB}$key${GFC0} requires existing file or directory"
+            elif [ -d "$1" ]; then
+                gf_last_key="$key"
+                GF_SEARCH_DIRS+="$1"$'\n'
+            elif [ -f "$1" ]; then
+                GF_IN_REPLACES="$1"
+            else
+                gf_fatal "Search directory or file ${GFCB}$1${GFC0} does not exist"
+            fi
+            shift
+        ;;
+        -o|-out )
+            if [ -n "$1" ]; then
+                if [ -d "$1" ]; then
+                    gf_fatal "Argument ${GFCB}$key${GFC0} requires new file name, not a directory"
+                else
+                    GF_OUT_REPLACES="$1"
+                fi
+            else
+                gf_fatal "Argument ${GFCB}$key${GFC0} requires new file name"
+            fi
+            shift
+        ;;
+        -f|-files )
+            gf_last_key="$key"
+            if [ -n "$1" ]; then
+                GF_TARGET_FILES+="$1"$'\n'
+            else
+                gf_fatal "Argument ${GFCB}$key${GFC0} requires file path"
+            fi
+            shift
+        ;;
+        -s|-script )
+            gf_last_key="$key"
+            if [ -z "$1" ]; then
+                gf_fatal "Argument ${GFCB}$key${GFC0} requires existing file"
+            elif [ -f "$1" ]; then
+                GF_TARGET_SCRIPTS+="$1"$'\n'
+            else
+                gf_fatal "Argument ${GFCB}$key${GFC0} script file ${GFCB}$1${GFC0} does not exist"
+            fi
+            shift
+        ;;
+        -w|-write )
+            gf_last_key="$key"
+            if [ -n "$1" ]; then
+                GF_OUT_SCRIPTS+="$1"$'\n'
+            else
+                gf_fatal "Argument ${GFCB}$key${GFC0} requires new file or directory name"
+            fi
+            shift
+        ;;
+        -b|-backport )
+            GF_REVERSE=1
+        ;;
+        -l|-links )
+            GF_FOLLOW_LINKS=1
+        ;;
+        -d|-depth )
+            if [[ $1 =~ ^[0-9][0-9]*$ ]]; then
+                GF_MAX_DEPTH="$1"
+            else
+                gf_fatal "Argument ${GFCB}$key${GFC0} requires a number"
+            fi
+            shift
+        ;;
+        -x|-exclude )
+            gf_last_key="$key"
+            if [ -n "$1" ]; then
+                GF_EXCLUDE+="$1"$'\n'
+            else
+                gf_fatal "Argument ${GFCB}$key${GFC0} requires regexp"
+            fi
+            shift
+        ;;
+        -hi|-high|-high_priority )
+            gf_last_key="$key"
+            if [ -n "$1" ]; then
+                GF_HIGH_PRIORITY+="$1"$'\n'
+            else
+                gf_fatal "Argument ${GFCB}$key${GFC0} requires regexp"
+            fi
+            shift
+        ;;
+        -lo|-low|-low_priority )
+            gf_last_key="$key"
+            if [ -n "$1" ]; then
+                GF_LOW_PRIORITY+="$1"$'\n'
+            else
+                gf_fatal "Argument ${GFCB}$key${GFC0} requires regexp"
+            fi
+            shift
+        ;;
+        -re|-replace|-replaces )
+            gf_last_key="$key"
+            if [[ "$1" == *\=* ]]; then
+                GF_REPLACES+="$1"$'\n'
+            else
+                gf_fatal "Argument ${GFCB}$key${GFC0} requires <regexp>=<regexp> pair"
+            fi
+            shift
+        ;;
+        -a|-all )
+            GF_REPAIR_VALID="YES"
+        ;;
+        -r|-relative )
+            GF_RELATIVE_DIR="$(gf_full_path "$1")"
+            shift
+        ;;
+        -m|-missing )
+            if [ -n "$1" ]; then
+                GF_OUT_MISSING_FILES="$1"
+                MISSING_FILES=
+            else
+                gf_fatal "Argument ${GFCB}$key${GFC0} requires file name"
+            fi
+            shift
+        ;;
+        -c|-compare )
+            if [ -n "$1" ]; then
+                GF_OUT_COMPARE_SCRIPT="$1"
+                SCRIPT_FILES=
+            else
+                gf_fatal "Argument ${GFCB}$key${GFC0} requires file name"
+            fi
+            shift
+        ;;
+        -p|-pack )
+            if [ -n "$1" ]; then
+                GF_OUT_PACK_SCRIPT="$1"
+                SCRIPT_FILES=
+            else
+                gf_fatal "Argument ${GFCB}$key${GFC0} requires file name"
+            fi
+            shift
+        ;;
+        -h|-help )
+            gf_echo_spaced -e "$GF_TOOL_USAGE"
+            exit 0
+        ;;
+        -* )
+            gf_fatal "Incorrect ${GFCB}$key${GFC0} option"
+        ;;
+        * )
+            if [ -d "$key" ]; then
+                GF_SEARCH_DIRS+="$key"$'\n'
+            elif [ -f "$key" ]; then
+                if [ -z "$GF_SEARCH_DIRS$GF_IN_REPLACES" ]; then
+                    GF_IN_REPLACES="$key"
+                else
+                    GF_TARGET_SCRIPTS+="$key"$'\n'
+                fi
+            else
+                GF_TARGET_FILES+="$key"$'\n'
+            fi
+        ;;
+    esac
+done
+
+##################################################
+# Check and dump options
+##################################################
+
+GF_SEARCH_DIRS="$(echo "$GF_SEARCH_DIRS" | awk '!x[$0]++')"
+
+# Check important options
+gf_search_files_are_target=
+if [ -z "$GF_TARGET_FILES$GF_TARGET_SCRIPTS$GF_IN_REPLACES" ]; then
+    if [ -n "$GF_OUT_COMPARE_SCRIPT" ]; then
+        gf_search_files_are_target=1
+    else
+        gf_echo_spaced -e "$GF_TOOL_USAGE"
+        gf_fatal "No scripts or files to search specified"
+    fi
+fi
+if [ -z "$GF_SEARCH_DIRS$GF_TARGET_SCRIPTS$GF_IN_REPLACES$GF_OUT_COMPARE_SCRIPT" ]; then
+    gf_echo_spaced -e "$GF_TOOL_USAGE"
+    gf_fatal "No directory specified"
+fi
+
+if [ -n "$GF_SEARCH_DIRS" ]; then
+    gf_info "Directories to ${GFCB}search files${GFC0} in:"
+    echo "$GF_SEARCH_DIRS" | sed -e 's/^/  /g'; echo
+fi
+
+if [ -n "$GF_EXCLUDE" ]; then
+    gf_info "Regexp patterns to ${GFCB}exclude${GFC0} files and directories from search:"
+    for word in $GF_EXCLUDE; do echo "  $word"; done; echo
+fi
+
+# Auto-increase priority of replace patterns
+for word in $(echo "$GF_REPLACES" | sed -e 's|=.*$||g'); do
+    GF_HIGH_PRIORITY+="$word"$'\n'
+done
+
+if [ -n "$GF_HIGH_PRIORITY" ]; then
+    gf_info "Regexp patterns to ${GFCB}increase${GFC0} file priority:"
+    for word in $GF_HIGH_PRIORITY; do echo "  $word"; done; echo
+fi
+
+if [ -n "$GF_LOW_PRIORITY" ]; then
+    gf_info "Regexp patterns to ${GFCB}decrease${GFC0} file priority:"
+    for word in $GF_LOW_PRIORITY; do echo "  $word"; done; echo
+fi
+
+if [ -n "$GF_REPLACES" ]; then
+    gf_info "Regexp patterns to ${GFCB}replace${GFC0} file names:"
+    for word in $GF_REPLACES; do echo "  $word"; done; echo
+fi
+
+if [ -n "$GF_MAX_DEPTH" ]; then
+    gf_info "Search directory ${GFCB}scan depth limited${GFC0} to ${GFCB}$GF_MAX_DEPTH${GFC0} levels"; echo
+fi
+
+if [ "$GF_FOLLOW_LINKS" == 1 ]; then
+    gf_info "Symbolic links ${GFCB}will be followed${GFC0} in search directory"; echo
+fi
+
+if [ "$GF_REPAIR_VALID" ]; then
+    gf_info "${GFCB}Valid files${GFC0} will also be replaced"; echo
+fi
+
+if [ "$GF_RELATIVE_DIR" ]; then
+    gf_info "Symbolic links will be created ${GFCB}relative${GFC0} to"
+    echo "  $GF_RELATIVE_DIR"; echo
+fi
+
+GF_IS_SPACE=1
+
+##################################################
+# Perl scripts
+##################################################
+
+# Check files in the script
+get_files_script='
+    my @replaces;
+    my @files; my %files;
+    my $count = 0;
+    my $is_content = 0;
+    my %exclude_patterns;
+    while (<STDIN>) {
+        if (/^:::$/) {
+            $is_content = 1;
+        } elsif ($is_content) {
+            '"$gf_detect_files_in_line_perl"'
+        } else {
+            $exclude_patterns{$1} = 1 while (s/(\S+)//);
+        }
+    }
+    for (my $i=0; $i<=$#files; $i++) {
+        print $files[$i]{text}."\n" if ($files[$i]{is_file});
+    }
+'
+
+# Replace files in the script
+replace_files_script='
+    my @replaces;
+    my @files; my %files;
+    my $count = 0;
+    my $is_content = 0;
+    my $is_reverse = 0;
+    while (<STDIN>) {
+        if ($is_content) {
+            '"$gf_detect_files_in_line_perl"'
+            s/_GFPART(\d+)TRAPFG_/$parts[$1]/ge;
+            s/_GFFILE(\d+)ELIFFG_/$files[$1]{text}/ge;
+            print;
+        } elsif (/^:::(\d):::$/) {
+            $is_reverse = $1;
+        } elsif (/^:::$/) {
+            $is_content = 1;
+        } elsif (/^(.+)\|\|\|(.+)\s*$/) {
+            if ($is_reverse) {
+                $replaces{$2} = $1;
+            } else {
+                $replaces{$1} = $2;
+            }
+        }
+    }
+    if ($is_reverse) {
+        print STDERR " ".$count." files reverted\n";
+    } else {
+        print STDERR " ".$count." files replaced\n";
+    }
+'
+
+##################################################
+# Process source directory
+##################################################
+gf_spacer
+
+# Read in file replaces
+records=
+if [ -n "$GF_IN_REPLACES" ]; then
+    gf_operation "Scanning ${GFCB}$GF_IN_REPLACES${GFC0} for found files ..."
+    records+="$(sed -ne 's/ === /|||/p' "$GF_IN_REPLACES" 2>/dev/null)"$'\n'
+    gf_result "Total ${GFCB}$(gf_count_lines "$records")${GFC0} file pairs found"
+    gf_spacer
+fi
+
+# Process in source directory
+if [ -n "$GF_SEARCH_DIRS" ]; then
+    gf_operation "Scanning directories ..."
+    gf_searched_files="$(gf_exclude_files "$(gf_scan_dirs "$(gf_full_path "$GF_SEARCH_DIRS")" DFL "$GF_FOLLOW_LINKS" "$GF_MAX_DEPTH" "$GF_EXCLUDE")" "$GF_EXCLUDE")"
+    gf_result "Total ${GFCB}$(gf_count_lines "$gf_searched_files")${GFC0} files, symlinks and directories found"
+fi
+
+##################################################
+# Scan scripts for files
+##################################################
+gf_spacer
+
+# Processing links in directory  
+for dst_script in $GF_TARGET_SCRIPTS; do
+    script_files=
+    gf_operation "Scanning script ${GFCB}$dst_script${GFC0} ..."
+    script_files="$(echo "$GF_EXCLUDE:::"$'\n'"$(cat "$dst_script")" | perl -e "$get_files_script" | awk '!x[$0]++')"
+    gf_result "Total ${GFCB}$(gf_count_lines "$script_files")${GFC0} files detected"
+    GF_TARGET_FILES+="$script_files"$'\n'
+    gf_spacer
+done
+
+##################################################
+# Search files
+##################################################
+gf_spacer
+
+# Visualize all found files
+if [ -n "$gf_search_files_are_target" ]; then
+    if [ -n "$gf_searched_files" ]; then
+        [[ -n "$GF_RELATIVE_DIR" ]] && gf_searched_files=$(gf_relative_path "$GF_RELATIVE_DIR" "$gf_searched_files")
+        for searched_file in $gf_searched_files; do
+            if [ ! -d "$searched_file" -a -e "$searched_file" ]; then
+                gf_message "22F" "$searched_file" "files found"
+            fi
+        done
+        gf_spacer
+    fi
+
+# Scan directory for files
+elif [ -n "$gf_searched_files" -a -n "$GF_TARGET_FILES" ]; then
+    gf_operation "Searching files ..."
+    records+=$(gf_search_files "$gf_searched_files" "$(echo "$GF_TARGET_FILES" | awk '!x[$0]++')" "$GF_EXCLUDE" "$GF_HIGH_PRIORITY" "$GF_LOW_PRIORITY" "$GF_REPLACES" 1)
+    gf_result "Total ${GFCB}$(gf_count_lines "$GF_TARGET_FILES")${GFC0} files processed"
+    gf_spacer
+fi
+
+# Process files in directory  
+REPLACE_FILES=
+if [ -n "$records" ]; then
+
+    # Process files
+    for record in $records; do
+
+        # Extract information
+        searched_file="${record%%|||*}"
+        found_file="${record#*|||}"
+        found_file="${found_file%%|||*}"
+        replaced_file="${record##*|||}"
+
+        # Multiple files found
+        if [[ "$found_file" == *:::* ]]; then
+            gf_spacer
+            gf_message "11M" "$searched_file" "files with multiple candidates"
+            echo "$found_file" | perl -e '
+                sub highlight {
+                    '"$gf_highlight_common_path_perl"'
+                }
+                while (<STDIN>) {
+                    s/\s*$//;
+                    foreach my $file (split /:::/, $_) {
+                        print "\e[41;91m '${GFC0}' ";
+                        highlight($file, "'"$searched_file"'");
+                    }
+                }
+            '
+            gf_spacer
+        
+        # Source should exist
+        elif [ -n "$replaced_file" ]; then
+                
+            # File not changed
+            if [ "$found_file" == "$(gf_full_path "$searched_file")" -a -e "$searched_file" ]; then
+                gf_message "22V" "$searched_file" "valid files"
+
+            # Single file found
+            else
+                gf_spacer
+
+                # Relative paths
+                [[ -n "$GF_RELATIVE_DIR" ]] && replaced_file=$(gf_relative_path "$GF_RELATIVE_DIR" "$replaced_file")
+            
+                # Found file should exist
+                if [ -e "$found_file" ]; then
+            
+                    # Original file already exist
+                    if [ -e "$searched_file" ]; then
+                        
+                        # Replace existing files
+                        if [ -n "$GF_REPAIR_VALID" ]; then
+                            gf_message "22R" "$(perl -e "$gf_highlight_common_path_perl" $searched_file $replaced_file)" "valid files to replace"
+                            gf_message "22 " "$(perl -e "$gf_highlight_common_path_perl" $replaced_file $searched_file)"
+                            REPLACE_FILES+="$searched_file|||$replaced_file"$'\n'
+                            SCRIPT_FILES+="'$searched_file' '$found_file'"$'\n'
+                        fi
+
+                    # Replace incorrect files
+                    else 
+                        gf_message "22F" "$(perl -e "$gf_highlight_common_path_perl" $searched_file $replaced_file)" "files found"
+                        gf_message "22 " "$(perl -e "$gf_highlight_common_path_perl" $replaced_file $searched_file)"
+                        REPLACE_FILES+="$searched_file|||$replaced_file"$'\n'
+                        SCRIPT_FILES+="'$searched_file' '$found_file'"$'\n'
+                    fi
+                    
+                else
+                    gf_message "11N" "$(perl -e "$gf_highlight_common_path_perl" $searched_file $replaced_file)" "files do not exist"
+                    gf_message "11 " "$(perl -e "$gf_highlight_common_path_perl" $replaced_file $searched_file)"
+                    MISSING_FILES+="'$searched_file'"$'\n'
+                fi                
+                
+                gf_spacer
+            fi
+            
+        # File is valid
+        elif [ -e "$searched_file" ]; then
+            if [ -z "$GF_SEARCH_DIRS" ]; then
+                gf_message "22V" "$searched_file" "valid files"
+            else
+                gf_message "33V" "$searched_file" "valid files not found"
+            fi
+
+        # File not found
+        else
+            gf_spacer
+            if [ -z "$GF_SEARCH_DIRS" ]; then
+                gf_message "11F" "$searched_file" "missing files"
+            else
+                gf_message "11F" "$searched_file" "files not found"
+            fi
+            MISSING_FILES+="'$searched_file'"$'\n'
+            gf_spacer
+        fi
+    done
+
+    # Export list of missing files
+    if [ -n "$GF_OUT_MISSING_FILES" ]; then
+        if [ -z "$records" ]; then
+            gf_operation "Exporting files list ..."
+            echo "$GF_TARGET_FILES" > "$GF_OUT_MISSING_FILES"
+        else
+            gf_operation "Exporting missing files list ... $(gf_count_lines "$MISSING_FILES") files"
+            echo "$MISSING_FILES" | sed -e "s/^'//;s/'\$//;" > "$GF_OUT_MISSING_FILES"
+        fi
+        gf_result "$(readlink -m "$GF_OUT_MISSING_FILES")"
+        gf_spacer
+    fi
+
+    # Export script to pack files
+    [[ -n "$GF_OUT_PACK_SCRIPT" ]] && gf_export_pack_script "$GF_OUT_PACK_SCRIPT" "$MISSING_FILES$SCRIPT_FILES"
+fi
+
+# Read in file replaces
+if [ -n "$GF_OUT_REPLACES" ]; then
+    gf_operation "Writing out list of found files to ${GFCB}$GF_OUT_REPLACES${GFC0} ..."
+    content="$(echo "$REPLACE_FILES" | sed -ne 's/|||/ === /p')"
+    echo "$content" > "$GF_OUT_REPLACES"
+    gf_result "Total ${GFCB}$(gf_count_lines "$content")${GFC0} file pairs written"
+    gf_spacer
+fi
+
+# Export script to compare md5sum of the files
+if [ -n "$GF_OUT_COMPARE_SCRIPT" ]; then
+    if [ -z "$records" ]; then
+        if [ -z "$gf_searched_files" ]; then
+            gf_export_compare_script "$GF_OUT_COMPARE_SCRIPT" "$GF_TARGET_FILES"
+        else
+            gf_export_compare_script "$GF_OUT_COMPARE_SCRIPT" "$gf_searched_files"
+        fi
+    else
+        gf_export_compare_script "$GF_OUT_COMPARE_SCRIPT" "$SCRIPT_FILES"
+    fi
+fi
+
+##################################################
+# Replace files in the scripts
+##################################################
+gf_spacer
+
+# Process files in the script
+index=0
+for dst_script in $GF_TARGET_SCRIPTS; do
+    if [ -d "$(echo "$GF_OUT_SCRIPTS")" ]; then
+        out_script="$(echo -n $GF_OUT_SCRIPTS)/$(basename "$dst_script")"
+    else
+        index=$((index+1))
+        out_script="$(echo -n "$GF_OUT_SCRIPTS" | cut -d$'\n' -f $index)"
+    fi
+    
+    if [ -n "$out_script" ]; then
+        gf_echo -ne "${GFM6}#${GFC0} Processing script ${GFCB}$dst_script${GFC0} ..."
+        content="$(echo ":::$GF_REVERSE:::"$'\n'"$(echo "$REPLACE_FILES")"$'\n'":::"$'\n'"$(cat "$dst_script")" | perl -e "$replace_files_script")"
+        echo "$content" > "$out_script"
+        gf_result "$(readlink -m "$out_script")"
+        gf_spacer
+    fi
+done
+
+gf_message_summary "Session summary"

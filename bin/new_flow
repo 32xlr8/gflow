@@ -1,0 +1,211 @@
+#!/bin/bash
+
+################################################################################
+# Generic Flow v5.0 (February 2023)
+################################################################################
+#
+# Copyright 2011-2023 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+################################################################################
+# File name: bin/new_flow
+# Purpose:   Utility to create environment for new digital flow
+################################################################################
+
+GF_TOOL_PATH="$(readlink -m "$0/..")"
+GF_TOOL_NAME="$(basename "$0")"
+
+# Load common procedures
+source "$GF_TOOL_PATH/gflow" -fatal_exit 2> /dev/null
+[[ $? != 0 ]] && echo -e "\n\e[31;41m \e[0m Required Generic Flow binary \e[1m$GF_BIN\e[0m not found\n" && exit 1
+
+if [ -z "$GF_NO_INTRO" ]; then
+
+gf_echo "
+#################################################
+#  Utility to create new project from template  #
+#################################################
+"; GF_IS_SPACE=1
+
+GF_TOOL_USAGE="\e[36;46m \e[0m Usage:
+
+  \e[34;44m#\e[0m Full syntax:
+    $GF_TOOL_NAME [-p|-project <project>] <block> <flow> [-t|-tools <tool> ...] [-r|-ref <directory>]
+    
+\e[36;46m \e[0m Command line arguments:
+
+    <project>               current project directory
+    <block>                 block name to create
+    
+    -r, -ref <directory>    reference block directory to reuse settings
+    -f, -flows <flow>       create specified flows in block directory
+"
+
+##################################################
+# Process options
+##################################################
+
+GF_PROJECT_DIR=
+GF_BLOCKS=
+GF_TOOLS=
+GF_FLOWS=
+GF_REF_DIR=
+
+# Parse command line
+gf_last_key=
+while [ $# -gt 0 ]; do
+    if [[ "$1" != -* ]]; then key="$gf_last_key"; else key=; fi
+    if [ -z "$key" ]; then key="$1"; shift; fi
+    gf_last_key=; case "$key" in
+        -p|-project )
+            gf_last_key=""
+            if [ -z "$1" ]; then
+                gf_fatal "Argument \e[1m$key\e[0m requires project name"
+            elif [ -d "$1" ]; then
+                GF_PROJECT_DIR="$(gf_full_path "$1")"
+            else
+                gf_fatal "Project directory \e[1m$1\e[0m does not exist"
+            fi
+            shift
+        ;;
+        -b|-block|-blocks )
+            gf_last_key="$key"
+            if [ -z "$1" ]; then
+                gf_fatal "Argument \e[1m$key\e[0m requires block name"
+            else
+                if [[ $1 =~ ^[\\.0-9a-zA-Z_-]*$ ]]; then
+                    GF_BLOCKS+="$1"$'\n'
+                else
+                    gf_fatal "Block name \e[1m$1\e[0m contains forbidden characters"
+                fi
+            fi
+            shift
+        ;;
+        -t|-tool|-tools )
+            gf_last_key="$key"
+            if [ -z "$1" ]; then
+                gf_fatal "Argument \e[1m$key\e[0m requires tool name"
+            else
+                if [[ $1 =~ ^[\\.0-9a-zA-Z_-]*$ ]]; then
+                    GF_TOOLS+="$1"$'\n'
+                else
+                    gf_fatal "Tool name \e[1m$1\e[0m contains forbidden characters"
+                fi
+            fi
+            shift
+        ;;
+        -f|-flow|-flows )
+            gf_last_key="$key"
+            if [ -z "$1" ]; then
+                gf_fatal "Argument \e[1m$key\e[0m requires flow name"
+            else
+                if [[ $1 =~ ^[\\.0-9a-zA-Z_-]*$ ]]; then
+                    GF_FLOWS+="$(basename "$1" .gf)"$'\n'
+                else
+                    gf_fatal "Flow name \e[1m$1\e[0m contains forbidden characters"
+                fi
+            fi
+            shift
+        ;;
+        -r|-ref )
+            if [ -z "$1" ]; then
+                gf_fatal "Argument \e[1m$key\e[0m requires existing directory"
+            elif [ -d "$1" ]; then
+                GF_REF_DIR="$(gf_full_path "$1")"
+            else
+                gf_fatal "Project directory \e[1m$1\e[0m does not exist"
+            fi
+            shift
+        ;;
+        -h|-help )
+            gf_echo_spaced -e "$GF_TOOL_USAGE"
+            exit 0
+        ;;
+        * )
+            if [[ $key =~ ^[\\.0-9a-zA-Z_-]*$ ]]; then
+                GF_FLOWS+="$(basename "$key" .gf)"$'\n'
+            else
+                gf_fatal "Flow name \e[1m$key\e[0m contains forbidden characters"
+            fi
+        ;;
+    esac
+done
+
+GF_NO_INTRO=1
+fi
+
+##################################################
+# Check and dump options
+##################################################
+
+# Auto-detect project directory
+if [ -z "$GF_PROJECT_DIR" ]; then
+    tmp="$PWD"
+    while [ ! -e "$tmp/project.common.gf" -a "$tmp" != "/" ]; do
+        tmp="$(dirname "$tmp")"
+    done
+    if [ -e "$tmp/project.common.gf" ]; then
+        GF_PROJECT_DIR="$tmp"
+    fi
+elif [ ! -e "$GF_PROJECT_DIR/project.common.gf" ]; then
+    gf_fatal "Directory ${GFCB}$GF_PROJECT_DIR${GFC0} is not a project directory"
+fi
+
+# Choose project directory
+if [ -z "$GF_PROJECT_DIR" ]; then
+    variants=$(ls -1tr ./*/project.common.gf 2> /dev/null | sed -e 's|/project.common.gf$||')
+    [[ -z "$variants" ]] && variants=$(ls -1tr ./*/*/project.common.gf 2> /dev/null | sed -e 's|/project.common.gf$||')
+    if [ -n "$variants" ]; then
+        gf_choose_file_dir_task -var GF_PROJECT_DIR -prompt "Please select ./${GFCB}project directory${GFC0}:" -dirs "$variants"
+        gf_spacer
+    fi
+fi
+
+# Project directory should be defined
+if [ -z "$GF_PROJECT_DIR" ]; then
+    gf_echo_spaced -e "$GF_TOOL_USAGE"
+    gf_fatal "No project directory specified"
+fi
+
+# Auto-detect block directory
+if [ -z "$GF_BLOCKS" ]; then
+    tmp="$PWD"
+    while [ ! -e "$tmp/block.common.gf" -a "$tmp" != "/" ]; do
+        tmp="$(dirname "$tmp")"
+    done
+    if [ -e "$tmp/block.common.gf" ]; then
+        GF_BLOCKS="$(basename "$tmp")"
+    fi
+fi
+
+# Choose block name
+if [ -z "$GF_BLOCKS" ]; then
+    variants=$(ls -1tr "$GF_PROJECT_DIR"/blocks/*/block.common.gf 2> /dev/null | sed -e 's|/block.common.gf$||; s|^.*/||g')
+    if [ -n "$variants" ]; then
+        gf_choose -var GF_BLOCKS -message "Please select ${GFCB}block name${GFC0}:" -variants "$variants"
+        gf_spacer
+    fi
+fi
+
+# Check block name
+if [ -z "$GF_BLOCKS" ]; then
+    gf_echo_spaced -e "$GF_TOOL_USAGE"
+    gf_fatal "No block name specified"
+fi
+
+##################################################
+# Main script
+##################################################
+GF_FLOW_REQUIRED=1
+source "$GF_TOOL_PATH/new_project"

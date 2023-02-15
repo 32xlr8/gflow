@@ -1,0 +1,796 @@
+#!/bin/bash
+
+################################################################################
+# Generic Flow v5.0 (February 2023)
+################################################################################
+#
+# Copyright 2011-2023 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+################################################################################
+# File name: bin/relink_files
+# Purpose:   Utility to repair broken symbolic links
+################################################################################
+
+GF_TOOL_PATH="$(readlink -m "$0/..")"
+GF_TOOL_NAME="$(basename "$0")"
+
+# Load common procedures
+source "$GF_TOOL_PATH/gflow" -fatal_exit 2> /dev/null
+[[ $? != 0 ]] && echo -e "\n\e[31;41m \e[0m Required Generic Flow binary \e[1m$GF_BIN\e[0m not found\n" && exit 1
+
+gf_echo "
+##################################################################
+#  Utility to repair broken symlinks and relink identical files  #
+##################################################################
+"; GF_IS_SPACE=1
+
+GF_TOOL_USAGE="${GFM6} ${GFC0} Usage:
+
+  ${GFM4}#${GFC0} To get list of broken symlinks in directory:
+    $GF_TOOL_NAME <target_dir>
+    
+  ${GFM4}#${GFC0} To write out list of broken links:
+    $GF_TOOL_NAME <target_dir> -m <file>
+    
+  ${GFM4}#${GFC0} To repair broken symlinks in target directory:
+    $GF_TOOL_NAME <search_dir> <target_dir>
+    
+  ${GFM4}#${GFC0} To write out script to pack broken links in original environment:
+    $GF_TOOL_NAME <target_dir> -p <script>
+    
+  ${GFM4}#${GFC0} To undo changes made in current directory in last <number> of sessions:
+    $GF_TOOL_NAME -u [<number>]
+
+  ${GFM4}#${GFC0} Full syntax:
+    $GF_TOOL_NAME {[-i|-in] <search_dir> [-o|-out] <target_dir> \\
+        [-l|-links] [-d|-depth <value>] \\
+        [-x|-exclude <regexp>] [-high <regexp>] [-low <regexp>] \\
+        [-f|-files] [-a|-all] [-r|-relative] \\
+        [-m|-missing <file>] [-c|-compare <script>] [-p|-pack <script>] \\
+        [-t|-test] [-u|-undo]
+    
+${GFM6} ${GFC0} Command line arguments:
+
+    -i, -in <search_dir>   directory to search for files as candidates to link to
+    -o, -out <target_dir>  directory to repair symlinks or relink files in
+    
+    -l, -links             follow symbolic links in search directory
+    -d, -depth <value>     limit search directory scan depth
+
+    -x, -exclude <regexp>  exclude file names matching regexp from search
+    -low <regexp>          decrease priority of files matching regexp
+    -high <regexp>         increase priority of files matching regexp
+
+    -f, -files             relink also files with same content
+    -a, -all               relink also not broken symlinks
+    -r, -relative          create relative symlinks
+    
+    -m, -missing <file>    write out list of missing files
+    -c, -compare <script>  write out script to identify modified files in the future
+    -p, -pack <script>     write out script to pack missing and modified files
+
+    -t, -test              test mode, no file changes applied
+    -u, -undo              undo last changes in current directory (iteratively)
+
+${GFM6} ${GFC0} Notes:
+
+    Exclude regexp used to skip files and directories.
+        This speeds up the search process.
+    
+    High-priority and low-priority regexp used to narrow result files list 
+        when more than 1 found per cell.
+
+    Each of case insensitive regexp when found in file name or directory 
+        will increase (-high <mask>) or decrease (-low <mask>) it's priority.
+    Script will return only files with highest priority.
+"
+
+##################################################
+# Process options
+##################################################
+
+GF_SEARCH_DIRS=
+GF_TARGET_DIRS=
+
+GF_EXCLUDE=
+GF_HIGH_PRIORITY=
+GF_LOW_PRIORITY=
+
+GF_FOLLOW_LINKS=0
+GF_MAX_DEPTH=
+
+GF_RELINK_FILES=
+GF_RELINK_VALID=
+GF_RELATIVE_DIRS=
+
+GF_OUT_MISSING_FILES=
+GF_OUT_COMPARE_SCRIPT=
+GF_OUT_PACK_SCRIPT=
+
+GF_NO_CHANGES=
+GF_UNDO_SESSIONS=
+
+# Parse command line
+gf_last_key=
+while [ $# -gt 0 ]; do
+    if [[ "$1" != -* ]]; then key="$gf_last_key"; else key=; fi
+    if [ -z "$key" ]; then key="$1"; shift; fi
+    gf_last_key=; case "$key" in
+        -i|-in )
+            gf_last_key="$key"
+            if [ -z "$1" ]; then
+                gf_fatal "Argument ${GFCB}$key${GFC0} requires existing directory"
+            elif [ -d "$1" ]; then
+                GF_SEARCH_DIRS+="$1"$'\n'
+            else
+                gf_fatal "Search directory ${GFCB}$1${GFC0} does not exist"
+            fi
+            shift
+        ;;
+        -o|-out )
+            gf_last_key="$key"
+            if [ -z "$1" ]; then
+                gf_fatal "Argument ${GFCB}$key${GFC0} requires existing directory"
+            elif [ -d "$1" ]; then
+                GF_TARGET_DIRS+="$1"$'\n'
+            else
+                gf_fatal "Target directory ${GFCB}$1${GFC0} does not exist"
+            fi
+            shift
+        ;;
+        -l|-links )
+            GF_FOLLOW_LINKS=1
+        ;;
+        -d|-depth )
+            if [[ $1 =~ ^[0-9][0-9]*$ ]]; then
+                GF_MAX_DEPTH="$1"
+            else
+                gf_fatal "Argument ${GFCB}$key${GFC0} requires a number"
+            fi
+            shift
+        ;;
+        -x|-exclude )
+            gf_last_key="$key"
+            if [ -n "$1" ]; then
+                GF_EXCLUDE+="$1"$'\n'
+            else
+                gf_fatal "Argument ${GFCB}$key${GFC0} requires regexp"
+            fi
+            shift
+        ;;
+        -hi|-high|-high_priority )
+            gf_last_key="$key"
+            if [ -n "$1" ]; then
+                GF_HIGH_PRIORITY+="$1"$'\n'
+            else
+                gf_fatal "Argument ${GFCB}$key${GFC0} requires regexp"
+            fi
+            shift
+        ;;
+        -lo|-low|-low_priority )
+            gf_last_key="$key"
+            if [ -n "$1" ]; then
+                GF_LOW_PRIORITY+="$1"$'\n'
+            else
+                gf_fatal "Argument ${GFCB}$key${GFC0} requires regexp"
+            fi
+            shift
+        ;;
+        -f|-files )
+            GF_RELINK_FILES="YES"
+        ;;
+        -a|-all )
+            GF_RELINK_VALID="YES"
+        ;;
+        -r|-relative )
+            GF_RELATIVE_DIRS="YES"
+        ;;
+        -m|-missing )
+            if [ -n "$1" ]; then
+                GF_OUT_MISSING_FILES="$1"
+                MISSING_FILES=
+            else
+                gf_fatal "Argument ${GFCB}$key${GFC0} requires file name"
+            fi
+            shift
+        ;;
+        -c|-compare )
+            if [ -n "$1" ]; then
+                GF_OUT_COMPARE_SCRIPT="$1"
+                COMPARE_FILES=
+                SCRIPT_FILES=
+            else
+                gf_fatal "Argument ${GFCB}$key${GFC0} requires file name"
+            fi
+            shift
+        ;;
+        -p|-pack )
+            if [ -n "$1" ]; then
+                GF_OUT_PACK_SCRIPT="$1"
+                SCRIPT_FILES=
+            else
+                gf_fatal "Argument ${GFCB}$key${GFC0} requires file name"
+            fi
+            shift
+        ;;
+        -t|-test )
+            GF_NO_CHANGES="YES"
+        ;;
+        -u|-undo )
+            if [[ $1 =~ ^[1-9][0-9]*$ ]]; then
+                GF_UNDO_SESSIONS=$1
+                shift
+            else
+                GF_UNDO_SESSIONS=1
+            fi
+        ;;
+        -h|-help )
+            gf_echo_spaced -e "$GF_TOOL_USAGE"
+            exit 0
+        ;;
+        -* )
+            gf_fatal "Incorrect ${GFCB}$key${GFC0} option"
+        ;;
+        * )
+            if [ -d "$key" ]; then
+                if [ -z "$GF_TARGET_DIRS" ]; then
+                    GF_TARGET_DIRS="$key"$'\n'
+                elif [ -z "$GF_SEARCH_DIRS" ]; then
+                    GF_SEARCH_DIRS="$GF_TARGET_DIRS"
+                    GF_TARGET_DIRS="$key"$'\n'
+                else
+                    gf_fatal "Use ${GFCB}-i${GFC0} or ${GFCB}-o${GFC0} to specify multiple directories"
+                fi
+            else
+                gf_fatal "Incorrect ${GFCB}$key${GFC0} argument"
+            fi
+        ;;
+    esac
+done
+
+##################################################
+# Undo mode
+##################################################
+
+# Undo mode
+if [ -n "$GF_UNDO_SESSIONS" ]; then
+    if [ -e .relink_files.undo ]; then
+        function do_info {
+            if [ -L "$2" ]; then
+                gf_message "22H" "$2" "operations to undo"
+            elif [ -e "$2" ]; then
+                gf_message "11F" "$2" "objects to undo is not a link"
+            else
+                gf_message "11E" "$2" "objects to undo does not exist"
+            fi
+        }
+        function do_undo {
+            if [ -L "$3" ]; then
+                current_link=$(readlink -m "$3")
+                gf_spacer
+                gf_message "33U" "$(perl -e "$gf_highlight_common_path_perl" "$3" "$current_link")" "operations undone"
+                if [ -e "$3" ]; then
+                    gf_message "22 " "$(perl -e "$gf_highlight_common_path_perl" "$current_link" "$2")"
+                else
+                    gf_message "11 " "$(perl -e "$gf_highlight_common_path_perl" "$current_link" "$2")"
+                fi
+                if [ "$1" == "F" ]; then
+                    cp --remove-destination "$2" "$3"
+                    type="F"
+                else
+                    ln -sf "$2" "$3"
+                    type=" "
+                fi
+                if [ -e "$3" ]; then
+                    gf_message "22$type" "$(perl -e "$gf_highlight_common_path_perl" "$2" "$current_link")"
+                else
+                    gf_message "11 " "$(perl -e "$gf_highlight_common_path_perl" "$2" "$current_link")"
+                fi
+                gf_spacer
+            elif [ -e "$3" ]; then
+                gf_message_spaced "11F" "$3 " "objects to undo is not a link"
+            else
+                gf_message_spaced "11E" "$3 " "objects to undo does not exist"
+            fi
+        }
+        eval "$(perl -e '
+            my @sessions;
+            my @count;
+            my $total_count = 0;
+            if (open FILE, ".relink_files.undo") {
+                while (<FILE>) {
+                    if (/^\s*\#\s*(\d+)\s*$/) {
+                        push @sessions, $_;
+                        $count[$#sessions] = 0;
+                    } elsif (/^\s*cp\s+--remove-destination\s/ || /^\s*ln\s+-sf\s/) {
+                        $sessions[$#sessions] .= $_;
+                        $count[$#sessions]++;
+                        $total_count++;
+                    }
+                }
+                close FILE;
+                if ($#sessions >= 0) {
+                    my $proceed_count = 0;
+                    my $proceed_sessions = 0;
+                    my $operations = "";
+                    my $left_operations = "";
+                    foreach (my $i = 0; $i <= $#sessions; $i++) {
+                        $operations .= "gf_message_spaced \"66 \" \"Session #".($i+1)."\"\n";
+                        if (($i > $#sessions - '$GF_UNDO_SESSIONS') && ("'$GF_NO_CHANGES'" ne "YES")) {
+                            $sessions[$i] =~ s/^\s*ln\s+-sf\s/do_undo L /gm;
+                            $sessions[$i] =~ s/^\s*cp\s+--remove-destination\s/do_undo F /gm;
+                            $operations .= $sessions[$i];
+                            $proceed_count += $count[$i];
+                            $proceed_sessions++;
+                        } else {
+                            $left_operations .= $sessions[$i]."\n";
+                            $sessions[$i] =~ s/^\s*ln\s-sf\s/do_info /gm;
+                            $operations .= $sessions[$i];
+                        }
+                    }
+                    if ("'$GF_NO_CHANGES'" eq "YES") {
+                        print "gf_message_spaced \"66 \" \"Listing undo operations ...\"\n";
+                        print "$operations";
+                    } else {
+                        print "gf_message_spaced \"66 \" \"Undoing $proceed_count of $total_count operations in last $proceed_sessions sessions ...\"\n";
+                        print "$operations";
+                        if (($total_count eq $proceed_count) || ($left_operations eq "")) {
+                            print "rm -f .relink_files.undo\n";
+                        } else {
+                            open FILE, ">.relink_files.undo";
+                            print FILE $left_operations;
+                            close FILE;
+                        }
+                    }
+                } else {
+                    print "gf_fatal \"No operations to undo\"\n";
+                    print "rm -f .relink_files.undo\n";
+                }
+            }
+        ')"
+        gf_message_summary "Session summary"
+        exit 0
+    else
+        gf_fatal "No operations to undo"
+    fi
+fi
+
+
+##################################################
+# Check and dump options
+##################################################
+
+GF_SEARCH_DIRS="$(echo "$GF_SEARCH_DIRS" | awk '!x[$0]++')"
+GF_TARGET_DIRS="$(echo "$GF_TARGET_DIRS" | awk '!x[$0]++')"
+
+# Check important options
+if [ -z "$GF_TARGET_DIRS" ]; then
+    if [ -z "$GF_SEARCH_DIRS" ]; then
+        gf_echo_spaced -e "$GF_TOOL_USAGE"
+        gf_fatal "No target directory specified"
+    else
+        GF_TARGET_DIRS="$GF_SEARCH_DIRS"
+        GF_SEARCH_DIRS=
+    fi
+fi
+
+if [ -n "$GF_SEARCH_DIRS" ]; then
+    gf_info "Source directories to ${GFCB}search files${GFC0} in:"
+    echo "$GF_SEARCH_DIRS" | sed -e 's/^/  /g'; echo
+fi
+
+if [ -n "$GF_TARGET_DIRS" ]; then
+    if [ -z "$GF_SEARCH_DIRS" ]; then
+        gf_info "Target directories to ${GFCB}check symlinks${GFC0} in:"
+    else
+        gf_info "Target directories to ${GFCB}fix symlinks${GFC0} in:"
+    fi
+    echo "$GF_TARGET_DIRS" | sed -e 's/^/  /g'; echo
+fi
+
+if [ -n "$GF_EXCLUDE" ]; then
+    gf_info "Regexp patterns to ${GFCB}exclude${GFC0} files and directories from search:"
+    for word in $GF_EXCLUDE; do echo "  $word"; done; echo
+fi
+
+if [ -n "$GF_HIGH_PRIORITY" ]; then
+    gf_info "Regexp patterns to ${GFCB}increase${GFC0} file priority:"
+    for word in $GF_HIGH_PRIORITY; do echo "  $word"; done; echo
+fi
+
+if [ -n "$GF_LOW_PRIORITY" ]; then
+    gf_info "Regexp patterns to ${GFCB}decrease${GFC0} file priority:"
+    for word in $GF_LOW_PRIORITY; do echo "  $word"; done; echo
+fi
+
+if [ -n "$GF_MAX_DEPTH" ]; then
+    gf_info "Search directory ${GFCB}scan depth limited${GFC0} to ${GFCB}$GF_MAX_DEPTH${GFC0} levels"; echo
+fi
+
+if [ "$GF_FOLLOW_LINKS" == 1 ]; then
+    gf_info "Symbolic links ${GFCB}will be followed${GFC0} in search directory"; echo
+fi
+
+if [ "$GF_RELINK_FILES" ]; then
+    gf_info "Search and relink of ${GFCB}duplicate files${GFC0} will be performed"; echo
+fi
+
+if [ "$GF_RELINK_VALID" ]; then
+    gf_info "${GFCB}Valid symbolic links${GFC0} will also be relinked"; echo
+fi
+
+if [ "$GF_RELATIVE_DIRS" ]; then
+    gf_info "${GFCB}Relative${GFC0} symbolic links will be created"; echo
+fi
+
+if [ "$GF_NO_CHANGES" ]; then
+    gf_info "Test mode enabled. ${GFCB}No changes${GFC0} will be made"; echo
+fi
+
+##################################################
+# Internal variables
+##################################################
+
+GF_IS_SPACE=1
+
+# Undo changes flag
+gf_undo_modified=
+
+##################################################
+# Process search directory
+##################################################
+gf_spacer
+
+# Process in search directory
+if [ -n "$GF_SEARCH_DIRS" ]; then
+    gf_operation "Scanning search directories ..."
+    gf_searched_files="$(gf_scan_dirs "$GF_SEARCH_DIRS" FL "$GF_FOLLOW_LINKS" "$GF_MAX_DEPTH" "$GF_EXCLUDE")"
+    gf_result "Total ${GFCB}$(gf_count_lines "$gf_searched_files")${GFC0} files and symlinks found"
+fi
+
+##################################################
+# Relink symlinks
+##################################################
+gf_spacer
+
+# Processing links in directory  
+gf_operation "Scanning target directories ..."
+dst_links="$(gf_scan_dirs "$GF_TARGET_DIRS" L 0 "" "$GF_EXCLUDE")"
+dst_files=$(for link in $dst_links; do 
+    echo "$link:::$(readlink "$link" || readlink -m "$link")"
+done)
+
+records=$(gf_search_files "$gf_searched_files" "$(echo "$dst_files" | awk '!x[$0]++')" "$GF_EXCLUDE" "$GF_HIGH_PRIORITY" "$GF_LOW_PRIORITY" 1)
+
+# Print summary
+if [ -z "$dst_links" ]; then
+    gf_error "No symlinks found"
+else
+    gf_result "Total ${GFCB}$(gf_count_lines "$dst_links")${GFC0} symlinks found"
+fi
+gf_spacer
+
+# Process links to relink
+for record in $records; do
+
+    # Extract results
+    dst_files="${record%%|||*}"
+    dst_file="${dst_files%%:::*}"
+    src_files="${record##*|||}"
+    src_file="${src_files%%:::*}"
+
+    # Actual targets
+    dst_link="$(readlink "$dst_file")"
+    [[ -z "$dst_link" ]] && dst_link="$(readlink -m "$dst_file")"
+    
+    # Link relative to current link dir
+    src_link="$src_file"
+
+    # Expand target file path
+    if [ -n "$src_file" ]; then
+        src_file=$(gf_full_path "$src_file")
+
+        # Relative links
+        if [ "$GF_RELATIVE_DIRS" == "YES" ]; then
+            src_link=$(gf_relative_path "$(dirname "$dst_file")" "$src_file")
+
+        # Absolute links
+        else
+            src_link="$src_file"
+        fi
+    fi
+
+    # Link is valid
+    if [ -e "$dst_file" ]; then
+        if [ "$GF_RELINK_VALID" == "YES" ]; then
+        
+            # Target link should not be empty
+            if [ -n "$src_link" ]; then
+            
+                # Multiple matches not allowed
+                if [[ "$src_files" == *:::* ]]; then
+                    gf_spacer
+                    gf_message "33M" "$(perl -e "$gf_highlight_common_path_perl" $dst_file $dst_link)" "valid symlinks with multiple candidates"
+                    gf_message "33 " "$(perl -e "$gf_highlight_common_path_perl" $dst_link $dst_file)"
+                    echo "$src_files" | sed -e "s|:::|\n|g" | while read line; do
+                        gf_message "33 " "$(perl -e "$gf_highlight_common_path_perl" $line $dst_link)"
+                    done
+                    gf_spacer
+                
+                # Search file should exist
+                elif [ -e "$src_file" ]; then
+                    
+                    # Do not replace same files
+                    if [ "$src_link" == "$dst_link" ]; then
+                        gf_message "44V" "$dst_file" "valid symlinks not changed"
+                    
+                    # Replace valid links
+                    else
+                        gf_spacer
+                        gf_message "22V" "$(perl -e "$gf_highlight_common_path_perl" $dst_file $dst_link)" "valid symlinks repaired"
+                        gf_message "22 " "$(perl -e "$gf_highlight_common_path_perl" $dst_link $src_link)"
+                        gf_message "22 " "$(perl -e "$gf_highlight_common_path_perl" $src_link $dst_link)"
+                        gf_spacer
+
+                        # Make actual changes
+                        if [ "$GF_NO_CHANGES" != "YES" ]; then
+                            [[ -z "$gf_undo_modified" ]] && echo "# $(date +%s)" >> ".relink_files.undo" && gf_undo_modified=1
+                            echo "ln -sf '$dst_link' '$(gf_full_path "$dst_file")'" >> ".relink_files.undo"
+                            ln -sf "$src_link" "$dst_file"
+                        fi
+
+                        # Calculate updated file MD5SUM
+                        SCRIPT_FILES+="'$dst_link' '$src_file'"$'\n'
+                    fi
+                    
+                # Missing search file
+                else
+                    gf_spacer
+                    gf_message "11F" "$(perl -e "$gf_highlight_common_path_perl" $dst_file $dst_link)" "target files are broken symlinks"
+                    gf_message "11 " "$(perl -e "$gf_highlight_common_path_perl" $dst_link $dst_file)"
+                    gf_spacer
+                    
+                    MISSING_FILES+="'$dst_link'"$'\n'
+                fi
+                
+            # Target file is broken link
+            else
+                gf_spacer
+                gf_message "33L" "$(perl -e "$gf_highlight_common_path_perl" $dst_file $dst_link)" "valid symlinks not found"
+                gf_message "33 " "$(perl -e "$gf_highlight_common_path_perl" $dst_link $dst_file)"
+                gf_spacer
+                
+                MISSING_FILES+="'$dst_link'"$'\n'
+            fi
+            
+            
+        # Correct symlink
+        else     
+            gf_message "44L" "$dst_file" "valid symlinks"
+            COMPARE_FILES+="'$dst_link' '$dst_link'"$'\n'
+        fi
+
+    # Broken symlink
+    else 
+        gf_spacer
+        
+        # Target link should not be empty
+        if [ -n "$src_link" ]; then
+
+            # Multiple matches not allowed
+            if [[ "$src_files" == *:::* ]]; then
+                gf_message "11M" "$(perl -e "$gf_highlight_common_path_perl" $dst_file $dst_link)" "broken symlinks with multiple candidates"
+                gf_message "11 " "$(perl -e "$gf_highlight_common_path_perl" $dst_link $dst_file)"
+                echo "$src_files" | sed -e "s|:::|\n|g" | while read line; do
+                    gf_message "33 " "$(perl -e "$gf_highlight_common_path_perl" $line $dst_link)"
+                done
+            
+            # Search file should exist
+            elif [ -e "$src_file" ]; then
+        
+                # Repair broken links
+                gf_message "33R" "$(perl -e "$gf_highlight_common_path_perl" $dst_file $dst_link)" "broken symlinks repaired"
+                gf_message "33 " "$(perl -e "$gf_highlight_common_path_perl" $dst_link $src_link)"
+                gf_message "22 " "$(perl -e "$gf_highlight_common_path_perl" $src_link $dst_link)"
+
+                # Make actual changes
+                if [ "$GF_NO_CHANGES" != "YES" ]; then
+                    [[ -z "$gf_undo_modified" ]] && echo "# $(date +%s)" >> ".relink_files.undo" && gf_undo_modified=1
+                    echo "ln -sf '$dst_link' '$(gf_full_path "$dst_file")'" >> ".relink_files.undo"
+                    ln -sf "$src_link" "$dst_file"
+                fi
+
+                # Calculate updated file MD5SUM
+                SCRIPT_FILES+="'$dst_link' '$src_file'"$'\n'
+                
+            # Missing search file
+            else
+                gf_message "11F" "$(perl -e "$gf_highlight_common_path_perl" $dst_file $dst_link)" "target files are broken symlinks"
+                gf_message "11 " "$(perl -e "$gf_highlight_common_path_perl" $dst_link $dst_file)"
+                MISSING_FILES+="'$dst_link'"$'\n'
+            fi
+            
+        # Target file is broken link
+        else
+            gf_message "11B" "$(perl -e "$gf_highlight_common_path_perl" $dst_file $dst_link)" "broken symlinks"
+            gf_message "11 " "$(perl -e "$gf_highlight_common_path_perl" $dst_link $dst_file)"
+            MISSING_FILES+="'$dst_link'"$'\n'
+        fi
+        
+        gf_spacer
+    fi
+done
+
+##################################################
+# Relink files
+##################################################
+gf_spacer
+
+# Search for files to relink
+if [ "$GF_RELINK_FILES" == "YES" ]; then
+
+    # Process files in directory  
+    gf_operation "Scanning target directories ..."
+    dst_files="$(gf_scan_dirs "$GF_TARGET_DIRS" F 0 "" "$GF_EXCLUDE")"
+
+    records=$(gf_search_files "$gf_searched_files" "$(echo "$dst_files" | awk '!x[$0]++')" "$GF_EXCLUDE" "$GF_HIGH_PRIORITY" "$GF_LOW_PRIORITY" 0)
+
+    # Print summary
+    if [ -z "$dst_files" ]; then
+        gf_error "No files found"
+    else
+        gf_result "Total ${GFCB}$(gf_count_lines "$dst_files")${GFC0} files found"
+    fi
+    gf_spacer
+
+    # Process files to relink
+    for record in $records; do
+
+        # Extract results
+        dst_files="${record%%|||*}"
+        dst_file="${dst_files%%:::*}"
+        src_files="${record#*|||}"
+        src_files="${src_files%%|||*}"
+        src_file="${src_files%%:::*}"
+
+        # Actual targets
+        dst_link="$(readlink "$dst_file")"
+        [[ -z "$dst_link" ]] && dst_link="$(readlink -m "$dst_file")"
+        
+        # Link relative to current link dir
+        src_link="$src_file"
+        
+        # Expand target file path
+        if [ -n "$src_file" ]; then
+            src_file=$(gf_full_path "$src_files")
+
+            # Relative links
+            if [ "$GF_RELATIVE_DIRS" == "YES" ]; then
+                src_link=$(gf_relative_path "$(dirname "$dst_file")" "$src_file")
+
+            # Absolute links
+            else
+                src_link="$src_file"
+            fi
+        fi
+
+        # Expand search file path
+        if [ -n "$src_file" ]; then
+            src_file=$(gf_full_path "$src_files")
+
+            # Relative links
+            if [ "$GF_RELATIVE_DIRS" == "YES" ]; then
+                src_link=$(gf_relative_path "$(dirname "$dst_file")" "$src_file")
+
+            # Absolute links
+            else
+                src_link="$src_file"
+            fi
+        fi
+
+        # Do not touch the same files
+        if [ "$(readlink -m "$src_file")" == "$(readlink -m "$dst_file")" ]; then
+            gf_message "11S" "$dst_file" "search and target files are the same"
+            gf_spacer
+
+        # Destination link should not be empty
+        elif [ -z "$src_link" ]; then
+            if [ -n "$GF_SEARCH_DIRS" ]; then
+                gf_message "11F" "$dst_file" "target files not found"
+                gf_spacer
+            else
+                gf_message "44F" "$dst_file" "valid files"
+                COMPARE_FILES+="'$dst_link' '$dst_link'"$'\n'
+            fi
+        
+        # Multiple files found
+        elif [[ "$src_files" == *:::* ]]; then
+            gf_message "11M" "$(perl -e "$gf_highlight_common_path_perl" $dst_file $dst_link)" "files with multiple candidates"
+            echo "$src_files" | sed -e "s|:::|\n|g" | while read line; do
+                gf_message "11 " "$(perl -e "$gf_highlight_common_path_perl" $line $dst_link)"
+            done
+            gf_spacer
+        
+        # Source should be a file
+        elif [ -f "$src_file" ]; then
+            
+            # Destination should be a file
+            if [ -f "$dst_file" ]; then
+        
+                # Compare file sizes
+                src_sum=$(stat -c%s "$src_file")
+                dst_sum=$(stat -c%s "$dst_file")
+
+                # Calculate MD5 sums if files are with the same size
+                if [ "$src_sum" == "$dst_sum" ]; then
+                    src_sum=$(md5sum "$src_file" | sed -e 's/ .\+//')
+                    dst_sum=$(md5sum "$dst_file" | sed -e 's/ .\+//')
+                fi
+
+                # Relink equivalent files only
+                if [ "$src_sum" == "$dst_sum" ]; then
+                    gf_message "22F" "$(perl -e "$gf_highlight_common_path_perl" $dst_file $src_link)" "files replaced with symlinks"
+                    gf_message "22 " "$(perl -e "$gf_highlight_common_path_perl" $src_link $dst_file)"
+
+                    if [ "$GF_NO_CHANGES" != "YES" ]; then
+                        [[ -z "$gf_undo_modified" ]] && echo "# $(date +%s)" >> ".relink_files.undo" && gf_undo_modified=1
+                        echo "cp --remove-destination \"\`readlink -m '$(gf_full_path "$dst_file")'\`\" '$(gf_full_path "$dst_file")'" >> ".relink_files.undo"
+                        ln -sf "$src_link" "$dst_file"
+                    fi
+
+                else
+                    gf_message "11D" "$(perl -e "$gf_highlight_common_path_perl" $dst_file $src_file)" "target files do not match"
+                    gf_message "11 " "$(perl -e "$gf_highlight_common_path_perl" $src_file $dst_file)"
+                fi
+                
+            else
+                gf_message "11E" "$dst_file" "target files not exist"
+            fi                
+                
+            gf_spacer
+            
+        # Not multiple files
+        else
+            gf_message "11N" "$dst_file" "target are not files"
+            gf_spacer
+        fi
+        
+    done
+fi
+
+gf_spacer
+
+# Finalize undo file
+if [ -n "$gf_undo_modified" ]; then
+    echo >> ".relink_files.undo"
+fi
+
+# Export list of missing files
+if [ -n "$GF_OUT_MISSING_FILES" ]; then
+    gf_echo "${GFM6}#${GFC0} Exporting missing files list ... $(gf_count_lines "$MISSING_FILES") files"
+    echo "$MISSING_FILES" | sed -e "s/^'//;s/'\$//;" > "$GF_OUT_MISSING_FILES"
+    gf_result "$(readlink -m "$GF_OUT_MISSING_FILES")"
+    gf_spacer
+fi
+
+# Export script to pack files
+[[ -n "$GF_OUT_PACK_SCRIPT" ]] && gf_export_pack_script "$GF_OUT_PACK_SCRIPT" "$MISSING_FILES$SCRIPT_FILES$(sed -ne 's/^\s*ln -sf //p; s/^\s*cp --remove-destination //p' .relink_files.undo 2> /dev/null)"
+
+# Export script to compare md5sum of the files
+if [ -n "$GF_OUT_COMPARE_SCRIPT" ]; then
+    gf_export_compare_script "$GF_OUT_COMPARE_SCRIPT" "$SCRIPT_FILES$COMPARE_FILES$(sed -ne 's/^\s*ln -sf //p; s/^\s*cp --remove-destination //p' .relink_files.undo 2> /dev/null)"
+fi
+
+gf_message_summary "Session summary"

@@ -1,0 +1,718 @@
+#!/bin/bash
+
+################################################################################
+# Generic Flow v5.0 (February 2023)
+################################################################################
+#
+# Copyright 2011-2023 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+################################################################################
+# File name: bin/search_cells
+# Purpose:   Look for missing LEF/LIB/GDS/AOCV files
+################################################################################
+
+GF_TOOL_PATH="$(readlink -m "$0/..")"
+GF_TOOL_NAME="$(basename "$0")"
+
+# Load common procedures
+source "$GF_TOOL_PATH/gflow" -fatal_exit 2> /dev/null
+[[ $? != 0 ]] && echo -e "\n\e[31;41m \e[0m Required Generic Flow binary \e[1m$GF_BIN\e[0m not found\n" && exit 1
+
+gf_echo "
+########################################################################
+#  Utility to search LIB/LEF/GDS/AOCV files containing specific cells  #
+########################################################################
+"; GF_IS_SPACE=1
+
+GF_TOOL_USAGE="${GFM6} ${GFC0} Usage:
+
+  ${GFM4}#${GFC0} LEF files search:
+    $GF_TOOL_NAME -lef -i <dirs> -c <cells>
+    
+  ${GFM4}#${GFC0} LIB files search:
+    $GF_TOOL_NAME -lib -i <dirs> -c <cells> \\
+        [-high <mask>] [-low <mask>] [-replace <from>=<to>]
+    
+  ${GFM4}#${GFC0} Scan verilog netlist for external cell names:
+    $GF_TOOL_NAME -n <netlist>.v.gz [-o <out_list_file>]
+    
+  ${GFM4}#${GFC0} Full syntax:
+    $GF_TOOL_NAME {-i|-in <dirs>} {-c|-cells <cells>|-n|-netlist <file>|-t|-list <file>} \\
+        [-o <out_list_file>] [-l|-links] [-d|-depth <value>] \\
+        {-lib|-lef|-aocv|-gds|-cdl|-p <pattern>|-pattern <pattern>} \\
+        [-x|-exclude <regexp>] [-high <mask>] [-low <mask>] [-replace <from>=<to>] \\
+        [-cache|-no_cache|-clear_cache] [-cache_dir <dir>]
+        
+${GFM6} ${GFC0} Command line arguments:
+
+    -i, -in <dirs>         root directories to search files in
+    -c, -cells <cells>     cell names to search
+    -n, -netlist <file>    auto detect cell names from verilog netlist
+    -t, -list <file>       file containing list of cell names
+    -o, -out_list <file>   write out cell list to file
+    
+    -l, -links             follow symbolic links during search
+    -d, -depth <value>     limit search directory scan depth
+    
+    -lef                   use *.lef and *.tlef file patterns
+    -gds                   use *.gds, *.gds2 and *.gdsii file patterns
+    -cdl                   use *.cdl *.spi *.spice file patterns
+    -lib                   use *.lib file pattern
+    -aocv                  use *.aocvm and *.sbocv file patterns
+    -p, -pattern <pattern> use specific file name pattern
+    
+    -x, -exclude <regexp>  exclude file names matching regexp from search
+    -low <regexp>          decrease priority of files matching regexp
+    -high <regexp>         increase priority of files matching regexp
+    -replace <from>=<to>   replace parts of result file names
+    
+    -cache                 cache scanned files to speed up search in the future (default)
+    -no_cache              do not use cache of scanned files
+    -clear_cache           clear cached files before using the cache
+    -cache_dir <dir>       directory to store .search_cells.cache file (default is \".\")
+
+${GFM6} ${GFC0} Notes:
+    
+    Exclude regexp used to skip files and directories.
+        This speeds up the search process
+    
+    High-priority and low-priority regexp used to narrow result files list 
+        when more than 1 found per cell.
+
+    Each of case insensitive regexp when found in file name or directory 
+        will increase (-high <mask>) or decrease (-low <mask>) it's priority.
+    Script will return only files with highest priority.
+    
+    Replace patterns used to return the parameterized result.
+    For example, LIB files are corner-specific, so it is useful
+        to replace delay corner with * to return file mask.
+
+${GFM6} ${GFC0} Examples:
+    
+  ${GFM4}#${GFC0} Search LEF files for flash in ./data
+    $GF_TOOL_NAME -lef -c flash -d ./data -high 8m5x2z 
+
+  ${GFM4}#${GFC0} Search LIB files and parameterize results
+    $GF_TOOL_NAME -lib -c 'ram128x64 ram32x64' -d ./data \\
+        -high ssg0p81v125c \\
+        -replace '
+            ssg0p81v125c=\${pvt_p}\${pvt_v}\${pvt_t}
+        '
+"
+
+##################################################
+# Process options
+##################################################
+
+GF_SEARCH_DIRS=
+GF_SEARCH_CELLS=
+GF_NETLIST_FILE=
+GF_OUT_CELLS_FILE=
+
+# Cache data to speed up next search
+GF_USE_CACHE=YES
+GF_CACHE_DIR=.
+
+# Only seach hard links by default
+GF_FOLLOW_LINKS=0
+
+# Parse command line
+gf_last_key=
+while [ $# -gt 0 ]; do
+    if [[ "$1" != -* ]]; then key="$gf_last_key"; else key=; fi
+    if [ -z "$key" ]; then key="$1"; shift; fi
+    gf_last_key=; case "$key" in
+        -i|-in|-dir|-dirs )
+            gf_last_key="$key"
+            if [ -z "$1" ]; then
+                gf_fatal "Argument ${GFCB}$key${GFC0} requires existing directory"
+            elif [ -d "$1" ]; then
+                GF_SEARCH_DIRS+="$1"$'\n'
+            else
+                gf_fatal "Search directory ${GFCB}$1${GFC0} does not exist"
+            fi
+            shift
+        ;;
+        -c|-cell|-cells )
+            gf_last_key="$key"
+            if [ -z "$1" ]; then
+                gf_fatal "Argument ${GFCB}$key${GFC0} requires cell name"
+            else
+                GF_SEARCH_CELLS+="$1"$'\n'
+            fi
+            shift
+        ;;
+        -n|-netlist )
+            if [ -z "$1" ]; then
+                gf_fatal "Argument ${GFCB}$key${GFC0} requires existing file name"
+            elif [ -f "$1" ]; then
+                GF_NETLIST_FILE="$1"
+            else
+                gf_fatal "Argument ${GFCB}$key${GFC0} file ${GFCB}$1${GFC0} does not exist"
+            fi
+            shift
+        ;;
+        -t|-list )
+            if [ -f "$1" ]; then
+                GF_SEARCH_CELLS+="$(cat "$1")"
+            elif [ -z "$1" ]; then
+                gf_fatal "Argument ${GFCB}$key${GFC0} requires existing file name"
+            else
+                gf_fatal "Argument ${GFCB}$key${GFC0} file ${GFCB}$1${GFC0} does not exist"
+            fi
+            shift
+        ;;
+        -o|-out_list )
+            GF_OUT_CELLS_FILE=
+            if [ -z "$1" ]; then
+                gf_fatal "Argument ${GFCB}$key${GFC0} requires file name"
+            else
+                GF_OUT_CELLS_FILE="$1"
+            fi
+            shift
+        ;;
+        -l|-links )
+            GF_FOLLOW_LINKS=1
+        ;;
+        -d|-depth )
+            if [[ $1 =~ ^[0-9][0-9]*$ ]]; then
+                GF_MAX_DEPTH="$1"
+            else
+                gf_fatal "Argument ${GFCB}$key${GFC0} requires a number"
+            fi
+            shift
+        ;;
+        -lef|-lefs )
+            GF_SEARCH_PATTERNS+=" *.lef *.tlef"
+        ;;
+        -gds )
+            GF_SEARCH_PATTERNS+=" *.gds *.gds2 *.gdsii"
+        ;;
+        -cdl )
+            GF_SEARCH_PATTERNS+=" *.cdl *.spi *.spice"
+        ;;
+        -lib|-libs )
+            GF_SEARCH_PATTERNS+=" *.lib"
+        ;;
+        -aocv )
+            GF_SEARCH_PATTERNS+=" *.aocvm *.sbocv"
+        ;;
+        -p|-pat|-pattern|-patterns )
+            if [ -z "$1" ]; then
+                gf_fatal "Argument ${GFCB}$key${GFC0} requires file pattern"
+            else
+                GF_SEARCH_PATTERNS+=" $1"
+            fi
+            shift
+        ;;
+        -x|-exclude )
+            gf_last_key="$key"
+            if [ -n "$1" ]; then
+                GF_EXCLUDE+="$1"$'\n'
+            else
+                gf_fatal "Argument ${GFCB}$key${GFC0} requires regexp"
+            fi
+            shift
+        ;;
+        -hi|-high|-high_priority )
+            gf_last_key="$key"
+            if [ -n "$1" ]; then
+                GF_HIGH_PRIORITY+="$1"$'\n'
+            else
+                gf_fatal "Argument ${GFCB}$key${GFC0} requires regexp"
+            fi
+            shift
+        ;;
+        -lo|-low|-low_priority )
+            gf_last_key="$key"
+            if [ -n "$1" ]; then
+                GF_LOW_PRIORITY+="$1"$'\n'
+            else
+                gf_fatal "Argument ${GFCB}$key${GFC0} requires regexp"
+            fi
+            shift
+        ;;
+        -re|-replace|-replaces )
+            gf_last_key="$key"
+            if [[ "$1" == *\=* ]]; then
+                GF_REPLACES+="$1"$'\n'
+            else
+                gf_fatal "Argument ${GFCB}$key${GFC0} requires <regexp>=<regexp> pair"
+            fi
+            shift
+        ;;
+        -cache )
+            GF_USE_CACHE=YES;
+        ;;
+        -no_cache )
+            GF_USE_CACHE=NO;
+        ;;
+        -clear_cache )
+            GF_USE_CACHE=CLEAR;
+        ;;
+        -cache_dir )
+            GF_CACHE_DIR="$1"
+            shift
+        ;;
+        -h|-help )
+            gf_echo_spaced -e "$GF_TOOL_USAGE"
+            exit 0
+        ;;
+        -* )
+            gf_fatal "Incorrect ${GFCB}$key${GFC0} option"
+        ;;
+        * )
+            if [ -d "$key" ]; then
+                GF_SEARCH_DIRS+="$key"$'\n'
+            else
+                GF_SEARCH_CELLS+="$key "
+            fi
+        ;;
+    esac
+done
+
+##################################################
+# Perl script to extract cells from netlist
+##################################################
+
+gf_get_netlist_cells_script='
+    my $data = "";
+    my %modules;
+    my %cells;
+    while (<STDIN>) {
+        s/^\s+//;
+        s/\s+$//;
+        s/\/\/.*$//g;
+        if ($_) {
+            $data .= $_." ";
+            while ($data =~ s/^([^;]+;)\s*//) {
+                my $line = $1;
+                $line =~ s/\s*\/\*.*?\*\/\s*//g;
+                $line =~ s/^endmodule\s+//;
+                if ($line =~ /^(\S+)\s+([^\s\(]+)\s*\(.*\)\s*;\s*$/) {
+                    if ($1 eq "module") {
+                        $modules{$2}++;
+                    } else {
+                        $cells{$1}++;
+                    }
+                }
+            }
+        }
+    }
+    foreach (keys %cells) {
+        print $_."\n" if (!defined $modules{$_});
+    }
+'
+
+##################################################
+# Check and dump options
+##################################################
+
+GF_SEARCH_DIRS="$(echo "$GF_SEARCH_DIRS" | awk '!x[$0]++')"
+
+# Scan netlist for cell names
+if [ -n "$GF_NETLIST_FILE" ]; then
+    gf_spacer
+    gf_operation "Scanning ${GFCB}$GF_NETLIST_FILE${GFC0} ..."
+    if [[ $GF_NETLIST_FILE == *.gz ]]; then
+        cells="$(zcat "$GF_NETLIST_FILE" | perl -e "$gf_get_netlist_cells_script")"
+    else
+        cells="$(cat "$GF_NETLIST_FILE" | perl -e "$gf_get_netlist_cells_script")"
+    fi
+    gf_result "Total ${GFCB}$(gf_count_words "$cells")${GFC0} cells found"
+    GF_SEARCH_CELLS+="$cells "
+fi
+
+# Cell list is important
+if [ -z "$GF_SEARCH_CELLS" ]; then
+    gf_echo_spaced -e "$GF_TOOL_USAGE"
+    gf_fatal "No cells to search specified. Use ${GFCB}-c${GFC0}, ${GFCB}-t${GFC0} or ${GFCB}-n${GFC0} options."
+else
+    GF_SEARCH_CELLS=$(for cell in $GF_SEARCH_CELLS; do echo "  $cell"; done | awk '!x[$0]++')
+    gf_spacer; gf_info "Total ${GFCB}$(gf_count_words "$GF_SEARCH_CELLS")${GFC0} cells and patterns to search:"
+    for word in $GF_SEARCH_CELLS; do echo "  $word"; done
+fi
+
+# Write out cells list
+if [ -n "$GF_OUT_CELLS_FILE" ]; then
+    gf_spacer
+    if [ -z "$GF_SEARCH_CELLS" ]; then
+        gf_fatal "No cells to write out"
+    else
+        # gf_echo -ne "${GFM6}#${GFC0} Writing cell list to ${GFCB}$GF_OUT_CELLS_FILE${GFC0} ..."
+        gf_set_progress "Writing cell list to ${GFCB}$GF_OUT_CELLS_FILE${GFC0} ..."
+        for cell in $GF_SEARCH_CELLS; do echo $cell; done | awk '!x[$0]++' > "$GF_OUT_CELLS_FILE"
+        gf_reset_progress
+        gf_message "66#" "Cell list saved to ${GFCB}$GF_OUT_CELLS_FILE${GFC0}"
+    fi
+fi
+
+if [ -z "$GF_SEARCH_DIRS" ]; then
+    gf_echo_spaced -e "$GF_TOOL_USAGE"
+    gf_fatal "No directories to search files in specified. See ${GFCB}-d${GFC0} option."
+else
+    gf_spacer; gf_info "Directories to ${GFCB}search files${GFC0} in:"
+    echo "$GF_SEARCH_DIRS" | sed -e 's/^/  /g'
+fi
+
+gf_spacer
+if [ -z "$GF_SEARCH_PATTERNS" ]; then
+    gf_fatal "No file patterns specified"
+else
+    gf_message "66 " "File patterns to search:"
+    echo " $GF_SEARCH_PATTERNS" | sed -e 's/\s\+/\n  /g; s/^\s*\n//g; s/\n\s*$//g'
+fi
+
+if [ -n "$GF_EXCLUDE" ]; then
+    gf_spacer; gf_info "Regexp patterns to ${GFCB}exclude${GFC0} files and directories from search:"
+    for word in $GF_EXCLUDE; do echo "  $word"; done
+fi
+
+# Auto-increase priority of replace patterns
+for word in $(echo "$GF_REPLACES" | sed -e 's|=.*$||g'); do
+    GF_HIGH_PRIORITY+="$word"$'\n'
+done
+
+if [ -n "$GF_HIGH_PRIORITY" ]; then
+    gf_spacer; gf_info "Regexp patterns to ${GFCB}increase${GFC0} file priority:"
+    for word in $GF_HIGH_PRIORITY; do echo "  $word"; done
+fi
+
+if [ -n "$GF_LOW_PRIORITY" ]; then
+    gf_spacer; gf_info "Regexp patterns to ${GFCB}decrease${GFC0} file priority:"
+    for word in $GF_LOW_PRIORITY; do echo "  $word"; done
+fi
+
+if [ -n "$GF_REPLACES" ]; then
+    gf_spacer; gf_info "Regexp patterns to ${GFCB}replace${GFC0} file names:"
+    for word in $GF_REPLACES; do echo "  $word"; done
+fi
+
+if [ -n "$GF_MAX_DEPTH" ]; then
+    gf_spacer; gf_info "Search directory ${GFCB}scan depth limited${GFC0} to ${GFCB}$GF_MAX_DEPTH${GFC0} levels"
+fi
+
+if [ "$GF_FOLLOW_LINKS" == 1 ]; then
+    gf_spacer; gf_info "Symbolic links ${GFCB}will be followed${GFC0} in search directory"
+fi
+
+##################################################
+# Internal variables
+##################################################
+
+# Cache file name
+CACHE="$GF_CACHE_DIR/.search_cells.cache"
+
+##################################################
+# Process data
+##################################################
+
+# Get file list to search in
+gf_spacer; gf_operation "Scanning directories ... "
+files="$(gf_scan_dirs "$GF_SEARCH_DIRS" FL "$GF_FOLLOW_LINKS" "$GF_MAX_DEPTH" "$GF_EXCLUDE")"
+files="$(gf_filter_files "$(gf_exclude_files "$files" "$GF_EXCLUDE")" "$(echo "$GF_SEARCH_PATTERNS" | sed -e 's/\./\\./gm; s/\?/\./gm; s/\*/\.\*/gm')")"
+if [ -z "$files" ]; then
+    gf_fatal "No files found"
+else
+    gf_result "Total ${GFCB}$(gf_count_lines "$files")${GFC0} files found"
+    gf_spacer
+fi
+
+# Load cache
+gf_counter=0
+cached_definitions=
+if [ "$GF_USE_CACHE" == "YES" ]; then
+
+    if [ -e "$CACHE" ]; then
+        gf_operation "Reading cached data ..."
+        cached_definitions=$(echo -n "$files" | perl -e '
+            my %files;
+            while (<STDIN>) {
+                s/^\s+//;
+                s/\s+$//;
+                $files{$_} = 1 if ($_);
+            }
+            open FILE, "'"$CACHE"'";
+            while (<FILE>) {
+                my $file = $_;
+                $file =~ s/^\s+//;
+                $file =~ s/:.*$//;
+                $file =~ s/\s+$//;
+                print if ($files{$file});
+            }
+            close FILE;
+        ')
+
+        files=$(echo "$files" | perl -e '
+            my %files;
+            open FILE, "'"$CACHE"'";
+            while (<FILE>) {
+                s/^\s+//;
+                s/:.*$//;
+                s/\s+$//;
+                $files{$_} = 1;
+            }
+            close FILE;
+
+            while (<STDIN>) {
+                my $file = $_;
+                s/^\s+//;
+                s/\s+$//;
+                print ":CACHED:" if ($_ && $files{$_});
+                print $file;
+            }
+        ')
+
+        # echo "$files" | grep -e '^:CACHED:' > cached.txt
+        gf_counter=$(gf_count_lines "$(echo "$files" | grep -e '^:CACHED:')")
+        gf_result "Total ${GFCB}$(gf_count_lines "$cached_definitions")${GFC0} cell definitions found in ${GFCB}$gf_counter${GFC0} cached files"
+        gf_spacer
+    fi
+fi
+
+# Get cell list in files
+uncached_files=$(echo "$files" | grep -ve '^:CACHED:')
+errors=
+if [ -n "$uncached_files" ]; then
+    gf_operation "Scanning files for cell definitions ... "
+    cell_definitions=
+    file_counter=0
+    for file in $uncached_files; do
+        gf_counter=$((gf_counter+1))
+        gf_set_progress "$gf_counter => $file"
+        if [ -e "$file" ]; then
+            cell_definitions+=$(cat "$file" | perl -e '
+                my %records;
+                my $file = '"'$file'"';
+                while (<STDIN>) {
+                    $records{$1}++ if (/^\s*object_spec:.*[\s\/](\w+)\b/i);
+                    $records{$1}++ if (/^\s*\.subckt\s+(\w+)\b/i);
+                    $records{$1}++ if (/^\s*MACRO\s+(\w+)\b/i);
+                    $records{$1}++ if (/^\s*cell\s*\(\s*\"?(\w+?)\"?\s*\)/i);
+                    $records{$1}++ while (s/\x06\x06(\w+)//i);
+                }
+                foreach my $cell (keys %records) {
+                    print "$file: $cell\n" if ($records{$cell} == 1);
+                }
+            ')$'\n'
+        else
+            errors+="${GFM1} ${GFC0} $file"$'\n'
+        fi
+        file_counter=$((file_counter+1))
+    done
+    gf_reset_progress
+    if [ "$GF_USE_CACHE" == "YES" ]; then
+        gf_result "Total ${GFCB}$(gf_count_lines "$cell_definitions")${GFC0} cell definitions found in ${GFCB}$file_counter${GFC0} new files"
+    else
+        gf_result "Total ${GFCB}$(gf_count_lines "$cell_definitions")${GFC0} cell definitions found in ${GFCB}$file_counter${GFC0} files"
+    fi
+    gf_spacer
+    [[ -n "$errors" ]] && gf_error "Missing files\n\n$errors"
+    GF_IS_SPACE=1
+fi
+
+gf_operation "Processing cell definitions ... "
+cell_definitions=$(echo "$cell_definitions" | grep -ve '^\s*$')
+
+# Update cache
+if [ "$GF_USE_CACHE" == "CLEAR" ]; then
+    rm -f "$CACHE"
+fi
+if [ "$GF_USE_CACHE" != "NO" -a -n "$cell_definitions" ]; then
+    gf_set_progress "Updating cache ... ";
+    echo -e "$cell_definitions" >> "$CACHE"
+    chmod aug+rw "$CACHE"
+fi
+
+gf_reset_progress
+if [ -z "$cached_definitions$cell_definitions" ]; then
+    gf_fatal "No definitions found"
+else
+    gf_result "Total ${GFCB}$(gf_count_lines "$cached_definitions$cell_definitions")${GFC0} definitions processed"
+    gf_spacer
+fi
+
+# Prepare data to processing
+gf_set_progress "Processing data ... ";
+data="
+:CELLS:$(echo $GF_SEARCH_CELLS)
+:LOW_PRIORITY:$(echo $GF_LOW_PRIORITY)
+:HIGH_PRIORITY:$(echo $GF_HIGH_PRIORITY)
+:REPLACE:$(echo $GF_REPLACES)
+$cached_definitions
+$cell_definitions
+"
+
+# Post-process cell list
+gf_set_progress "Filtering cell definitions ... ";
+all_cells=$(echo "$data" | perl -e '
+    my @cells;
+    my %data;
+    my %replace;
+    my @high_priority;
+    my @low_priority;
+
+    while (<STDIN>) {
+        if (/^(\S+):\s+(\S+)\s*$/i) {
+            push @{$data{$2}}, $1;
+
+        } elsif (s/^:CELLS://) {
+            $_ .= " ";
+            while (s/^\s*(\S+)\s+//) {
+                push @cells, $1;
+            }
+        } elsif (s/^:HIGH_PRIORITY://) {
+            $_ .= " ";
+            while (s/^\s*(\S+)\s+//) {
+                push @high_priority, $1;
+            }
+        } elsif (s/^:LOW_PRIORITY://) {
+            $_ .= " ";
+            while (s/^\s*(\S+)\s+//) {
+                push @low_priority, $1;
+            }
+        } elsif (s/^:REPLACE://) {
+            while (s/^\s*(\S+)=(\S+)\s*//) {
+                $replace{$1} = $2;
+            }
+        }
+    }
+
+    my %cells;
+    foreach my $cell (keys %data) {
+
+        my %file_index;
+        foreach my $file (@{$data{$cell}}) {
+
+            my $priority = 0;
+            foreach my $pattern (@low_priority) {
+                $priority-- if ($file =~ /$pattern/i);
+            }
+            foreach my $pattern (@high_priority) {
+                $priority++ if ($file =~ /$pattern/i);
+            }
+
+            if (!$file_index{$file}) {
+                $file_index{$file} = 1;
+                push @{$cells{$cell}{$priority}}, $file;
+            }
+        }
+    }
+
+    print "'"$gf_progress_message"'";
+    print "'${GFK}${GFM6}' '${GFC0}' Files grouped by cell name\n\n";
+
+    my $file_counter = 0;
+    my $cell_counter = 0;
+    my $pattern_counter = 0;
+    my $multiple_match_counter = 0;
+    my $files; my %files;
+    foreach (@cells) {
+        my $pattern = $_;
+        s/\./\\./gm;
+        s/\?/\./gm;
+        s/\*/\.\*/gm;
+        my @search;
+        if ($pattern eq $_) {
+            push @search, $pattern;
+        } else {
+            foreach my $cell (keys %data) {
+                push @search, $cell if ($cell =~ m/^$_$/);
+            }
+            print "'${GFM1}'#'${GFC0}' $pattern\n\n" if ($#search < 0);
+        }
+        my $is_found = 0;
+        foreach my $cell (@search) {
+            my @priorities = (sort {$b <=> $a} (keys %{$cells{$cell}}));
+            my $priority = $priorities[0];
+            
+            # Multiple files
+            if ($#{$cells{$cell}{$priority}} > 0) {
+                $files .= "\n";
+                print "'${GFM3}'#'${GFC0}' $cell\n";
+                foreach my $file (@{$cells{$cell}{$priority}}) {
+                    if (defined $files{$file}) {
+                        print "'${GFM4}'#'${GFC0}' $file\n";
+                    } else {
+                        print "'${GFM3}' '${GFC0}' $file\n";
+                        $files .= "'${GFM3}' '${GFC0}' $file\n";
+                        $files{$file} = 1;
+                        $file_counter++;
+                    }
+                }
+                $files .= "\n";
+                $multiple_match_counter++;
+                $cell_counter++;
+                $is_found = 1;
+            
+            # Single file
+            } elsif ($#{$cells{$cell}{$priority}} == 0) {
+                print "'${GFM2}'#'${GFC0}' $cell\n";
+                my $file = $cells{$cell}{$priority}[0];
+                if (defined $files{$file}) {
+                    print "'${GFM4}'#'${GFC0}' $file\n";
+                } else {
+                    print "'${GFM2}' '${GFC0}' $file\n";
+                    $files .= "'${GFM2}' '${GFC0}' $file\n";
+                    $files{$file} = 1;
+                    $file_counter++;
+                }
+                $cell_counter++;
+                $is_found = 1;
+            
+            # No file
+            } else {
+                print "'${GFM1}'#'${GFC0}' $cell\n";
+            }
+            print "\n";
+        }
+        $pattern_counter++ if ($is_found);
+    }
+
+    $files =~ s/\n{2,}/\n\n/gm;
+    $files =~ s/^\n+//;
+    $files =~ s/\n+$//;
+
+    if ($files) {
+        print "'${GFM6}' '${GFC0}' Filtered unique files\n\n$files\n\n";
+        
+        my $is_replaced = 0;
+        foreach my $from (keys %replace) {
+            my $to = $replace{$from};
+            $is_replaced = 1 if ($files =~ s/$from/$to/gim);
+        }
+        $files =~ s/(\$\{\S+?\})/"'${GFCB}'".$1."'${GFC0}'"/gem;
+
+        if ($is_replaced) {
+            print "'${GFM6}' '${GFC0}' Files with replaced names\n\n";
+            print "$files\n\n";
+        }
+        
+        print "'${GFM6}' '${GFC0}' Summary\n\n";
+        my $total_patterns = $#cells + 1;
+
+        print "'${GFM2}' '${GFC0}' '${GFCB}'$cell_counter'${GFC0}' cells found in '${GFCB}'$file_counter'${GFC0}' files\n";
+        print "'${GFM3}' '${GFC0}' '${GFCB}'$multiple_match_counter'${GFC0}' cells found in multiple files\n" if ($multiple_match_counter > 0);
+        print "'${GFM1}' '${GFC0}' '${GFCB}'".($total_patterns-$pattern_counter)."'${GFC0}' cells not found\n" if ($pattern_counter != $total_patterns);
+
+        print "\n";
+
+    } else {
+        print "'${GFM6}' '${GFC0}' Summary\n\n'${GFM1}'#'${GFC0}' No files found\n\n";
+    }
+')
+
+# Print out results
+echo "$all_cells"$'\n'

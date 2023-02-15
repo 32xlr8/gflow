@@ -1,0 +1,245 @@
+#!/bin/bash
+
+################################################################################
+# Generic Flow v5.0 (February 2023)
+################################################################################
+#
+# Copyright 2011-2023 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+################################################################################
+# File name: bin/less_colored
+# Purpose:   Less logs and other files with highlight
+################################################################################
+
+GF_TOOL_PATH="$(readlink -m "$0/..")"
+GF_TOOL_NAME="$(basename "$0")"
+
+# Load common procedures
+source "$GF_TOOL_PATH/gflow" -fatal_exit 2> /dev/null
+[[ $? != 0 ]] && echo -e "\n\e[31;41m \e[0m Required Generic Flow binary \e[1m$GF_BIN\e[0m not found\n" && exit 1
+
+gf_echo "
+##################################
+#  Utility to display log files  #
+##################################
+"; GF_IS_SPACE=1
+
+GF_TOOL_USAGE="\e[36;46m \e[0m Usage:
+
+  \e[34;44m#\e[0m Full syntax:
+    $GF_TOOL_NAME [<file>] [<dir>] [-e] [-f]
+    
+\e[36;46m \e[0m Command line arguments:
+
+    <file>  log file to display
+    <dir>   directory to scan log files
+    
+    -e      echo the result instead of using less
+    -f      highlight existing and missing files in different colors
+"
+
+##################################################
+# Process options
+##################################################
+
+GF_DIRS=
+GF_LOGS=
+
+GF_CHECK_FILES=0
+GF_USE_ECHO=0
+
+# Parse command line
+gf_last_key=
+while [ $# -gt 0 ]; do
+    if [[ "$1" != -* ]]; then key="$gf_last_key"; else key=; fi
+    if [ -z "$key" ]; then key="$1"; shift; fi
+    gf_last_key=; case "$key" in
+        -f|-files )
+            GF_CHECK_FILES=1
+        ;;
+        -e|-echo )
+            GF_USE_ECHO=1
+        ;;
+        -h|-help )
+            gf_echo_spaced -e "$GF_TOOL_USAGE"
+            exit 0
+        ;;
+        -* )
+            gf_fatal "Incorrect \e[1m$key\e[0m option"
+        ;;
+        * )
+            if [ -d "$key" ]; then
+                GF_DIRS+="$key"$'\n'
+            elif [ -e "$key" ]; then
+                GF_LOGS+="$key"$'\n'
+            else
+                gf_fatal "No \e[1m$key\e[0m file or dir exist"
+            fi
+        ;;
+    esac
+done
+
+gf_initial_logs="$GF_LOGS"
+
+# Check important options
+if [ -z "$GF_LOGS$GF_DIRS" ]; then
+    gf_echo_spaced -e "$GF_TOOL_USAGE"
+fi
+
+# Scan directory for logs
+function scan_dir {
+    for dir in "$@"; do
+        dir=$(echo "$dir/" | sed -e 's|//|/|g')
+        gf_set_progress "Scanning $dir for logs ..."
+        local gf_test="$(2> /dev/null ls -1d $dir*.log ${dir}logs/*.log | grep -v -e '/logs/run\..*\.log$' -e '/tasks/run\.log$')"
+        [[ -n "$gf_test" ]] && GF_LOGS+="$gf_test"$'\n'
+    done
+}
+
+# Scan directories for logs
+if [ -n "$GF_DIRS" ]; then
+    for dir in $GF_DIRS; do scan_dir "$dir"; done
+    [[ -z "$GF_LOGS" ]] && for dir in $GF_DIRS; do scan_dir "$dir/*"; done
+    [[ -z "$GF_LOGS" ]] && for dir in $GF_DIRS; do scan_dir "$dir/*/*"; done
+fi
+
+[[ -z "$GF_LOGS$GF_DIRS" ]] && scan_dir "$PWD"
+[[ -z "$GF_LOGS$GF_DIRS" ]] && scan_dir "$PWD/.."
+[[ -z "$GF_LOGS$GF_DIRS" ]] && scan_dir "$PWD/*"
+[[ -z "$GF_LOGS$GF_DIRS" ]] && scan_dir "$PWD/../work_*/*"
+
+gf_reset_progress 
+
+# Choose tool binary
+GF_LOGS="$(echo "$GF_LOGS" | awk '!x[$0]++')"
+if [ $(gf_count_lines "$GF_LOGS") -gt 1 -o -z "$gf_initial_logs$GF_DIRS" -a -n "$GF_LOGS" ]; then
+    gf_choose_file_dir_task -var GF_LOG -prompt "Please select log file to display:" -files "$GF_LOGS"
+else
+    GF_LOG="$GF_LOGS"
+fi
+
+if [ -z "$GF_LOG" ]; then
+    gf_fatal "No log file to display"
+fi
+
+if [ ! -e "$GF_LOG" ]; then
+    gf_fatal "Log file ${GFCB}$to${GFC0} does not exist"
+fi
+
+gf_set_progress "Parsing ${GFCB}$GF_LOG${GFC0} ..."
+gf_result=$(cat "$GF_LOG" | perl -e '
+    sub colorRange {
+        my $value = shift;
+        my $color = 97;
+        $color = 92 if ($value  < -0.000);
+        $color = 96 if ($value  < -0.050);
+        $color = 93 if ($value  < -0.100);
+        $color = 91 if ($value  < -0.500);
+        return "\e\[".$color."m".decolor($value)."\e\[0m";
+    }
+
+    sub color {
+        my $text = shift;
+        my $color = shift;
+        return "\e\[".$color."m".decolor($text)."\e\[0m";
+    }
+
+    sub decolor {
+        my $text = shift;
+        $text =~ s/\e\[[\d\;]+m//g;
+        return $text;
+    }
+    
+    my @files; my %files;
+    sub highlight_file {
+        my $index = shift;
+        if ($files[$index]{is_file}) {
+            my $file = decolor($files[$index]{text});
+            if ('$GF_CHECK_FILES') {
+                if (-e $file) {
+                    return "'${GFH2}'".$file."'${GFC0}'";
+                } else {
+                    return "'${GFH1}'".$file."'${GFC0}'";
+                }
+            } else {
+                return "'${GFC7}'".$file."'${GFC0}'";
+            }
+        } else {
+            return $file;
+        }
+    }
+
+    my $count = 0; my %exclude_patterns;
+    my @lines;
+    
+    while (<STDIN>) {
+    
+        # Files highlight
+        my @replaces;
+        '"$gf_detect_files_in_line_perl"'
+        
+        # Comments
+        push @parts, color($1,90) while (s/(#[^\e]*$)/"_GFPART".($#parts+1)."TRAPFG_"/e);
+
+        # Strings
+        push @parts, color($1,32) while (s/('"'"'[^'"'"']+'"'"')/"_GFPART".($#parts+1)."TRAPFG_"/e);
+        push @parts, color($1,32) while (s/("[^\"]+")/"_GFPART".($#parts+1)."TRAPFG_"/e);
+
+        # Commands
+        push @parts, color($1,94) while (s/^(\@.+?[:>])/"_GFPART".($#parts+1)."TRAPFG_"/e);
+        push @parts, color($1,95) while (s/^(\s*DEBUG:)/"_GFPART".($#parts+1)."TRAPFG_"/e);
+
+        # Messages
+        push @parts, $1.color($2,93).$3.color($4,96) while (s/(^[\s\#]*)(\**\bWARN\w*\:?)(\s*\()(\w[^\)]+)/"_GFPART".($#parts+1)."TRAPFG_"/ie);
+        push @parts, $1.color($2,91).$3.color($4,96) while (s/(^[\s\#]*)(\**\bERROR\w*\:?)(\s*\()(\w[^\)]+)/"_GFPART".($#parts+1)."TRAPFG_"/ie);
+        push @parts, $1.color($2,97).$3.color($4,96) while (s/(^[\s\#]*)(\**\bINFO\w*\:?)(\s*\()(\w[^\)]+)/"_GFPART".($#parts+1)."TRAPFG_"/ie);
+        push @parts, $1.color($2,93) while (s/(^[\s\#]*)(\**\bWARN\w*\:?)/"_GFPART".($#parts+1)."TRAPFG_"/ie);
+        push @parts, $1.color($2,91) while (s/(^[\s\#]*)(\**\bERROR\:?)/"_GFPART".($#parts+1)."TRAPFG_"/ie);
+        push @parts, $1.color($2,97) while (s/(^[\s\#]*)(\**\bINFO\:?)/"_GFPART".($#parts+1)."TRAPFG_"/ie);
+
+        # Prompts        
+        push @parts, color($1,92) while (s/(^\w+\s+\d+>)/"_GFPART".($#parts+1)."TRAPFG_"/e);
+        push @parts, color($1.$2,92) while (s/(<CMD>\s*)(\S+)/"_GFPART".($#parts+1)."TRAPFG_"/e);
+        
+        # Reports
+        push @parts, color($1,91).color($2,97) while (s/(^Path\s+\d+:\s*VIOLATED)(\s.*$)/"_GFPART".($#parts+1)."TRAPFG_"/ie);
+        push @parts, color($1,92).color($2,97) while (s/(^Path\s+\d+:\s*MET)(\s.*$)/"_GFPART".($#parts+1)."TRAPFG_"/ie);
+        push @parts, color($1,97) while (s/(^Path\s+\d+:.*$)/"_GFPART".($#parts+1)."TRAPFG_"/ie);
+        push @parts, color($1,97) while (s/(Slack:=\s*[\-\d\.]+)/"_GFPART".($#parts+1)."TRAPFG_"/ie);
+        
+        # Numbers
+        push @parts, $1.color($2,37) while (s/([^\w]|^)([-\d]\d*(\.\d+)?\b)/"_GFPART".($#parts+1)."TRAPFG_"/e);
+        
+        # Options
+        push @parts, color($1,36) while (s/\b(\s-\w+)\b/"_GFPART".($#parts+1)."TRAPFG_"/e);
+
+        # Apply changes
+        s/_GFPART(\d+)TRAPFG_/$parts[$1]/ge;
+        s/_GFPART(\d+)TRAPFG_/$parts[$1]/ge;
+        s/_GFFILE(\d+)ELIFFG_/highlight_file($1,\@files)/ge;
+        
+        # Add lines
+        push @lines, $_;
+    }
+    
+    print join("", @lines);
+')
+gf_reset_progress
+
+if [ $GF_USE_ECHO == 1 ]; then
+    echo "$gf_result"
+else 
+    echo "$gf_result" | less -XR
+fi

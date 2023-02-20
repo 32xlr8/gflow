@@ -19,7 +19,7 @@
 # limitations under the License.
 #
 ################################################################################
-# Filename: templates/project_template.cadence.2022/blocks/block_template.backend/innovus.impl.gf
+# Filename: templates/project_template.2023/blocks/block_template/innovus.impl.gf
 # Purpose:  Batch implementation flow
 ################################################################################
 
@@ -45,7 +45,7 @@ gf_create_task -name Place
 gf_use_innovus
 
 # Choose netlist if not chosen
-gf_choose_file_dir_task -variable NETLIST -keep -prompt 'Please select netlist to implement:' -files '
+gf_choose_file_dir_task -variable NETLIST_FILE -keep -prompt 'Please select netlist to implement:' -files '
     ../data/netlists/*.v.gz
     ../data/netlists/*.v
     ../work_*/*/out/SynMap*.v
@@ -56,18 +56,24 @@ gf_choose_file_dir_task -variable NETLIST -keep -prompt 'Please select netlist t
 '
 
 # Choose floorplan if not chosen
-gf_choose_file_dir_task -variable FLOORPLAN -keep -prompt "Please select floorplan:" -files "
+gf_choose_file_dir_task -variable FLOORPLAN_FILE -keep -prompt "Please select floorplan:" -files '
     ../data/*/*.fp
     ../work_*/*/out/*.fp
-"
+'
 
 # Check netlist and floorplan are ready
-gf_check_files "$FLOORPLAN"* "$NETLIST"
+gf_check_files "$FLOORPLAN_FILE"* "$NETLIST_FILE"
+
+# Choose MMMC file
+gf_choose_file_dir_task -variable MMMC_FILE -keep -prompt "Please select MMMC file:" -files '
+    ../data/*/*.mmmc.tcl
+    ../work_*/*/out/BackendMMMC*.mmmc.tcl
+'
 
 # Save input files
 gf_add_shell_commands -init '
     mkdir -p ./in/$TASK_NAME/
-    for file in `$NETLIST` `$FLOORPLAN` `$SCANDEF -optional` `$CPF -optional` `$UPF -optional`; do
+    for file in `$NETLIST_FILE` `$FLOORPLAN_FILE` `$SCANDEF_FILE -optional` `$CPF -optional` `$UPF -optional`; do
         cp $file* ./in/$TASK_NAME/
     done
 '
@@ -77,16 +83,17 @@ gf_add_tool_commands '
 
     # Current design variables
     set LEF_FILES {`$CADENCE_TLEF_FILES` `$LEF_FILES`}
-    set NETLIST {`$NETLIST`}
-    set SCANDEF {`$SCANDEF -optional`}
+    set NETLIST_FILE {`$NETLIST_FILE`}
+    set SCANDEF_FILE {`$SCANDEF_FILE -optional`}
     set LDB_MODE {`$LDB_MODE -optional`}
     set CPF {`$CPF -optional`}
     set UPF {`$UPF -optional`}
-    set FLOORPLAN {`$FLOORPLAN`}
+    set FLOORPLAN_FILE {`$FLOORPLAN_FILE`}
     set DESIGN_NAME {`$DESIGN_NAME`}
     set POWER_NETS {`$POWER_NETS_CORE` `$POWER_NETS_IO -optional`}
     set GROUND_NETS {`$GROUND_NETS_CORE` `$GROUND_NETS_IO -optional`}
-    set IMPLEMENTATION_VIEWS {`$IMPLEMENTATION_VIEWS`}
+    set MMMC_FILE {`$MMMC_FILE`}
+    set OCV_FILE "[regsub {\.mmmc\.tcl$} $MMMC_FILE {}].ocv.tcl"
 
     # Pre-load settings
     `@innovus_pre_read_libs`
@@ -94,12 +101,8 @@ gf_add_tool_commands '
     # Initialize procs and gconfig
     source ./scripts/$TASK_NAME.procs.tcl
 
-    # Generate MMMC and OCV configuration
-    gconfig::get_mmmc_commands -views $IMPLEMENTATION_VIEWS -dump_to_file ./scripts/$TASK_NAME.mmmc.tcl
-    gconfig::get_ocv_commands -views $IMPLEMENTATION_VIEWS -dump_to_file ./scripts/$TASK_NAME.ocv.tcl
-
-    # Load generated MMMC configuration
-    read_mmmc ./scripts/$TASK_NAME.mmmc.tcl
+    # Load MMMC configuration
+    read_mmmc $MMMC_FILE
 
     # Initialize power and ground nets
     set_db init_power_nets [join $POWER_NETS]
@@ -109,7 +112,7 @@ gf_add_tool_commands '
     read_physical -lefs [join $LEF_FILES]
 
     # Read netlist for current design
-    read_netlist $NETLIST -top $DESIGN_NAME
+    read_netlist $NETLIST_FILE -top $DESIGN_NAME
 
     # Initialize library and design information
     init_design
@@ -147,24 +150,24 @@ gf_add_tool_commands '
     }    
     
     # Read floorplan
-    read_floorplan $FLOORPLAN
+    read_floorplan $FLOORPLAN_FILE
     
     # Read scan chain info
-    if {[file exists $SCANDEF]} {
-        read_def $SCANDEF
+    if {[file exists $SCANDEF_FILE]} {
+        read_def $SCANDEF_FILE
         
     # Continue even if scan chains are empty
     } else {
-        puts "\033\[43m \033\[0m Scan definition $SCANDEF not found"
+        puts "\033\[43m \033\[0m Scan definition $SCANDEF_FILE not found"
         set_db place_global_ignore_scan false
     }
     
     # Stage-specific options    
     `@innovus_post_init_design`
 
-    # Load generated OCV configuration
+    # Load OCV configuration
     reset_timing_derate
-    source ./scripts/$TASK_NAME.ocv.tcl
+    source $OCV_FILE
     report_timing_derate > ./reports/$TASK_NAME.derate.rpt
 
     # Create initial metrics
@@ -216,7 +219,7 @@ gf_add_tool_commands -comment '#' -file ./scripts/$TASK_NAME.procs.tcl '
     `@init_gconfig`
 
     `@gconfig_technology_settings`
-    `@gconfig_design_settings`
+    `@gconfig_settings_common`
 
     `@gconfig_cadence_mmmc_files`
 '

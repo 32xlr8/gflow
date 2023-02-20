@@ -19,7 +19,7 @@
 # limitations under the License.
 #
 ################################################################################
-# Filename: templates/project_template.cadence.2022/blocks/block_template.frontend/genus.synth.gf
+# Filename: templates/project_template.2023/blocks/block_template/genus.synth.gf
 # Purpose:  Batch synthesis flow
 ################################################################################
 
@@ -48,14 +48,22 @@ gf_choose -keep -variable PHYSICAL_MODE -keys YN -time 30 -default Y -prompt "Do
 
 # Choose floorplan for physical mode if not chosen
 if [ "$PHYSICAL_MODE" == "Y" ]; then
-    gf_choose_file_dir_task -variable FLOORPLAN -keep -prompt "Please select floorplan:" -files "
+    gf_choose_file_dir_task -variable FLOORPLAN_FILE -keep -prompt "Please select floorplan:" -files '
         ../data/*/*.fp.def
         ../data/*/*.fp.def.gz
         ../work_*/*/out/*.fp.def
         ../work_*/*/out/*.fp.def.gz
-    "
-    gf_save_files -copy $(dirname $FLOORPLAN)/$(basename $FLOORPLAN .gz)*
+    '
+    
+    # Create floorplan files copy in the run directory
+    [[ -n "$FLOORPLAN_FILE" ]] && gf_save_files -copy $(dirname $FLOORPLAN_FILE)/$(basename $FLOORPLAN_FILE .gz)*
 fi
+
+# Choose MMMC file
+gf_choose_file_dir_task -variable MMMC_FILE -keep -prompt "Please select MMMC file:" -files '
+    ../data/*/*.mmmc.tcl
+    ../work_*/*/out/FrontendMMMC*.mmmc.tcl
+'
 
 # TCL commands
 gf_add_tool_commands '
@@ -67,20 +75,18 @@ gf_add_tool_commands '
     set ELAB_DESIGN_NAME {`$ELAB_DESIGN_NAME`}
     set POWER_NETS {`$POWER_NETS_CORE` `$POWER_NETS_IO -optional`}
     set GROUND_NETS {`$GROUND_NETS_CORE` `$GROUND_NETS_IO -optional`}
-    set FLOORPLAN {`$FLOORPLAN -optional`}
-    set SYNTHESIS_VIEWS {`$SYNTHESIS_VIEWS`}
+    set FLOORPLAN_FILE {`$FLOORPLAN_FILE -optional`}
+    set MMMC_FILE {`$MMMC_FILE`}
+    set OCV_FILE "[regsub {\.mmmc\.tcl$} $MMMC_FILE {}].ocv.tcl"
 
     # Start metric collection
     `@collect_metrics`
     
-    # Initialize Generic Config environment
-    source ./scripts/$TASK_NAME.gconfig.tcl
-
     # Pre-load tool options
     `@genus_pre_read_libs`
 
-    # Load generated MMMC configuration
-    read_mmmc ./scripts/$TASK_NAME.mmmc.tcl
+    # Load MMMC configuration
+    read_mmmc $MMMC_FILE
 
     # Initialize power and ground nets
     set_db init_power_nets [join $POWER_NETS]
@@ -102,7 +108,7 @@ gf_add_tool_commands '
     `@genus_post_init_design`
 
     # Read floorplan
-    if {$FLOORPLAN == ""} {
+    if {$FLOORPLAN_FILE == ""} {
         if {$PHYSICAL_MODE == "Y"} {
             puts "\033\[41;31m \033\[0m Floorplan is empty"
             error 1
@@ -110,20 +116,20 @@ gf_add_tool_commands '
             puts "\033\[43;33m \033\[0m Floorplan is empty"
         }
         
-    } elseif {[file exists $FLOORPLAN]} {
-        read_def $FLOORPLAN
+    } elseif {[file exists $FLOORPLAN_FILE]} {
+        read_def $FLOORPLAN_FILE
     } else { 
         if {$PHYSICAL_MODE == "Y"} {
-            puts "\033\[41;31m \033\[0m Floorplan $FLOORPLAN not found"
-            error $FLOORPLAN
+            puts "\033\[41;31m \033\[0m Floorplan $FLOORPLAN_FILE not found"
+            error $FLOORPLAN_FILE
         } else {
-            puts "\033\[43;33m \033\[0m Floorplan $FLOORPLAN not found"
+            puts "\033\[43;33m \033\[0m Floorplan $FLOORPLAN_FILE not found"
         }
     }
     
-    # # Load generated OCV configuration
+    # # Load OCV configuration
     # reset_timing_derate
-    # source ./scripts/$TASK_NAME.ocv.tcl
+    # source $OCV_FILE
     
     # Write Genus database
     write_db ./out/$TASK_NAME.intermediate.genus.db
@@ -151,19 +157,6 @@ gf_add_tool_commands '
     
     # Close interactive session
     exit
-'
-
-# Separate Generic Config initialization script
-gf_add_tool_commands -comment '#' -file ./scripts/$TASK_NAME.gconfig.tcl '
-    `@init_gconfig`
-    `@gconfig_technology_settings`
-    `@gconfig_design_settings`
-
-    `@gconfig_cadence_mmmc_files`
-    
-    # Generate MMMC and OCV configuration
-    gconfig::get_mmmc_commands -views $SYNTHESIS_VIEWS -dump_to_file ./scripts/$TASK_NAME.mmmc.tcl
-    gconfig::get_ocv_commands -views $SYNTHESIS_VIEWS -dump_to_file ./scripts/$TASK_NAME.ocv.tcl
 '
 
 # Task marks

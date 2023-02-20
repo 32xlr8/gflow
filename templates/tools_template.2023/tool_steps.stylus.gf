@@ -17,7 +17,7 @@
 # limitations under the License.
 #
 ################################################################################
-# Filename: templates/tools_template.cadence.2022/tool_steps.stylus.gf
+# Filename: templates/tools_template.2023/tool_steps.stylus.gf
 # Purpose:  Stylus steps to use in the Generic Flow
 ################################################################################
 

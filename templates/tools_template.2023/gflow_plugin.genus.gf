@@ -17,7 +17,7 @@
 # limitations under the License.
 #
 ################################################################################
-# Filename: templates/tools_template.cadence.2022/gflow_plugin.genus.gf
+# Filename: templates/tools_template.2023/gflow_plugin.genus.gf
 # Purpose:  Generic Flow Genus plugin
 ################################################################################
 

@@ -19,8 +19,8 @@
 # limitations under the License.
 #
 ################################################################################
-# Filename: templates/project_template.cadence.2022/blocks/block_template.backend/innovus.debug.gf
-# Purpose:  Interactive implementation debug flow
+# Filename: templates/project_template.2023/blocks/block_template/genus.debug.gf
+# Purpose:  Interactive synthesis debug flow
 ################################################################################
 
 ########################################
@@ -29,84 +29,45 @@
 
 # Project and block initialization scripts
 gf_source "../../project.common.gf"
-gf_source "../../project.innovus.gf"
+gf_source "../../project.genus.gf"
 gf_source "./block.common.gf"
 gf_source "./block.files.gf"
-gf_source "./block.innovus.gf"
+gf_source "./block.genus.gf"
 
-# Basic flow script options
-gf_set_flow_options -continue -incr -auto_close -hide
+# General flow script options
+gf_set_flow_options -hide -auto_close
 
 ########################################
 # Automatical database selection
 ########################################
 
-# Choose available Innovus database
-gf_choose_file_dir_task -variable DATABASE -keep -prompt "Please select database to load:" -dirs "
-    ../work_*/*/out/*.innovus.db
-    ../work_*/*/out/*.ispatial.db
-"
+# Choose available Genus database
+gf_choose_file_dir_task -variable DATABASE -keep -prompt "Please select database to load:" -files '
+    ../work_*/*/out/*.genus.db
+'
 gf_spacer
 
 ########################################
-# Innovus interactive task
+# Genus interactive task
 ########################################
 
-gf_create_task -name DebugInnovus
-gf_use_innovus
-
-# Ask user if need to load timing information
-gf_spacer
-gf_choose -variable TIMING_MODE -keys YN -time 30 -default Y -prompt "Do you want to read timing information (Y/N)?"
-gf_spacer
+gf_create_task -name DebugGenus
+gf_use_genus
 
 # Load database
 gf_add_tool_commands '
-
-    # Current design variables
-    set DATABASE {`$DATABASE`}
-    set TIMING_MODE {`$TIMING_MODE`}
-
-    # Pre-load settings
-    `@innovus_pre_read_libs`
-
-    # Initialize procs and gconfig
-    source ./scripts/$TASK_NAME.procs.tcl
     
     # Read latest available database
-    if {$TIMING_MODE == "Y"} {
-        read_db $DATABASE
-    } else {
-        read_db -no_timing $DATABASE
-    }
+    set DATABASE {`$DATABASE`}
+    read_db $DATABASE
 
     # Top level design name
     set DESIGN_NAME [get_db current_design .name]
     
     # Load trace timing utility
-    if {$TIMING_MODE == "Y"} {
-        source ../../../../../../gflow/bin/trace_timing.tcl
-    }
-
-    set_layer_preference phyCell -color #555555
+    source ../../../../../../gflow/bin/trace_timing.tcl
+    
     gui_show
-'
-
-# Separate procs script
-gf_add_tool_commands -comment '#' -file ./scripts/$TASK_NAME.procs.tcl '
-
-    # Common tool procedures
-    `@procs_innovus_common`
-    `@procs_innovus_interactive_design`
-    `@procs_innovus_eco_design`
-
-    # Initialize Generic Config environment
-    `@init_gconfig`
-
-    `@gconfig_technology_settings`
-    `@gconfig_design_settings`
-
-    `@gconfig_cadence_mmmc_files`
 '
 
 # Run task

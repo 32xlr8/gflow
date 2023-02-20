@@ -17,7 +17,7 @@
 # limitations under the License.
 #
 ################################################################################
-# Filename: templates/tools_template.cadence.2022/gflow_plugin.innovus.gf
+# Filename: templates/tools_template.2023/gflow_plugin.innovus.gf
 # Purpose:  Generic Flow Innovus plugin
 ################################################################################
 
@@ -53,7 +53,7 @@ function gf_use_innovus {
     gf_add_tool_commands -comment '#' -file "./scripts/$TASK_NAME.tcl" '
         # Current task variables
         set RUN_INDEX {`$GF_RUN_INDEX`}
-        set MOTHER_TASK_NAME {`$MOTHER_TASK_NAME`}
+        set MOTHER_TASK_NAME {`$MOTHER_TASK_NAME -optional`}
         set TASK_NAME {`$TASK_NAME`}
         
         # Generic Flow directories
@@ -120,7 +120,7 @@ function gf_use_innovus_legacy {
     gf_add_tool_commands -comment '#' -file "./scripts/$TASK_NAME.tcl" '
         # Current task variables
         set RUN_INDEX {`$GF_RUN_INDEX`}
-        set MOTHER_TASK_NAME {`$MOTHER_TASK_NAME`}
+        set MOTHER_TASK_NAME {`$MOTHER_TASK_NAME -optional`}
         set TASK_NAME {`$TASK_NAME`}
         
         # Generic Flow directories
@@ -174,7 +174,7 @@ function gf_use_innovus_batch {
     gf_add_tool_commands -comment '#' -file "./scripts/$TASK_NAME.tcl" '
         # Current task variables
         set RUN_INDEX {`$GF_RUN_INDEX`}
-        set MOTHER_TASK_NAME {`$MOTHER_TASK_NAME`}
+        set MOTHER_TASK_NAME {`$MOTHER_TASK_NAME -optional`}
         set TASK_NAME {`$TASK_NAME`}
         
         # Generic Flow directories

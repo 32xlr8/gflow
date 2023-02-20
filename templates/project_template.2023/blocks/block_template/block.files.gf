@@ -17,7 +17,7 @@
 # limitations under the License.
 #
 ################################################################################
-# Filename: templates/project_template.common.2022/blocks/block_template.common/block.files.gf
+# Filename: templates/project_template.2023/blocks/block_template/block.files.gf
 # Purpose:  Block-specific files configuration
 ################################################################################
 
@@ -94,16 +94,16 @@ gf_create_step -name gconfig_cadence_mmmc_files '
     # # Advanced OCV (AOCV, SBOCV) files
     # gconfig::add_files aocv -when aocv_libraries {
     #     -when ecsm_libraries {
-    #         /path/aocv/standard_cells_${pvt_p}${pvt_v}${pvt_t}${pvt_rc}.aocvm
+    #         /path/aocv/standard_cells_${pvt_p}${pvt_v}${pvt_t}${pvt_rc}${check}.aocvm
     #     }
     #     -when ccs_libraries {
-    #         /path/aocv/standard_cells_${pvt_p}${pvt_v}${pvt_t}${pvt_rc}.aocvm
+    #         /path/aocv/standard_cells_${pvt_p}${pvt_v}${pvt_t}${pvt_rc}${check}.aocvm
     #     }
     # }
 
     # # Statistical OCV (SOCV) files
     # gconfig::add_files socv -when socv_libraries {
-    #     /path/aocv/standard_cells_${pvt_p}${pvt_v}${pvt_t}${pvt_rc}.socv
+    #     /path/aocv/standard_cells_${pvt_p}${pvt_v}${pvt_t}${pvt_rc}${check}.socv
     # }
 
     # # Block-specific SDC files
@@ -162,20 +162,20 @@ LVS_SPICE_FILES='
 ################################################################################
 
 # # Scan chains definition DEF file
-# SCANDEF='../../../../data/netlists/DESIGN_NAME.*.scandef'
+# SCANDEF_FILE='../../../../data/netlists/DESIGN_NAME.*.scandef'
 
 # # LP design power intent file
 # CPF='../../../../data/DESIGN_NAME.*.cpf'
 # UPF='../../../../data/DESIGN_NAME.*.upf'
 
 # # Pre-selected floorplan for synthesis and implementation
-# FLOORPLAN='../../../../data/DESIGN_NAME.*.fp'
-# FLOORPLAN='../../../innovus.fp.0000/out/Floorplan.*.fp'
+# FLOORPLAN_FILE='../../../../data/DESIGN_NAME.*.fp'
+# FLOORPLAN_FILE='../../../innovus.fp.0000/out/Floorplan.*.fp'
 
 # # Pre-selected netlist for implementation
-# NETLIST="../../../../data/DESIGN_NAME.*.v"
-# NETLIST="../../../frontend.0000/out/SynMap.v"
-# NETLIST="../../../frontend.0000/out/SynOpt.v"
+# NETLIST_FILE="../../../../data/netlists/DESIGN_NAME.*.v"
+# NETLIST_FILE="../../../frontend.0000/out/SynMap.v"
+# NETLIST_FILE="../../../frontend.0000/out/SynOpt.v"
 
 # Foundry legacy scripts
 # DFM_VIA_SWAP_SCRIPT=<PLACEHOLDER:/path/to/the_script.tcl>

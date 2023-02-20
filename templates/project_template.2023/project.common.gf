@@ -17,7 +17,7 @@
 # limitations under the License.
 #
 ################################################################################
-# Filename: templates/project_template.common.2022/project.common.gf
+# Filename: templates/project_template.2023/project.common.gf
 # Purpose:  Project-specific configuration and flow steps
 ################################################################################
 
@@ -83,6 +83,12 @@ gf_create_step -name init_shell_environment '
 
     # Remove command line stack limit
     ulimit -s unlimited
+    
+    # # Allow write access for users in the same group
+    # umask 0007
+    
+    # Dump environment variables
+    env > ./reports/`$TASK_NAME`.env
 '
 
 ################################################################################

@@ -19,7 +19,7 @@
 # limitations under the License.
 #
 ################################################################################
-# Filename: templates/project_template.cadence.2022/blocks/block_template.backend/innovus.eco.gf
+# Filename: templates/project_template.2023/blocks/block_template/innovus.eco.gf
 # Purpose:  Interactive ECO flow
 ################################################################################
 
@@ -45,10 +45,10 @@ gf_create_task -name ECO
 gf_use_innovus
 
 # Choose available Innovus database
-gf_choose_file_dir_task -variable DATABASE -keep -prompt "Please select database to load:" -dirs "
+gf_choose_file_dir_task -variable DATABASE -keep -prompt "Please select database to load:" -dirs '
     ../work_*/*/out/*.innovus.db
     ../work_*/*/out/*.ispatial.db
-"
+'
 gf_spacer
 
 # Ask user if need to load timing information
@@ -99,7 +99,7 @@ gf_add_tool_commands -comment '#' -file ./scripts/$TASK_NAME.procs.tcl '
     `@init_gconfig`
 
     `@gconfig_technology_settings`
-    `@gconfig_design_settings`
+    `@gconfig_settings_common`
 
     `@gconfig_cadence_mmmc_files`
 '

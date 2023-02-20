@@ -19,7 +19,7 @@
 # limitations under the License.
 #
 ################################################################################
-# Filename: templates/project_template.cadence.2022/blocks/block_template.backend/innovus.fp.gf
+# Filename: templates/project_template.2023/blocks/block_template/innovus.fp.gf
 # Purpose:  Interactive floorplan creation flow
 ################################################################################
 
@@ -44,55 +44,70 @@ gf_set_flow_options -auto_close -hide -continue
 gf_create_task -name Floorplan
 gf_use_innovus
 
+# Choose netlist if not chosen
+gf_choose_file_dir_task -variable NETLIST_FILE -keep -prompt "Please select netlist:" -files '
+    ../data/*/*.v.gz
+    ../data/*/*.v
+    ../work_*/*/out/SynMap*.v
+    ../work_*/*/out/SynOpt*.v
+'
+
+# Choose floorplan if not chosen
+gf_choose_file_dir_task -variable FLOORPLAN_FILE -keep -prompt "Please select floorplan (optional):" -files '
+    ../data/*/*.fp
+    ../work_*/*/out/*.fp
+'
+
 # Ask user if need to load timing information
 gf_spacer
 gf_choose -variable TIMING_MODE -keys YN -time 30 -default Y -prompt "Do you want to initialize timing information (Y/N)?"
 gf_spacer
 
-# Choose netlist if not chosen
-gf_choose_file_dir_task -variable NETLIST -keep -prompt "Please select netlist:" -files "
-    ../data/*/*.v.gz
-    ../data/*/*.v
-    ../work_*/*/out/SynMap*.v
-    ../work_*/*/out/SynOpt*.v
-"
-
-# Choose floorplan if not chosen
-gf_choose_file_dir_task -variable FLOORPLAN -keep -prompt "Please select floorplan (optional):" -files "
-    ../data/*/*.fp
-    ../work_*/*/out/*.fp
-"
+# Choose MMMC file
+if [ "$TIMING_MODE" == "Y" ]; then
+    gf_choose_file_dir_task -variable MMMC_FILE -keep -prompt "Please select MMMC file:" -files '
+        ../data/*/*.mmmc.tcl
+        ../work_*/*/out/BackendMMMC*.mmmc.tcl
+    '
+else
+    MMMC_FILE=""
+fi
 
 # Create floorplan files copy in the run directory
-[[ -n "$FLOORPLAN" ]] && gf_save_files -copy $(dirname $FLOORPLAN)/$(basename $FLOORPLAN .gz)*
+[[ -n "$FLOORPLAN_FILE" ]] && gf_save_files -copy $(dirname $FLOORPLAN_FILE)/$(basename $FLOORPLAN_FILE .gz)*
 
 # Innovus TCL commands as is (commands in SINGLE quotes will not substitute GF shell variables)
 gf_add_tool_commands '
 
     # Current design variables
     set LEF_FILES {`$CADENCE_TLEF_FILES` `$LEF_FILES`}
-    set NETLIST {`$NETLIST`}
-    set SCANDEF {`$SCANDEF -optional`}
+    set NETLIST_FILE {`$NETLIST_FILE`}
+    set SCANDEF_FILE {`$SCANDEF_FILE -optional`}
     set CPF {`$CPF -optional`}
     set UPF {`$UPF -optional`}
-    set FLOORPLAN {`$FLOORPLAN`}
+    set FLOORPLAN_FILE {`$FLOORPLAN_FILE`}
     set DESIGN_NAME {`$DESIGN_NAME`}
     set POWER_NETS {`$POWER_NETS_CORE` `$POWER_NETS_IO -optional`}
     set GROUND_NETS {`$GROUND_NETS_CORE` `$GROUND_NETS_IO -optional`}
     set TIMING_MODE {`$TIMING_MODE`}
-    set IMPLEMENTATION_VIEWS {`$IMPLEMENTATION_VIEWS`}
+    set MMMC_FILE {`$MMMC_FILE -optional`}
+    set OCV_FILE "[regsub {\.mmmc\.tcl$} $MMMC_FILE {}].ocv.tcl"
 
     # Pre-load settings
     `@innovus_pre_read_libs`
 
-    # Initialize procs and gconfig
-    source ./scripts/$TASK_NAME.procs.tcl
+    # Procedure to save new floorplan into block data directory
+    proc gf_write_golden_floorplan {} {
+        uplevel 1 {
+            puts "Writing golden floorplan $FLOORPLAN_FILE ..."
+            write_floorplan $FLOORPLAN_FILE
+            write_def -floorplan -io_row -routing $FLOORPLAN_FILE.def
+        }
+    }
     
     # Generate and read MMMC and OCV files 
     if {$TIMING_MODE == "Y"} {
-        gconfig::get_mmmc_commands -views $IMPLEMENTATION_VIEWS -dump_to_file ./scripts/$TASK_NAME.mmmc.tcl
-        gconfig::get_ocv_commands -views $IMPLEMENTATION_VIEWS -dump_to_file ./scripts/$TASK_NAME.ocv.tcl
-        read_mmmc ./scripts/$TASK_NAME.mmmc.tcl
+        read_mmmc $MMMC_FILE
     }
 
     # Initialize power and ground nets
@@ -103,7 +118,7 @@ gf_add_tool_commands '
     read_physical -lefs [join $LEF_FILES]
 
     # Read netlist for current design
-    read_netlist $NETLIST -top $DESIGN_NAME
+    read_netlist $NETLIST_FILE -top $DESIGN_NAME
 
     # Initialize library and design information
     init_design
@@ -141,28 +156,30 @@ gf_add_tool_commands '
     }
     
     # Read initial floorplan if exists
-    if {[file exists $FLOORPLAN]} {
-        read_floorplan $FLOORPLAN
+    if {[file exists $FLOORPLAN_FILE]} {
+        read_floorplan $FLOORPLAN_FILE
         check_floorplan
     } else {
-        puts "\033\[43m \033\[0m Floorplan $FLOORPLAN not found"
+        puts "\033\[43m \033\[0m Floorplan $FLOORPLAN_FILE not found"
     }
 
     # Read scan chain info
-    if {[file exists $SCANDEF]} {
-        read_def $SCANDEF
+    if {[file exists $SCANDEF_FILE]} {
+        read_def $SCANDEF_FILE
         
     # Continue even if scan chains are empty
     } else {
-        puts "\033\[43m \033\[0m Scan definition $SCANDEF not found"
+        puts "\033\[43m \033\[0m Scan definition $SCANDEF_FILE not found"
         set_db place_global_ignore_scan false
     }
     
     # Stage-specific options    
     if {$TIMING_MODE == "Y"} {
         `@innovus_post_init_design`
+
+        # Load OCV configuration
         reset_timing_derate
-        source ./scripts/$TASK_NAME.ocv.tcl
+        source $OCV_FILE
         
     # Physical only mode
     } else {
@@ -178,32 +195,6 @@ gf_add_tool_commands '
     gui_show
     gui_fit
     gui_set_draw_view fplan
-'
-
-# Separate procs script
-gf_add_tool_commands -comment '#' -file ./scripts/$TASK_NAME.procs.tcl '
-
-    # Common tool procedures
-    `@procs_innovus_common`
-    `@procs_innovus_interactive_design`
-    `@procs_innovus_eco_design`
-
-    # Initialize Generic Config environment
-    `@init_gconfig`
-
-    `@gconfig_technology_settings`
-    `@gconfig_design_settings`
-
-    `@gconfig_cadence_mmmc_files`
-
-    # Procedure to save new floorplan into block data directory
-    proc gf_write_golden_floorplan {} {
-        uplevel 1 {
-            puts "Writing golden floorplan $FLOORPLAN ..."
-            write_floorplan $FLOORPLAN
-            write_def -floorplan -io_row -routing $FLOORPLAN.def
-        }
-    }
 '
 
 # Run task

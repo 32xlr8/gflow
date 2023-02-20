@@ -17,7 +17,7 @@
 # limitations under the License.
 #
 ################################################################################
-# Filename: templates/technology_template.cadence.2022/technology.innovus.gf
+# Filename: templates/technology_template.2023/technology.innovus.gf
 # Purpose:  Technology-specific Innovus steps to use in the Generic Flow
 ################################################################################
 

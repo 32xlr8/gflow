@@ -17,19 +17,15 @@
 # limitations under the License.
 #
 ################################################################################
-# Filename: templates/project_template.cadence.2022/project.innovus.gf
-# Purpose:  Project-specific Innovus configuration and flow steps
+# Filename: templates/technology_template.2023/technology.genus.gf
+# Purpose:  Technology-specific Genus steps to use in the Generic Flow
 ################################################################################
 
-# Load tool plugin, tool and technology steps to use in GF scripts
-gf_source "../../tools/tool_steps.stylus.gf"
-gf_source "../../tools/gflow_plugin.innovus.gf"
-gf_source "../../tools/tool_steps.innovus.gf"
-gf_source "../../technology.innovus.gf"
+gf_info "Loading technology-specific Genus steps ..."
 
-gf_info "Loading project-specific Innovus steps ..."
+# Technology-specific tool environment
+gf_create_step -name genus_post_init_design_technology '
 
-# Tool initialization in Linux environment
-gf_create_step -name init_innovus_environment '
-    export PATH="${PATH}:<PLACEHOLDER:/PATH_TO_INNOVUS/bin>"
+    # Process related settings
+    set_db design_process_node <PLACEHOLDER>
 '

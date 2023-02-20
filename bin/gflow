@@ -5222,66 +5222,6 @@ function gf_set_task_options {
     eval "$(gf_revert_function)"
 }
 
-gf_help_command '
-    {gf_enable_tasks} <tasks> [...]
-    Enable {tasks} to run.
-    Synonyms: gf_enable_task, gf_enable_tasks
-'
-function gf_enable_task { gf_enable_tasks "$@"; }
-function gf_enable_tasks {
-    eval "$(gf_update_function gf_enable_task)"
-    gf_warning "Command gf_enable_tasks is obsolete. Use gf_set_task_options $@ -enable instead.";
-
-    local gf_task
-    if [ "$(echo *)" == "$(echo $@)" ]; then
-        GF_TASK_OPTIONS+="gf_set_task_option>$GF_TASK_OPTIONS_PRIORITY>*>-enable"$'\n'"1"$'\n'
-        # GF_CONTROL_TASKS+="EN=* "
-        gf_info "${GFC4}All${GFC0} tasks will be enabled."
-    else
-        for gf_task in "$@"; do
-            GF_TASK_OPTIONS+="gf_set_task_option>$GF_TASK_OPTIONS_PRIORITY>$gf_task>-enable"$'\n'"1"$'\n'
-            # GF_CONTROL_TASKS+="EN=$gf_task "
-        done
-        if [ $# -gt 1 ]; then
-            gf_info "Tasks ${GFC4}$(echo "$@")${GFC0} enabled."
-        else
-            gf_info "Task ${GFC4}$(echo "$@")${GFC0} will be enabled."
-        fi
-    fi
-
-    eval "$(gf_revert_function)"
-}
-
-gf_help_command '
-    {gf_disable_tasks} <tasks> [...]
-    Disable {tasks} not required to run.
-    Synonyms: gf_disable_task, gf_disable_tasks
-'
-function gf_disable_task { gf_disable_tasks "$@"; }
-function gf_disable_tasks {
-    gf_warning "Command gf_disable_tasks is obsolete. Use gf_set_task_options $@ -disable instead.";
-    eval "$(gf_update_function gf_disable_task)"
-
-    local gf_task
-    if [ "$(echo *)" == "$(echo $@)" ]; then
-        GF_TASK_OPTIONS+="gf_set_task_option>$GF_TASK_OPTIONS_PRIORITY>*>-enable"$'\n'"0"$'\n'
-        # GF_CONTROL_TASKS+="NE=* "
-        gf_info "${GFC4}All${GFC0} tasks will be disabled."
-    else
-        for gf_task in "$@"; do
-            GF_TASK_OPTIONS+="gf_set_task_option>$GF_TASK_OPTIONS_PRIORITY>$gf_task>-enable"$'\n'"0"$'\n'
-            # GF_CONTROL_TASKS+="NE=$gf_task "
-        done
-        if [ $# -gt 1 ]; then
-            gf_info "Tasks ${GFC4}$(echo "$@")${GFC0} will be disabled."
-        else
-            gf_info "Task ${GFC4}$(echo "$@")${GFC0} will be disabled."
-        fi
-    fi
-
-    eval "$(gf_revert_function)"
-}
-
 ##################################################
 gf_help_section "Tool commands"
 ##################################################

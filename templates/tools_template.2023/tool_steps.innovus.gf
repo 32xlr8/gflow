@@ -17,7 +17,7 @@
 # limitations under the License.
 #
 ################################################################################
-# Filename: templates/tools_template.cadence.2022/tool_steps.innovus.gf
+# Filename: templates/tools_template.2023/tool_steps.innovus.gf
 # Purpose:  Innovus steps to use in the Generic Flow
 ################################################################################
 
@@ -172,100 +172,6 @@ gf_create_step -name innovus_time_design_late_early_summary '
     exec mv ./time_design/${TASK_NAME}.summary ./reports/${TASK_NAME}/timing.late.summary
     exec mv ./time_design/${TASK_NAME}_hold.summary ./reports/${TASK_NAME}/timing.early.summary
     exec rm -Rf ./time_design
-'
-
-# Pre-place Innovus reports
-gf_create_step -name innovus_reports_pre_place '
-
-    # Start metric collection
-    `@collect_metrics`
-
-    # Create reports directory
-    exec mkdir -p ./reports/$TASK_NAME
-
-    `@innovus_time_design_late_early_summary`
-
-    # Basic timing check
-    check_timing -verbose > ./reports/$TASK_NAME/check.timing.rpt
-
-    # Report late timing derate factors
-    foreach corner [get_db [get_db delay_corners -if .is_setup] .name] {
-        report_timing_derate -delay_corner $corner > "./reports/$TASK_NAME/derates.$corner.rpt"
-    }
-
-    # Report late timing
-    foreach view [get_db [get_db analysis_views -if .is_setup] .name] {
-        report_timing -late -max_paths 150 -path_type full_clock -split_delay > ./reports/$TASK_NAME/timing.late.gba.all.$view.tarpt
-        report_timing -late -max_paths 10000 -max_slack 0.0 -path_type summary > ./reports/$TASK_NAME/timing.late.gba.all.violated.$view.tarpt
-    }
-
-    # Report early timing
-    foreach view [get_db [get_db analysis_views -if .is_hold] .name] {
-        report_timing -early -max_paths 150 -path_type full_clock -split_delay > ./reports/$TASK_NAME/timing.early.gba.all.$view.tarpt
-        report_timing -early -max_paths 10000 -max_slack 0.0 -path_type summary > ./reports/$TASK_NAME/timing.early.gba.all.violated.$view.tarpt
-    }
-    
-    # Report collected metrics
-    `@report_metrics`
-'
-
-# Pre-clock Innovus reports
-gf_create_step -name innovus_reports_pre_clock '
-
-    # Start metric collection
-    `@collect_metrics`
-
-    # Create reports directory
-    exec mkdir -p ./reports/$TASK_NAME
-    
-    `@innovus_time_design_late_early_summary`
-
-    `@innovus_report_timing_late`
-
-    # Report collected metrics
-    `@report_metrics`
-'
-
-# Pre-route Innovus reports
-gf_create_step -name innovus_reports_pre_route '
-
-    # Start metric collection
-    `@collect_metrics`
-
-    # Create reports directory
-    exec mkdir -p ./reports/$TASK_NAME
-    
-    `@innovus_time_design_late_early_summary`
-
-    `@innovus_report_timing_late`
-    `@innovus_report_timing_early`
-    `@innovus_report_clock_timing`
-
-    # Report collected metrics
-    `@report_metrics`
-'
-
-# Pre-route Innovus reports
-gf_create_step -name innovus_reports_post_route '
-
-    # Start metric collection
-    `@collect_metrics`
-
-    # Create reports directory
-    exec mkdir -p ./reports/$TASK_NAME
-    
-    `@innovus_time_design_late_early_summary`
-
-    `@innovus_report_timing_late`
-    `@innovus_report_timing_early`
-    `@innovus_report_clock_timing`
-    `@innovus_report_power`
-    `@innovus_report_route_drc`
-    `@innovus_report_route_process`
-    `@innovus_report_density`
-
-    # Report collected metrics
-    `@report_metrics`
 '
 
 ################################################################################
@@ -854,22 +760,6 @@ gf_create_step -name procs_innovus_common_eco '
 # Write-out timing models procedure
 gf_create_step -name procs_innovus_write_data '
   
-    # Write out SDF for simulation
-    proc gf_write_sdf {min_typ_max_view} {
-        if {[llength $min_typ_max_view] == 3} {
-            write_sdf ./out/$::TASK_NAME.sdf -version 3.0 \
-                -edges noedge -interconnect all -no_derate \
-                -min_view [gconfig::get analysis_view_name -view [lindex $min_typ_max_view 0]] \
-                -typical_view [gconfig::get analysis_view_name -view [lindex $min_typ_max_view 1]] \
-                -max_view [gconfig::get analysis_view_name -view [lindex $min_typ_max_view 2]]
-        }
-    }
-
-    # Write out netlist for simulation
-    proc gf_write_netlist {netlist_exclude_cells} {
-        write_netlist -exclude_insts_of_cells [get_db [get_db base_cells $netlist_exclude_cells] .name] -top_module_first -top_module $::DESIGN_NAME ./out/$::TASK_NAME.v
-    }
-
     # Write liberty models
     proc gf_write_timing_models {{min_transition 0.002} {min_load 0.010}} {
         set setup_views [get_db [get_db analysis_views -if .is_setup] .name]

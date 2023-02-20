@@ -17,7 +17,7 @@
 # limitations under the License.
 #
 ################################################################################
-# Filename: templates/project_template.cadence.2022/blocks/block_template.frontend/block.genus.gf
+# Filename: templates/project_template.2023/blocks/block_template/block.genus.gf
 # Purpose:  Block-specific Genus configuration and flow steps
 ################################################################################
 
@@ -33,14 +33,11 @@ gf_set_task_options -cpu 8 -mem 15
 # gf_set_task_options SynMap -cpu 8 -mem 15
 # gf_set_task_options SynOpt -cpu 8 -mem 15
 
-# Views used for synthesis
-SYNTHESIS_VIEWS='
-    <PLACEHOLDER>
-    {func ss 0p900v m40 cwt s}
-'
-
 # # Specific floorplan used for physical synthesis
-# FLOORPLAN=""
+# FLOORPLAN_FILE=""
+
+# # Specific MMMC file
+# MMMC_FILE=/path/to/FrontendMMMC*.mmmc.tcl
 
 # Top cell name for elaboration
 ELAB_DESIGN_NAME="$DESIGN_NAME"
@@ -64,17 +61,6 @@ gf_create_step -name genus_pre_read_libs '
     # # Timing settings
     # set_db timing_library_hold_sigma_multiplier 0.0
     # set_db timing_library_hold_constraint_corner_sigma_multiplier 0.0
-    
-    # # Choose libraries mode (only if defined in block.files.gf)
-    # # with appropriate derates scenario
-    # gconfig::enable_switches nldm_libraries flat_derates
-    # gconfig::enable_switches ecsm_libraries vt_derates
-    # gconfig::enable_switches ccs_libraries vt_derates
-    # gconfig::enable_switches lvf_libraries vt_derates
-    # gconfig::enable_switches nldm_libraries user_derates
-    # gconfig::enable_switches ecsm_libraries user_derates
-    # gconfig::enable_switches ccs_libraries user_derates
-    # gconfig::enable_switches lvf_libraries user_derates
 '
 
 # Read RTL files
@@ -82,7 +68,7 @@ gf_create_step -name genus_read_rtl '
 
     # Define directories containing HDL files
     set_db init_hdl_search_path {
-        <PLACEHOLDER:../../../../../../project_data/hdl>
+        <PLACEHOLDER:../../../../../../data/hdl>
         <PLACEHOLDER:../../../../data/hdl>
     }
 
@@ -132,7 +118,7 @@ gf_create_step -name genus_post_elaborate '
         create_derived_design -name $DESIGN_NAME [get_db module:$DESIGN_NAME .hinsts]
         current_design $DESIGN_NAME
         delete_obj design:$ELAB_DESIGN_NAME
-        read_mmmc ./scripts/$TASK_NAME.mmmc.tcl
+        read_mmmc $MMMC_FILE
     }
 
     # Check if design has unresolved modules
@@ -237,12 +223,14 @@ gf_create_step -name genus_post_init_design '
     # Default verbose set_db command
     reset_db set_db_verbose
 
-    # Set macro latency
+    # # Interactive constraints
     # set_interactive_constraint_mode [get_db [get_db constraint_modes -if {.is_setup||.is_hold}] .name]
-    # set_clock_latency -0.000 [get_pins */CLK]
-
-    # Update clock gating margin
-    #set_clock_gating_check -setup 0.100
+    # 
+    # # Set macro latency
+    # # set_clock_latency -0.000 [get_pins */CLK]
+    # 
+    # # Update clock gating margin
+    # #set_clock_gating_check -setup 0.100
 
 '
 
@@ -259,8 +247,8 @@ gf_create_step -name genus_pre_syn_gen '
 # Commands after mapping
 gf_create_step -name genus_post_syn_gen '
 
-    # Write out LEC do file
-    write_lec_data -file_name ./out/$TASK_NAME.lec.data
+    # # Write out LEC do file
+    # write_lec_data -file_name ./out/$TASK_NAME.lec.data
     
     # # Dump reports
     # report_timing -max_paths 500 > ./reports/$TASK_NAME.tarpt
@@ -280,7 +268,7 @@ gf_create_step -name genus_post_syn_map '
 
     # Write out LEC scripts
     write_do_lec -golden_design rtl -revised_design fv_map > ./out/$TASK_NAME.lec.do
-    write_lec_data -file_name ./out/$TASK_NAME.lec.data
+    # write_lec_data -file_name ./out/$TASK_NAME.lec.data
     
     # # Dump reports
     # report_timing -max_paths 500 > ./reports/$TASK_NAME.tarpt
@@ -307,7 +295,7 @@ gf_create_step -name genus_post_syn_opt '
 
     # Write out LEC scripts
     write_do_lec -golden_design rtl -revised_design ./out/$TASK_NAME.v > ./out/$TASK_NAME.lec.do
-    write_lec_data -file_name ./out/$TASK_NAME.lec.data
+    # write_lec_data -file_name ./out/$TASK_NAME.lec.data
 
     # # Dump reports
     # report_timing -max_paths 500 > ./reports/$TASK_NAME.tarpt

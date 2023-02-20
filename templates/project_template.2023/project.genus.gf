@@ -17,7 +17,7 @@
 # limitations under the License.
 #
 ################################################################################
-# Filename: templates/project_template.cadence.2022/project.genus.gf
+# Filename: templates/project_template.2023/project.genus.gf
 # Purpose:  Project-specific Genus configuration and flow steps
 ################################################################################
 

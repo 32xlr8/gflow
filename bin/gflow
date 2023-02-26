@@ -2707,7 +2707,7 @@ function gf_create_run_script {
         GF_RUN_INDEX="'$GF_RUN_INDEX'"
 
         # Check if run already started
-        if [ -n "$(grep -e "2;Running.*\a" "../logs/run.$GF_RUN_INDEX.log")" ]; then
+        if [ -n "$(grep -e "\]2;Running " "../logs/run.$GF_RUN_INDEX.log")" ]; then
             echo -ne "\e]1;X - $GF_RUN_NAME\a\e]2;Cancelled - $GF_RUN_NAME - $GF_WORK_DIR\a"
             grep -v -e '"'"'^bash -e '"'"' "../logs/run.$GF_RUN_INDEX.log"
             echo -e "\n'${GFM3}' W '${GFC0}' This run has been already started before. See log above."
@@ -9153,14 +9153,14 @@ function gf_prepare_run_directory {
     # Create internal run directory
     if [ -n "$GF_INT_DIR" -a ! -e "$GF_I_RUN_DIR" ]; then
         mkdir "$GF_I_RUN_DIR"
-        chmod a+rwxs "$GF_I_RUN_DIR"
+        # chmod a+rwxs "$GF_I_RUN_DIR"
         gf_info_message "Internal run directory ${GFC2}$GF_I_RUN_DIR${GFC0} created."
     fi
 
     # Create run directory
     if [ ! -e "$GF_RUN_DIR" ]; then
         mkdir "$GF_RUN_DIR"
-        chmod a+rwxs "$GF_RUN_DIR"
+        # chmod a+rwxs "$GF_RUN_DIR"
         gf_info_message "Run directory ${GFC2}$GF_RUN_DIR${GFC0} created.\n"
     fi
 
@@ -9169,7 +9169,7 @@ function gf_prepare_run_directory {
     for dir in scripts tasks in out logs reports; do
         if [ ! -e "$GF_RUN_DIR/$dir" ]; then
             mkdir -p "$GF_RUN_DIR/$dir"
-            chmod a+rwxs "$GF_RUN_DIR/$dir"
+            # chmod a+rwxs "$GF_RUN_DIR/$dir"
         fi
     done
     if [ -n "$GF_INT_DIR" ]; then
@@ -9177,7 +9177,7 @@ function gf_prepare_run_directory {
         for dir in scripts tasks in logs; do
             if [ ! -e "$GF_I_RUN_DIR/$dir" ]; then
                 mkdir -p "$GF_I_RUN_DIR/$dir"
-                chmod a+rwxs "$GF_I_RUN_DIR/$dir"
+                # chmod a+rwxs "$GF_I_RUN_DIR/$dir"
             fi
         done
     fi
@@ -9187,7 +9187,7 @@ function gf_prepare_run_directory {
     for gf_file in tasks/run.info tasks/run.log; do
         if [ ! -e "$GF_I_RUN_DIR/$gf_file" ]; then
             touch "$GF_I_RUN_DIR/$gf_file"
-            chmod a+rw "$GF_I_RUN_DIR/$gf_file"
+            # chmod a+rw "$GF_I_RUN_DIR/$gf_file"
         fi
     done
 
@@ -9211,7 +9211,7 @@ function gf_prepare_run_directory {
 
     # Temporary lock internal directory
     touch "$GF_I_RUN_DIR/tasks/run.lock"
-    chmod a+rwx "$GF_I_RUN_DIR/tasks/run.lock"
+    # chmod a+rwx "$GF_I_RUN_DIR/tasks/run.lock"
 
     # Run script and log should be unique
     GF_RUN_INDEX=1
@@ -9306,7 +9306,8 @@ function gf_generate_flow_scripts {
             done
         fi
     ' | sed -e 's/^\s\{4,8\}//' > "$GF_I_RUN_DIR/tasks/show_log.sh"
-    chmod a+rwx "$GF_I_RUN_DIR/tasks/show_log.sh"
+    # chmod a+rwx "$GF_I_RUN_DIR/tasks/show_log.sh"
+    chmod a+x "$GF_I_RUN_DIR/tasks/show_log.sh"
 
     # Create run script
     gf_create_run_script > "$GF_RUN_SCRIPT"

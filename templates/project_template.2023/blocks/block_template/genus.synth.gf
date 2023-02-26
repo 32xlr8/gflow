@@ -49,6 +49,8 @@ gf_choose -keep -variable PHYSICAL_MODE -keys YN -time 30 -default Y -prompt "Do
 # Choose floorplan for physical mode if not chosen
 if [ "$PHYSICAL_MODE" == "Y" ]; then
     gf_choose_file_dir_task -variable FLOORPLAN_FILE -keep -prompt "Please select floorplan:" -files '
+        ../data/*.fp.def
+        ../data/*.fp.def.gz
         ../data/*/*.fp.def
         ../data/*/*.fp.def.gz
         ../work_*/*/out/*.fp.def
@@ -61,6 +63,7 @@ fi
 
 # Choose MMMC file
 gf_choose_file_dir_task -variable MMMC_FILE -keep -prompt "Please select MMMC file:" -files '
+    ../data/*.mmmc.tcl
     ../data/*/*.mmmc.tcl
     ../work_*/*/out/FrontendMMMC*.mmmc.tcl
 '
@@ -73,8 +76,8 @@ gf_add_tool_commands '
     set LEF_FILES {`$CADENCE_TLEF_FILES` `$LEF_FILES`}
     set DESIGN_NAME {`$DESIGN_NAME`}
     set ELAB_DESIGN_NAME {`$ELAB_DESIGN_NAME`}
-    set POWER_NETS {`$POWER_NETS_CORE` `$POWER_NETS_IO -optional`}
-    set GROUND_NETS {`$GROUND_NETS_CORE` `$GROUND_NETS_IO -optional`}
+    set POWER_NETS {`$POWER_NETS_CORE` `$POWER_NETS_OTHER -optional`}
+    set GROUND_NETS {`$GROUND_NETS_CORE` `$GROUND_NETS_OTHER -optional`}
     set FLOORPLAN_FILE {`$FLOORPLAN_FILE -optional`}
     set MMMC_FILE {`$MMMC_FILE`}
     set OCV_FILE "[regsub {\.mmmc\.tcl$} $MMMC_FILE {}].ocv.tcl"

@@ -45,7 +45,9 @@ gf_create_task -name Floorplan
 gf_use_innovus
 
 # Choose netlist if not chosen
-gf_choose_file_dir_task -variable NETLIST_FILE -keep -prompt "Please select netlist:" -files '
+gf_choose_file_dir_task -variable NETLIST_FILES -keep -prompt "Please select netlist:" -files '
+    ../data/*.v.gz
+    ../data/*.v
     ../data/*/*.v.gz
     ../data/*/*.v
     ../work_*/*/out/SynMap*.v
@@ -54,18 +56,22 @@ gf_choose_file_dir_task -variable NETLIST_FILE -keep -prompt "Please select netl
 
 # Choose floorplan if not chosen
 gf_choose_file_dir_task -variable FLOORPLAN_FILE -keep -prompt "Please select floorplan (optional):" -files '
+    ../data/*.fp
+    ../data/*.fp.gz
     ../data/*/*.fp
+    ../data/*/*.fp.gz
     ../work_*/*/out/*.fp
 '
 
 # Ask user if need to load timing information
 gf_spacer
-gf_choose -variable TIMING_MODE -keys YN -time 30 -default Y -prompt "Do you want to initialize timing information (Y/N)?"
+gf_choose -variable TIMING_MODE -keys YN -time 30 -default N -prompt "Do you want to initialize timing information (Y/N)?"
 gf_spacer
 
 # Choose MMMC file
 if [ "$TIMING_MODE" == "Y" ]; then
     gf_choose_file_dir_task -variable MMMC_FILE -keep -prompt "Please select MMMC file:" -files '
+        ../data/*.mmmc.tcl
         ../data/*/*.mmmc.tcl
         ../work_*/*/out/BackendMMMC*.mmmc.tcl
     '
@@ -81,14 +87,14 @@ gf_add_tool_commands '
 
     # Current design variables
     set LEF_FILES {`$CADENCE_TLEF_FILES` `$LEF_FILES`}
-    set NETLIST_FILE {`$NETLIST_FILE`}
+    set NETLIST_FILES {`$NETLIST_FILES`}
     set SCANDEF_FILE {`$SCANDEF_FILE -optional`}
     set CPF {`$CPF -optional`}
     set UPF {`$UPF -optional`}
     set FLOORPLAN_FILE {`$FLOORPLAN_FILE`}
     set DESIGN_NAME {`$DESIGN_NAME`}
-    set POWER_NETS {`$POWER_NETS_CORE` `$POWER_NETS_IO -optional`}
-    set GROUND_NETS {`$GROUND_NETS_CORE` `$GROUND_NETS_IO -optional`}
+    set POWER_NETS {`$POWER_NETS_CORE` `$POWER_NETS_OTHER -optional`}
+    set GROUND_NETS {`$GROUND_NETS_CORE` `$GROUND_NETS_OTHER -optional`}
     set TIMING_MODE {`$TIMING_MODE`}
     set MMMC_FILE {`$MMMC_FILE -optional`}
     set OCV_FILE "[regsub {\.mmmc\.tcl$} $MMMC_FILE {}].ocv.tcl"
@@ -97,12 +103,16 @@ gf_add_tool_commands '
     `@innovus_pre_read_libs`
 
     # Procedure to save new floorplan into block data directory
-    proc gf_write_golden_floorplan {} {
-        uplevel 1 {
-            puts "Writing golden floorplan $FLOORPLAN_FILE ..."
-            write_floorplan $FLOORPLAN_FILE
-            write_def -floorplan -io_row -routing $FLOORPLAN_FILE.def
+    proc gf_write_floorplan_global {{tag {}}} {
+        upvar gf_fp_date gf_fp_date
+        upvar gf_fp_index gf_fp_index
+        set base "../../../../data/[exec date +%y%m%d]"
+        if {$tag != {}} {
+            set base "$base.$tag"
         }
+        puts "\033\[42m \033\[0m Writing floorplan $base.fp ..."
+        write_floorplan $base.fp
+        write_def -floorplan -io_row -routing $base.fp.def.gz
     }
     
     # Generate and read MMMC and OCV files 
@@ -118,7 +128,7 @@ gf_add_tool_commands '
     read_physical -lefs [join $LEF_FILES]
 
     # Read netlist for current design
-    read_netlist $NETLIST_FILE -top $DESIGN_NAME
+    read_netlist [join $NETLIST_FILES] -top $DESIGN_NAME
 
     # Initialize library and design information
     init_design
@@ -169,10 +179,19 @@ gf_add_tool_commands '
         
     # Continue even if scan chains are empty
     } else {
-        puts "\033\[43m \033\[0m Scan definition $SCANDEF_FILE not found"
+        if {$SCANDEF_FILE == ""} {
+            puts "\033\[43m \033\[0m Scan definition file is empty"
+        } else {
+            puts "\033\[43m \033\[0m Scan definition $SCANDEF_FILE not found"
+        }
         set_db place_global_ignore_scan false
     }
     
+    # Common tool procedures
+    `@innovus_procs_common`
+    `@innovus_procs_interactive_design`
+    `@innovus_procs_eco_design`
+
     # Stage-specific options    
     if {$TIMING_MODE == "Y"} {
         `@innovus_post_init_design`
@@ -185,12 +204,12 @@ gf_add_tool_commands '
     } else {
         `@innovus_post_init_design_physical_mode`
     }
-        
+
     # Stage-specific options    
     `@innovus_pre_floorplan`
 
     # Check cells with missing LEF files
-    gf_innovus_check_missing_cells
+    `@innovus_check_missing_cells`
     
     gui_show
     gui_fit

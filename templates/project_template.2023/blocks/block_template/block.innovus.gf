@@ -27,6 +27,25 @@
 gf_info "Loading block-specific Innovus steps ..."
 
 ################################################################################
+# Flow options
+################################################################################
+
+# Override tasks resources
+# gf_set_task_options -cpu 8 -mem 15
+gf_set_task_options 'Debug*' -cpu 4 -mem 10
+gf_set_task_options 'Report*' -cpu 4 -mem 10 -parallel 1
+gf_set_task_options Floorplan -cpu 4 -mem 15
+# gf_set_task_options Place -cpu 8 -mem 15
+# gf_set_task_options Clock -cpu 8 -mem 15
+# gf_set_task_options Route -cpu 8 -mem 15
+
+# # Disable not needed tasks
+# gf_set_task_options -disable ReportNetlist
+# gf_set_task_options -disable ReportPlace
+# gf_set_task_options -disable ReportClock
+# gf_set_task_options -disable ReportRoute
+
+################################################################################
 # Flow variables
 ################################################################################
 
@@ -43,19 +62,26 @@ gf_info "Loading block-specific Innovus steps ..."
 # LDB_MODE=Y
 
 ################################################################################
-# Implementation flow steps - ./innovus.impl.gf
+# Implementation flow steps - ./innovus.impl.gf, ./innovus.ispatial.gf
 ################################################################################
 
 # Tool-specific procedures
-gf_create_step -name procs_innovus_common '
+gf_create_step -name innovus_procs_common '
+    `@gconfig_procs_ocv`
     `@procs_stylus_db`
-    `@procs_innovus_db`
-    `@procs_innovus_fanin_fanout_magnify`
-    `@procs_innovus_add_buffers`
-    `@procs_innovus_align`
-    `@procs_innovus_copy_place`
-    `@procs_innovus_power_grid`
-    `@procs_innovus_objects`
+    `@innovus_procs_db`
+    `@innovus_procs_fanin_fanout_magnify`
+    `@innovus_procs_add_buffers`
+    `@innovus_procs_align`
+    `@innovus_procs_copy_place`
+    `@innovus_procs_power_grid`
+    `@innovus_procs_objects`
+
+    # Useful bindkeys
+    catch {gui_bind_key F7 -cmd "gf_select_similar_instances_by_index"}
+    catch {gui_bind_key Shift+F7 -cmd "gf_select_similar_instances_by_cell 1"}
+    catch {gui_bind_key Ctrl+Shift+F7 -cmd "gf_select_more_instances"}
+    catch {gui_bind_key Shift+F6 -cmd "gf_swap_bumps"}
 '
 
 # Commands before reading design data
@@ -73,8 +99,8 @@ gf_create_step -name innovus_pre_read_libs '
     # # Spatial OCV settings before loading libraries
     # set_db timing_derate_spatial_distance_unit 1nm
     
-    # Do not add unneeded assigns
-    set_db init_no_new_assigns true
+    # # Do not add unneeded assigns
+    # set_db init_no_new_assigns true
 '
 
 # Global net connection step
@@ -236,6 +262,9 @@ gf_create_step -name innovus_post_init_design '
         # # For power-critical designs
         # set_db design_power_effort high
         # set_db opt_power_effort high
+
+        # # For area-critical designs
+        # set_db opt_effort high
     }
 
     # Design and process settings
@@ -272,47 +301,44 @@ gf_create_step -name innovus_post_init_design '
         # set_db delaycal_enable_quiet_receivers_for_hold true
         # set_db delaycal_advanced_pin_cap_mode true
 
-        # AOCV libraries (see TSMCHOME/digital/Front_End/SBOCV/documents/GL_SBOCV_*.pdf)
-        if {[gconfig::is_switch_enabled aocv_libraries]} {
-            set_db timing_report_fields {cell arc delay incr_delay arrival required transition fanout load aocv_adj_stages aocv_derate user_derate annotation instance}
-            set_db timing_analysis_aocv true
-            set_db timing_extract_model_aocv_mode graph_based
-            set_db timing_aocv_analysis_mode combine_launch_capture
-            # set_db timing_aocv_analysis_mode separate_data_clock
-            # set_db timing_aocv_slack_threshold 0.0
-            set_db timing_enable_aocv_slack_based true
+        # # AOCV libraries (see TSMCHOME/digital/Front_End/SBOCV/documents/GL_SBOCV_*.pdf)
+        <PLACEHOLDER: Choice 1 of 3>
+        # set_db timing_report_fields {cell arc delay incr_delay arrival required transition fanout load aocv_adj_stages aocv_derate user_derate annotation instance}
+        # set_db timing_analysis_aocv true
+        # set_db timing_extract_model_aocv_mode graph_based
+        # set_db timing_aocv_analysis_mode combine_launch_capture
+        # # set_db timing_aocv_analysis_mode separate_data_clock
+        # # set_db timing_aocv_slack_threshold 0.0
+        # set_db timing_enable_aocv_slack_based true
 
-        # LVF/SOCV libraries (see TSMCHOME/digital/Front_End/LVF/documents/GL_LVF_*.pdf)
-        } elseif {[gconfig::is_switch_enabled lvf_libraries] || [gconfig::is_switch_enabled socv_libraries]} {
-            set_db timing_report_fields {timing_point cell arc fanout load slew slew_mean slew_sigma pin_location delay_mean delay_sigma delay arrival_mean arrival_sigma arrival user_derate total_derate power_domain voltage phys_info}
-            # set_db ui_precision_timing 6
-            set_limited_access_feature socv 1
-            set_db timing_analysis_socv true
-            set_db delaycal_socv_accuracy_mode ultra
-            set_db delaycal_socv_machine_learning_level 1
-            set_db timing_nsigma_multiplier 3.0
-            # set_db timing_disable_retime_clock_path_slew_propagation false
-            set_db timing_socv_statistical_min_max_mode mean_and_three_sigma_bounded
-            set_db timing_report_enable_verbose_ssta_mode true
-            set_socv_reporting_nsigma_multiplier -setup 3 -hold 3
-            set_db delaycal_accuracy_level 3
-            set_db timing_cppr_threshold_ps 3
-            set_db delaycal_socv_lvf_mode moments
-            set_db delaycal_socv_use_lvf_tables {delay slew constraint}
-            set_timing_derate 0 -sigma -cell_check -early [get_lib_cells *BWP*]
-            set_db timing_report_max_transition_check_using_nsigma_slew false
-            set_db timing_ssta_enable_nsigma_enumeration true
-            set_db timing_ssta_generate_sta_timing_report_format true
-            set_db timing_socv_rc_variation_mode true
-            set_socv_rc_variation_factor 0.1 -early
-            set_socv_rc_variation_factor 0.1 -late
+        # # LVF/SOCV libraries (see TSMCHOME/digital/Front_End/LVF/documents/GL_LVF_*.pdf)
+        <PLACEHOLDER: Choice 2 of 3>
+        # set_db timing_report_fields {timing_point cell arc fanout load slew slew_mean slew_sigma pin_location delay_mean delay_sigma delay arrival_mean arrival_sigma arrival user_derate total_derate power_domain voltage phys_info}
+        # # set_db ui_precision_timing 6
+        # set_limited_access_feature socv 1
+        # set_db timing_analysis_socv true
+        # set_db delaycal_socv_accuracy_mode ultra
+        # set_db delaycal_socv_machine_learning_level 1
+        # set_db timing_nsigma_multiplier 3.0
+        # # set_db timing_disable_retime_clock_path_slew_propagation false
+        # set_db timing_socv_statistical_min_max_mode mean_and_three_sigma_bounded
+        # set_db timing_report_enable_verbose_ssta_mode true
+        # set_socv_reporting_nsigma_multiplier -setup 3 -hold 3
+        # set_db delaycal_accuracy_level 3
+        # set_db timing_cppr_threshold_ps 3
+        # set_db delaycal_socv_lvf_mode moments
+        # set_db delaycal_socv_use_lvf_tables {delay slew constraint}
+        # set_timing_derate 0 -sigma -cell_check -early [get_lib_cells *BWP*]
+        # set_db timing_report_max_transition_check_using_nsigma_slew false
+        # set_db timing_ssta_enable_nsigma_enumeration true
+        # set_db timing_ssta_generate_sta_timing_report_format true
+        # set_db timing_socv_rc_variation_mode true
+        # set_socv_rc_variation_factor 0.1 -early
+        # set_socv_rc_variation_factor 0.1 -late
 
         # Flat STA settings
-        } else {
-        
-            # Timing report table fields
-            set_db timing_report_fields {cell arc delay incr_delay arrival required transition fanout load user_derate annotation instance}
-        }
+        <PLACEHOLDER: Choice 3 of 3>
+        set_db timing_report_fields {cell arc delay incr_delay arrival required transition fanout load user_derate annotation instance}
 
         # # Spatial OCV settings (see TSMCHOME/digital/Front_End/timing_margin/SPM)
         # set_db timing_enable_spatial_derate_mode true
@@ -329,8 +355,12 @@ gf_create_step -name innovus_post_init_design '
         # # Use empty filler and allow 1 gap spacing during placement
         # set_db place_detail_use_no_diffusion_one_site_filler true
 
-        # # Do not check follow pin vias
+        # # Do not check follow pin vias and shapes
         # set_db design_ignore_followpin_vias true
+        # set_db route_design_ignore_follow_pin_shapes true
+        
+        # # Strict legalization during optimization
+        # set_db opt_honor_fences true
 
         # # Limit placement density
         # set_db place_global_uniform_density true
@@ -361,7 +391,6 @@ gf_create_step -name innovus_post_init_design '
         # set_db opt_post_route_fix_clock_drv true
         set_db opt_fix_fanout_load true
         set_db opt_post_route_area_reclaim setup_aware
-
     }
     
     # Clock settings
@@ -381,6 +410,7 @@ gf_create_step -name innovus_post_init_design '
 
         # Disable clock tree latency update for top level
         <PLACEHOLDER> set_db cts_update_clock_latency false
+        # set_db cts_update_io_latency false
         set_db budget_write_latency_per_clock true
 
         # Avoid clock tree cells to be placed nearby
@@ -405,13 +435,10 @@ gf_create_step -name innovus_post_init_design '
     if {1} {
 
         # Layers
-        if {[catch {
-            set_db design_bottom_routing_layer <PLACEHOLDER:M1>
-            set_db design_top_routing_layer <PLACEHOLDER:M10>
-        }]} {
-            set_db route_design_bottom_routing_layer <PLACEHOLDER:M1>
-            set_db route_design_top_routing_layer <PLACEHOLDER:M10>
-        }
+        set_db design_bottom_routing_layer <PLACEHOLDER:M1>
+        set_db design_top_routing_layer <PLACEHOLDER:M10>
+        # set_db route_design_bottom_routing_layer <PLACEHOLDER:M1>
+        # set_db route_design_top_routing_layer <PLACEHOLDER:M10>
         
         # Routing settings
         # set_db add_route_vias_auto true
@@ -481,7 +508,7 @@ gf_create_step -name innovus_pre_place '
     }]
     set_db cts_logic_cells [join {
         <PLACEHOLDER:CLOCK_MUX_CELL_NAME:CKMUX2*>
-        <PLACEHOLDER:CLOCK_NAND_CELL_NAME:CKNA2>
+        <PLACEHOLDER:CLOCK_NAND_CELL_NAME:CKND2>
         <PLACEHOLDER:CLOCK_NOR_CELL_NAME:CKNR2*>
         <PLACEHOLDER:CLOCK_AND_CELL_NAME:CKAN2*>
         <PLACEHOLDER:CLOCK_OR_CELL_NAME:CKOR2*>
@@ -565,6 +592,7 @@ gf_create_step -name innovus_pre_place '
     # set_db pin:<PLACEHOLDER:/inst/pin> .cts_sink_type exclude
 
     # # Skip routing attribute
+    # set_db [get_db ports .net] .skip_routing true
     # set_db net:<PLACEHOLDER:name> .skip_routing true
     
     # # Interactive constraints
@@ -579,17 +607,17 @@ gf_create_step -name innovus_pre_place '
     # create_fence -name * -area {*}
     
     # # RC factors
-    # source ../../../../data/PostR.rc_factors.tcl
+    # source ../../../../data/ReportRoute.rc_factors.tcl
 
     # # Attach and spread IO buffers
     # if {1} {
     #     add_io_buffers \
     #         -suffix _GF_io_buffer \
-    #         -in_cells <cell_for_inputs>  \
-    #         -out_cells <cell_for_outputs> \
+    #         -in_cells <PLACEHOLDER:cell_for_inputs>  \
+    #         -out_cells <PLACEHOLDER:cell_for_outputs> \
     #         -port -exclude_clock_nets
     # } else {
-    #     gf_attach_io_buffers <cell_for_inputs> <cell_for_outputs>
+    #     gf_attach_io_buffers <PLACEHOLDER:cell_for_inputs> <PLACEHOLDER:cell_for_outputs>
     # }
     # set io_buffers [get_db insts *_GF_io_buffer]
     # create_inst_space_group -group_name GF_io_buffers -inst [get_db $io_buffers .name] -spacing_x 1.000 -spacing_y 1.000
@@ -654,7 +682,11 @@ gf_create_step -name innovus_pre_place '
 
     # # User-defined margins
     # set_path_adjust_group -name reg2reg -from [all_register] -to [all_register]
-    # set_path_adjust -0.400 -view [gconfig::get analysis_view_name -view <PLACEHOLDER:view>] -path_adjust_group reg2reg -setup
+    # set_path_adjust -0.400 -view <PLACEHOLDER:analysis_view_name> -path_adjust_group reg2reg -setup
+    
+    # # Write database between placement and optimization
+    # set_db place_opt_post_place_tcl place_opt_post_place.tcl
+    # puts "write_db ./out/$TASK_NAME.place_opt_post_place.innovus.db" > place_opt_post_place.tcl
 '
 
 # Commands after design placement
@@ -716,7 +748,7 @@ gf_create_step -name innovus_post_clock '
     # write_ilm -model_type timing -type_flex_ilm flexilm -opt_stage <PLACEHOLDER:prects> -overwrite -to_dir ./out/$TASK_NAME.ilm
 
     # # Delete route blockages created for clock
-    # delete_route_blockages -name clock_no_routing
+    # catch {delete_route_blockages -name clock_no_routing}
 '
 
 # Commands before post-clock hold fix
@@ -802,18 +834,18 @@ gf_create_step -name innovus_pre_route_opt_setup_hold '
 # Commands after post-route setup and hold optimization
 gf_create_step -name innovus_post_route_opt_setup_hold '
     
-    # Re-insert fillers by priority (post-route mode)
+    # # Re-insert fillers by priority (post-route mode)
     # if {0} {
         # foreach cells [get_db add_fillers_cells] {
             # add_fillers -prefix FILLER -base_cells $cells
         # }
         
-    # Re-insert fillers in single pass (post-route mode)
+    # # Re-insert fillers in single pass (post-route mode)
     # } else {
         # add_fillers -prefix FILLER
     # }
     
-    # Fix left violations
+    # # Fix left violations
     # check_filler
     # # add_fillers -fill_gap -prefix FILLER
 
@@ -828,7 +860,7 @@ gf_create_step -name innovus_post_route_opt_setup_hold '
 ################################################################################
 
 # Floorplan automation procedures
-gf_create_step -name procs_innovus_interactive_design '
+gf_create_step -name innovus_procs_interactive_design '
 
     # # Initialize tracks pattern
     # proc gf_init_tracks {} {
@@ -1165,8 +1197,8 @@ gf_create_step -name procs_innovus_interactive_design '
         return $results
     }
     
-    # Initialize power grid procedure
-    proc gf_init_pg_rows {} {
+    # Initialize follow pins in two metals
+    proc gf_init_two_metals_followpins {} {
         set nets {VDD VSS}
 
         # Delete all not fixed routing
@@ -1366,7 +1398,8 @@ gf_create_step -name procs_innovus_interactive_design '
         # gf_init_io_fillers
         gf_init_tracks
         gf_init_rows
-        gf_init_boundary
+        gf_init_boundary_cells
+        # gf_init_boundary_wires
         gf_init_power_grid
         gf_write_floorplan
         
@@ -1482,25 +1515,6 @@ gf_create_step -name procs_innovus_interactive_design '
         catch {delete_io_fillers -cell [get_db [get_db [get_db base_cells -if .site.class==pad *FILL*] -invert {*A *A_G}] .name]}
         add_io_fillers -cells [get_db [get_db [get_db base_cells -if .site.class==pad *FILL*] -invert {*A *A_G}] .name]
     }
-
-    # Print evaluated legacy script content
-    proc gf_verbose_legacy_script {script} {
-        eval_legacy "
-            foreach gf_line \[split {$script} \\n\] {
-                if {\[regexp {^\\s*set\\s} \$gf_line\]} {
-                    catch {eval_legacy \$gf_line}
-                }
-                if {[catch {puts \[subst \$gf_line\]}]} {
-                    puts \$gf_line
-                }
-            }
-        "
-    }
-    
-    # Check empty cells
-    proc gf_innovus_check_missing_cells {} {
-        `@innovus_check_missing_cells`
-    }
 '
 
 ################################################################################
@@ -1560,10 +1574,10 @@ gf_create_step -name innovus_concurrent_macro_placement '
 ################################################################################
 
 # Interactive ECO procedures
-gf_create_step -name procs_innovus_eco_design '
+gf_create_step -name innovus_procs_eco_design '
     
-    # Bindkeys for tool-specific procedures
-    gui_bind_key F6 -cmd gf_swap_bumps
+    # Tool-specific procedures
+    `@innovus_procs_eco_common`
 
     # # Fix followpin vias between M1 and M2
     # proc gf_fix_followpin_drc {} {
@@ -1676,13 +1690,14 @@ gf_create_step -name innovus_design_reports_post_route '
     `@innovus_report_density`
     
     # # Write out SDF and netlist for block level simulation
-    # write_sdf ./out/$::TASK_NAME.sdf -version 3.0 \
+    # write_sdf ./out/$::TASK_NAME.sdf \
+    #     -min_view <PLACEHOLDER:analysis_view_name> \
+    #     -typical_view <PLACEHOLDER:analysis_view_name> \
+    #     -max_view <PLACEHOLDER:analysis_view_name> \
     #     -edges noedge -interconnect all -no_derate \
-    #     -min_view [gconfig::get analysis_view_name -view [lindex $min_typ_max_view 0]] \
-    #     -typical_view [gconfig::get analysis_view_name -view [lindex $min_typ_max_view 1]] \
-    #     -max_view [gconfig::get analysis_view_name -view [lindex $min_typ_max_view 2]]
+    #     -version 3.0
     # write_netlist -top_module_first -top_module $::DESIGN_NAME \
-    #     -exclude_insts_of_cells [get_db [get_db base_cells {`$LOGICAL_NETLIST_EXCLUDE_CELLS`}] .name] \
+    #     -exclude_insts_of_cells [get_db [get_db base_cells {`$LOGICAL_NETLIST_EXCLUDE_CELLS -optional`}] .name] \
     #     ./out/$::TASK_NAME.v
 
     # Write out RC factors for pre to post route correlation
@@ -1694,6 +1709,121 @@ gf_create_step -name innovus_design_reports_post_route '
 ################################################################################
 
 # Commands to create block-specific data
-gf_create_step -name innovus_design_data_out '
-    TODO
+gf_create_step -name innovus_data_out_physical_design '
+
+    ##################################################
+    # Netlist manipulations
+    ##################################################
+
+    # # Create missing PG ports
+    # foreach net [concat [get_db init_power_nets] [get_db init_ground_nets]] {
+    #     if {[get_db ports $net] == ""} {
+    #         create_pg_pin -name $net -net $net
+    #     }
+    # }
+    
+    # Fix empty modules issues
+    delete_assigns -ignore_port_constraints
+    delete_empty_hinsts
+
+    # # Update global nets connection
+    # `@connect_global_nets`
+ 
+    # Write original netlist
+    write_netlist ./out/$TASK_NAME/$DESIGN_NAME.v.gz
+    
+    # Write physical netlist for LVS
+    set exclude_cells [get_db [get_db base_cells {`$PHYSICAL_NETLIST_EXCLUDE_CELLS -optional`}] .name]
+    if {[llength $exclude_cells] > 0} {
+        write_netlist -flatten_bus -exclude_leaf_cells \
+            -exclude_insts_of_cells $exclude_cells  \
+            -phys -include_pg_ports -include_phys_insts \
+            -top_module $DESIGN_NAME \
+            ./out/$TASK_NAME/$DESIGN_NAME.physical.v.gz
+    } else {
+        write_netlist -flatten_bus -exclude_leaf_cells \
+            -phys -include_pg_ports -include_phys_insts \
+            -top_module $DESIGN_NAME \
+            ./out/$TASK_NAME/$DESIGN_NAME.physical.v.gz
+    }
+
+    # Write logical netlist for STA
+    set exclude_cells [get_db [get_db base_cells {`$LOGICAL_NETLIST_EXCLUDE_CELLS -optional`}] .name]
+    if {[llength $exclude_cells] > 0} {
+        write_netlist -flatten_bus -exclude_leaf_cells \
+            -exclude_insts_of_cells $exclude_cells \
+            -top_module_first -top_module $DESIGN_NAME \
+            ./out/$TASK_NAME/$DESIGN_NAME.logical.v.gz
+    } else {
+        write_netlist -flatten_bus -exclude_leaf_cells \
+            -top_module_first -top_module $DESIGN_NAME \
+            ./out/$TASK_NAME/$DESIGN_NAME.logical.v.gz
+    }
+
+    # Write out LEF for hierarchical design
+    if {[catch {set top_layer [get_db route_design_top_routing_layer]}]} {set top_layer [get_db design_top_routing_layer]}
+    write_lef_abstract ./out/$TASK_NAME/$DESIGN_NAME.lef -no_cut_obs -top_layer $top_layer -stripe_pins -pg_pin_layers $top_layer
+
+    # Write lite DEF for STA/ECO
+    write_def -netlist ./out/$TASK_NAME/$DESIGN_NAME.lite.def.gz
+
+    # Write full DEF for parasitics extraction and signal electromigration analysis
+    write_def -scan_chain -netlist -floorplan -io_row -routing -routing_to_special_net -with_shield -all_layers ./out/$TASK_NAME/$DESIGN_NAME.full.def.gz
+
+    ##################################################
+    # Design manipulations
+    ##################################################
+
+    # # Uniquify cell names in GDS
+    # set_db write_stream_cell_name_prefix [get_db current_design .name]
+    # set_db write_stream_uniquify_cell_names_prefix true
+    set_db write_stream_via_names true
+
+    # # Remove DTCD to let them be inserted by fill utility
+    # get_db insts .name <PLACEHOLDER:*DTCD_?EOL*> -foreach {delete_inst -inst $object}
+
+    # # Add user cells like chip labels
+    # create_inst -physical -inst <PLACEHOLDER:label>_inst -cell <PLACEHOLDER:label> -location {<PLACEHOLDER:0 0>} -orient r0 -status fixed
+
+    # # Add dummy fill cells
+    TODO: Merge fill with Physical signoff tool
+    # create_inst -physical -inst ${DESIGN_NAME}_dummy_fill_inst -cell ${DESIGN_NAME}_dummy_fill -location {0 0} -orient r0 -status fixed
+    
+    # Write out GDS for LVS
+    write_stream -mode ALL -output_macros -uniquify_cell_names -die_area_as_boundary \
+        -unit {`$GDS_UNITS`} \
+        -map_file [join {`$CADENCE_GDS_LAYER_MAP_FILE`}] \
+        -merge [join {`$GDS_FILES`}] \
+        ./out/$TASK_NAME/$DESIGN_NAME.gds.gz
+    
+    # Write out hcell file and pin locations
+    gf_write_hcell ./out/$TASK_NAME/$DESIGN_NAME.hcell
+    gf_write_pin_locations ./out/$TASK_NAME/$DESIGN_NAME.pins
+    
+    # Write current sources coordinates
+    TODO: Move to tools template
+    proc gf_write_current_sources_locations {} {
+        set via_counter 0
+        foreach net [concat [get_db init_power_nets] [get_db init_ground_nets]] {
+            set vias [get_db [get_db nets $net] .special_vias]
+            set layers [get_db $vias .via_def.top_layer -u]
+            set top_layer_name [get_db [lindex $layers 0] .name]
+            set top_layer_index [get_db [lindex $layers 0] .route_index]
+            foreach layer $layers {
+                if {[get_db $layer .route_index] > $top_layer_index} {
+                    set top_layer_name [get_db $layer .name]
+                    set top_layer_index [get_db $layer .route_index]
+                }
+            }
+            set FH [open "./out/$TASK_NAME/$DESIGN_NAME.$net.pp" w]
+            set extract_corner_names {}
+            foreach via [get_db $vias -if .via_def.top_layer.name==$top_layer_name] {
+                incr via_counter
+                puts $FH "${top_layer_name}_${via_counter} [get_db $via .point.x] [get_db $via .point.y] $top_layer_name"
+            }
+            close $FH
+        }
+    }
+    
+    gf_write_current_source_locations
 '

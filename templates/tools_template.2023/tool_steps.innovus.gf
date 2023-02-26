@@ -179,7 +179,83 @@ gf_create_step -name innovus_time_design_late_early_summary '
 ################################################################################
 
 # Power grid creation procedures
-gf_create_step -name procs_innovus_power_grid '
+gf_create_step -name innovus_procs_power_grid '
+
+    # Horizontal stripe
+    proc gf_rect_to_stripe_h {rect} {
+        set y [expr 1.0*([lindex $rect 1]+[lindex $rect 3])*5/10]
+        return [list [expr abs([lindex $rect 1]-[lindex $rect 3])] [list [lindex $rect 0] $y [lindex $rect 2] $y]]
+    }
+    proc gf_points_to_stripe_h {x1 y1 x2 y2} {
+        return [gf_rect_to_stripe_h "$x1 $y1 $x2 $y2"]
+    }
+
+    # Vertical stripe
+    proc gf_rect_to_stripe_v {rect} {
+        set x [expr 1.0*([lindex $rect 0]+[lindex $rect 2])*5/10]
+        return [list [expr abs([lindex $rect 0]-[lindex $rect 2])] [list $x [lindex $rect 1] $x [lindex $rect 3]]]
+    }
+    proc gf_points_to_stripe_v {x1 y1 x2 y2} {
+        return [gf_rect_to_stripe_v "$x1 $y1 $x2 $y2"]
+    }
+
+    # Write def for specific net
+    proc gf_write_special_route_def {net file shapes} {
+        set FH [open "$file" "w"]
+        puts $FH {VERSION 5.8 ;}
+        puts $FH {DIVIDERCHAR "/" ;}
+        puts $FH {BUSBITCHARS "[]" ;}
+        puts $FH "DESIGN [get_db current_design .name] ;"
+        puts $FH {UNITS DISTANCE MICRONS 1000 ;}
+        puts $FH {}
+        puts $FH "SPECIALNETS [llength $shapes] ;"
+        puts $FH "- $net"
+        set net_shapes {}
+        foreach shape $shapes {
+            if {$net == [lindex $shape 3]} {
+                lappend net_shapes $shape
+            }
+        }
+        foreach shape $net_shapes {
+            set inst [lindex $shape 0]
+            set layer [lindex $shape 1]
+            set type [lindex $shape 2]
+            # set net [lindex $shape 3]
+            set stripe [lindex $shape 4]
+            if {$inst == ""} {
+                set r [lindex $stripe 1]
+            } else {
+                set r [concat [get_transform_shapes -inst $inst -local_pt [lindex $stripe 1]]]
+                # create_marker -layer $layer -bbox [get_transform_shapes -inst $inst -local_pt $rect]
+            }
+            puts $FH "+ FIXED $layer [expr int([lindex $stripe 0]*1000+0.5)] + SHAPE $type ( [expr int([lindex $r 0]*1000+0.5)] [expr int([lindex $r 1]*1000+0.5)] ) ( [expr int([lindex $r 2]*1000+0.5)] [expr int([lindex $r 3]*1000+0.5)] )"
+        }
+        puts $FH {;}
+        puts $FH {END SPECIALNETS}
+        puts $FH {}
+        puts $FH {END DESIGN}
+        close $FH
+    }
+
+    # Resize list of bboxes
+    proc gf_resize_bbox {bbox offsets} {
+        return [list \
+            [expr [lindex $bbox 0]+[lindex $offsets 0]] \
+            [expr [lindex $bbox 1]+[lindex $offsets 1]] \
+            [expr [lindex $bbox 2]+[lindex $offsets 2]] \
+            [expr [lindex $bbox 3]+[lindex $offsets 3]] \
+        ]
+    }
+
+    # Transform list of bboxes
+    proc gf_transform_bbox {bbox indexes offsets} {
+        return [list \
+            [expr [lindex $bbox [lindex $indexes 0]]+[lindex $offsets 0]] \
+            [expr [lindex $bbox [lindex $indexes 1]]+[lindex $offsets 1]] \
+            [expr [lindex $bbox [lindex $indexes 2]]+[lindex $offsets 2]] \
+            [expr [lindex $bbox [lindex $indexes 3]]+[lindex $offsets 3]] \
+        ]
+    }
 
     # Create power stripes over macro areas
     proc gf_init_power_stripes_area {nets layer width pitch direction bottom_layer area {create_pins 0} {snap grid} {merge 0.070}} {
@@ -296,7 +372,7 @@ gf_create_step -name procs_innovus_power_grid '
 '
 
 # Objects manipulation procedures
-gf_create_step -name procs_innovus_objects '
+gf_create_step -name innovus_procs_objects '
 
     # Initialize unplaced ports interactive procedure
     proc gf_init_ports {layers {edge_in 0} {edge_out 2} {spacing 2}} {
@@ -331,6 +407,172 @@ gf_create_step -name procs_innovus_objects '
         set_db assign_pins_edit_in_batch $assign_pins_edit_in_batch_value
     }
 
+    # Select next instances of same base cell as already selected
+    proc gf_select_similar_instances_by_index {} {
+        set selected_insts [get_db selected -if .obj_type==inst]
+        set insts_to_select {}
+        
+        set patterns [get_db $selected_insts .name]
+
+        # Already selected
+        foreach inst $selected_insts {
+            puts "\033\[34;44m \033\[0m $inst ..."
+        }
+
+        # Search patterns
+        set depth 0
+        set processed_patterns {}
+        while {$patterns != {}} {
+            set next_patterns {}
+            
+            # High priority patterns
+            foreach pattern $patterns {
+# puts "# $depth: $pattern"
+
+                set parts [lreverse [split $pattern {/}]]
+                if {[llength $parts] > $depth} {
+                    # set part [regsub -all {[\[\]\.\_]+} [lindex $parts $depth] {?}]
+                    set part [lindex $parts $depth]
+                    set part_pattern [regsub -all {[\*0-9]+} $part {*}]
+# puts "  # P: $part_pattern"
+                    if {$part_pattern != $part} {
+                        set next_pattern [join [lreverse [lreplace $parts $depth $depth $part_pattern]] {/}]
+# puts "  # N: $next_pattern"
+                        if {[lsearch -exact $processed_patterns $next_pattern] < 0} {
+                            lappend processed_patterns $next_pattern
+                            lappend next_patterns $next_pattern
+                            if {[set hinst_name [file dirname $next_pattern]] == "."} {
+                                set insts [get_db current_design .local_insts $next_pattern]
+                            } else {
+                                set insts [get_db -u [get_db hinsts -match_hier $hinst_name] .local_insts $next_pattern]
+                            }
+# puts "  # L: [llength $insts]"
+
+                            # Prioritized selection
+                            while {$part != [set part_pattern [regsub -all {\*\*+} [regsub {[0-9]+([^0-9]*$)} $part {*\1}] {*}]]} {
+# puts "    # F: [join [lreverse [lreplace $parts $depth $depth $part_pattern]] {/}]"
+                                foreach inst [get_db $insts [join [lreverse [lreplace $parts $depth $depth $part_pattern]] {/}]] {
+# puts "    # I: $inst"
+                                    if {[lsearch -exact $selected_insts $inst] < 0} {
+                                        lappend insts_to_select $inst
+# puts "    # [llength $insts_to_select]: $inst"
+                                    }
+                                }
+                                if {$insts_to_select != {}} {break}
+                                set part $part_pattern
+                            }
+                        }
+                    }
+                }
+            }
+
+            # Next depth processing
+            if {$insts_to_select != {}} {break}
+            set patterns $next_patterns
+            incr depth
+        }
+
+        # Nothing to select
+        if {$insts_to_select == {}} {
+            puts "  No more instances to select"
+            
+        # Selection
+        } else {
+
+            # To be selected
+            select_obj $insts_to_select
+            foreach inst $insts_to_select {
+                puts "\033\[32;42m \033\[0m $inst ..."
+            }
+            
+            # Summary
+            puts "  [llength $selected_insts] -> [expr [llength $selected_insts]+[llength $insts_to_select]] instances selected"
+        }
+    }
+
+    # Select next instances of same base cell as already selected
+    proc gf_select_similar_instances_by_cell {{include_subhierarchy 1}} {
+        set selected_insts [get_db selected -if .obj_type==inst]
+        set selected_cells [get_db $selected_insts .base_cell -u]
+        set selected_parents [get_db $selected_insts .parent -u]
+        set selected_hinsts [get_db $selected_parents -if .obj_type==hinst -u]
+        set next_instances {}
+        foreach inst $selected_insts {
+            puts "\033\[34;44m \033\[0m $inst ..."
+        }
+
+        # Check candidated until first match
+        while {($next_instances == {}) && ($selected_parents != "")} {
+            foreach base_cell $selected_cells {
+
+                # Same hinst
+                if {$include_subhierarchy} {
+                    foreach inst [get_db $selected_parents .insts -if .base_cell==$base_cell] {
+                        if {[lsearch -exact $selected_insts $inst] < 0} {
+                            puts "\033\[33;43m \033\[0m $inst ..."
+                            lappend next_instances $inst
+                        }
+                    }
+
+                # Same hinst and below
+                } else {
+                    foreach inst [get_db $selected_parents .local_insts -if .base_cell==$base_cell] {
+                        if {[lsearch -exact $selected_insts $inst] < 0} {
+                            puts "\033\[32;42m \033\[0m $inst ..."
+                            lappend next_instances $inst
+                        }
+                    }
+                }
+            }
+            set selected_parents [get_db $selected_hinsts .parent -u]
+            set selected_hinsts [get_db $selected_parents -if .obj_type==hinst -u]
+        }
+        
+        # Selection
+        if {$next_instances == {}} {
+            puts "  No more to select"
+        } else {
+            select_obj $next_instances
+            puts "  [llength $selected_insts] -> [expr [llength $selected_insts]+[llength $next_instances]] instances selected"
+        }
+    }
+    
+
+    
+    # Select all instances of same base cell as already selected
+    proc gf_select_more_instances {} {
+        foreach base_cell [get_db [get_db selected -if .obj_type==inst] .base_cell.name -u] {
+            set condition ".base_cell.name==$base_cell"
+            puts "\033\[34;44m \033\[0m Selecting all \033\[97m$condition\033\[0m instances ..."
+            set instances [get_db insts -if "$condition"]
+            puts "  [llength $instances] instances"
+            select_obj $instances
+        }
+    }
+    
+    # Select all blockages of same name as already selected
+    proc gf_select_more_place_blockages {} {
+        set conditions {}
+        foreach selected [get_db selected -if .obj_type==place_blockage] {
+            set condition ".type==[get_db $selected .type]&&.name==[get_db $selected .name]"
+            if {[lsearch -exact $conditions $condition] < 0} {
+                lappend conditions $condition
+            }
+        }
+        foreach condition $conditions {
+            puts "\033\[34;44m \033\[0m Selecting all \033\[97m$condition\033\[0m place blockages ..."
+            set blockages [get_db place_blockages -if "$condition"]
+            puts "  [llength $blockages] place blockages"
+            select_obj $blockages
+        }
+    }
+    
+    # Select more objects
+    proc gf_select_more {} {
+        gf_select_more_instances
+        gf_select_more_place_blockages
+    }
+    
     # Get ports connected directly to core instances
     proc gf_get_io_core_nets {pad_site_class} {
         set pins [get_db [concat [get_db ports .net.drivers] [get_db ports .net.loads]] -if .obj_type==pin]
@@ -419,7 +661,7 @@ gf_create_step -name procs_innovus_objects '
 '
 
 # ECO automation procedures
-gf_create_step -name procs_innovus_common_eco '
+gf_create_step -name innovus_procs_eco_common '
 
     # Select power vias with DRC based on the marker
     proc gf_select_follow_pin_vias_near_drc_markers {} {
@@ -758,45 +1000,8 @@ gf_create_step -name procs_innovus_common_eco '
 ################################################################################
 
 # Write-out timing models procedure
-gf_create_step -name procs_innovus_write_data '
+gf_create_step -name innovus_procs_write_data '
   
-    # Write liberty models
-    proc gf_write_timing_models {{min_transition 0.002} {min_load 0.010}} {
-        set setup_views [get_db [get_db analysis_views -if .is_setup] .name]
-        set hold_views [get_db [get_db analysis_views -if .is_hold] .name]
-        set merged_views {}
-        foreach view [concat $setup_views $hold_views] {
-            if {[lsearch -exact $merged_views $view] == -1} {
-                lappend merged_views $view
-            }
-        }
-        set_analysis_view -setup $merged_views -hold $merged_views
-        foreach view $merged_views {
-            write_timing_model \
-                -view $view \
-                -include_power_ground \
-                -input_transitions [list \
-                    $min_transition \
-                    [expr 3*$min_transition] \
-                    [expr 8*$min_transition] \
-                    [expr 21*$min_transition] \
-                    [expr 55*$min_transition] \
-                    [expr 144*$min_transition] \
-                    [expr 377*$min_transition] \
-                ] \
-                -output_loads [list \
-                    0.000 \
-                    $min_load \
-                    [expr 3*$min_load] \
-                    [expr 8*$min_load] \
-                    [expr 21*$min_load] \
-                    [expr 55*$min_load] \
-                    [expr 144*$min_load]\
-                ] \
-                ./out/$::TASK_NAME.$view.lib
-        }
-    }
-
     # Write out hcell file
     proc gf_write_hcell {file} {
         set FH [open $file w]
@@ -832,9 +1037,7 @@ gf_create_step -name procs_innovus_write_data '
         }
         close $FH
     }
-
 '
-
 
 ################################################################################
 # Gift steps
@@ -854,43 +1057,43 @@ gf_create_step -name innovus_check_missing_cells '
 '
 
 # Common level procs
-gf_create_step -name procs_innovus_db '
+gf_create_step -name innovus_procs_db '
 
     # Write incremental database with unique name each 10 minutes
     set gf_db_date 0
     set gf_db_index 1
-    proc gf_write_db {{suffix {}}} {
+    proc gf_write_db {{tag {}}} {
         upvar gf_db_date gf_db_date
         upvar gf_db_index gf_db_index
         set base "./out/[regsub {^Debug} $::TASK_NAME {}]"
-        if {$suffix == {}} {
+        if {$tag == {}} {
             if {($gf_db_date == 0) || ([expr [exec date +%s] - $gf_db_date] > 600)} {
                 set gf_db_date [exec date +%s]
                 while {[file exists $base.$gf_db_index.innovus.db]} {incr gf_db_index}
             }
-            set suffix $gf_db_index
+            set tag $gf_db_index
         }
-        puts "\033\[42m \033\[0m Writing database $base.$suffix.innovus.db ..."
-        write_db $base.$suffix.innovus.db
+        puts "\033\[42m \033\[0m Writing database $base.$tag.innovus.db ..."
+        write_db $base.$tag.innovus.db
     }
     
     # Write floorplan with unique name each 10 minutes
     set gf_fp_date 0
     set gf_fp_index 1
-    proc gf_write_floorplan {{suffix {}}} {
+    proc gf_write_floorplan {{tag {}}} {
         upvar gf_fp_date gf_fp_date
         upvar gf_fp_index gf_fp_index
         set base "./out/$::TASK_NAME"
-        if {$suffix == {}} {
+        if {$tag == {}} {
             if {($gf_fp_date == 0) || ([expr [exec date +%s] - $gf_fp_date] > 600)} {
                 set gf_fp_date [exec date +%s]
                 while {[file exists $base.$gf_fp_index.fp]} {incr gf_fp_index}
             }
-            set suffix $gf_fp_index
+            set tag $gf_fp_index
         }
-        puts "\033\[42m \033\[0m Writing floorplan $base.$suffix.fp ..."
-        write_floorplan $base.$suffix.fp
-        write_def -floorplan -io_row -routing $base.$suffix.fp.def.gz
+        puts "\033\[42m \033\[0m Writing floorplan $base.$tag.fp ..."
+        write_floorplan $base.$tag.fp
+        write_def -floorplan -io_row -routing $base.$tag.fp.def.gz
     }
 
     # Print last comnands
@@ -973,7 +1176,7 @@ gf_create_step -name procs_innovus_db '
     proc gf_globals_show {} {gf_globals::show}
 '
 
-gf_create_step -name procs_innovus_fanin_fanout_magnify '
+gf_create_step -name innovus_procs_fanin_fanout_magnify '
     # Procedures to browse fanin and fanout
     namespace eval gf {
     
@@ -1309,7 +1512,7 @@ gf_create_step -name procs_innovus_fanin_fanout_magnify '
     }
 '
 
-gf_create_step -name procs_innovus_add_buffers '
+gf_create_step -name innovus_procs_add_buffers '
     # Procedures to add bufferization into the design
     namespace eval gf {
 
@@ -1847,7 +2050,7 @@ gf_create_step -name procs_innovus_add_buffers '
 '
 
 # Procedures to fix DRC violations
-gf_create_step -name procs_innovus_align '
+gf_create_step -name innovus_procs_align '
 
     # GUI instance alignment
     namespace eval gf {
@@ -2301,7 +2504,7 @@ gf_create_step -name procs_innovus_align '
 '
 
 # Placement save and restore procs
-gf_create_step -name procs_innovus_copy_place '
+gf_create_step -name innovus_procs_copy_place '
     proc gf_write_inst_placement_script {file hierarchy {insts {}}} {
         set hierarchy [regsub "^[get_db current_design .name]/" [regsub {/$} $hierarchy ""] ""]
         set results ""

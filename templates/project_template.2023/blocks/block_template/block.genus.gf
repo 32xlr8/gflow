@@ -28,10 +28,21 @@ gf_info "Loading block-specific Genus steps ..."
 ################################################################################
 
 # Override tasks resources
-gf_set_task_options -cpu 8 -mem 15
+# gf_set_task_options -cpu 8 -mem 15
+gf_set_task_options 'Debug*' -cpu 4 -mem 10
+gf_set_task_options 'Report*' -cpu 4 -mem 10 -parallel 1
 # gf_set_task_options SynGen -cpu 8 -mem 15
 # gf_set_task_options SynMap -cpu 8 -mem 15
 # gf_set_task_options SynOpt -cpu 8 -mem 15
+
+# # Disable not needed tasks
+# gf_set_task_options -disable ReportSynGen
+# gf_set_task_options -disable ReportSynMap
+# gf_set_task_options -disable ReportSynOpt
+
+################################################################################
+# Flow variables
+################################################################################
 
 # # Specific floorplan used for physical synthesis
 # FLOORPLAN_FILE=""
@@ -43,7 +54,7 @@ gf_set_task_options -cpu 8 -mem 15
 ELAB_DESIGN_NAME="$DESIGN_NAME"
 
 ################################################################################
-# Flow steps
+# Synthesis flow steps - ./genus.synth.gf, ./genus.ispatial.gf
 ################################################################################
 
 # Commands before reading libraries
@@ -164,40 +175,48 @@ gf_create_step -name genus_post_init_design '
     set_db $gf_clock_gating_cell .dont_use false
     set_db current_design .lp_clock_gating_cell [get_db $gf_clock_gating_cell .name]
 
-    # Map clock logic to specific cells
-    <PLACEHOLDER> set_db map_clock_tree true
-    set_db cts_buffer_cells [get_db base_cells [join {
-        DCCKB*
-    }]]
-    set_db cts_inverter_cells [get_db base_cells [join {
-        DCCKN*
-    }]]
-    set_db cts_clock_gating_cells [get_db base_cells [join {
-        CKLHQ*
-        CKLNQ*
-    }]]
-    set_db cts_logic_cells [get_db base_cells [join {
-        CKMUX*
-        CKND2*
-        CKNR2*
-        CKAN2*
-        CKOR2*
-        CKXOR2*
-    }]]
+    # # Map clock logic to specific cells
+    # <PLACEHOLDER> set_db map_clock_tree true
+    # set_db cts_buffer_cells [get_db base_cells [join {
+    #     DCCKB*
+    # }]]
+    # set_db cts_inverter_cells [get_db base_cells [join {
+    #     DCCKN*
+    # }]]
+    # set_db cts_clock_gating_cells [get_db base_cells [join {
+    #     CKLHQ*
+    #     CKLNQ*
+    # }]]
+    # set_db cts_logic_cells [get_db base_cells [join {
+    #     CKMUX*
+    #     CKND2*
+    #     CKNR2*
+    #     CKAN2*
+    #     CKOR2*
+    #     CKXOR2*
+    # }]]
 
     # Dont use cells
     set_dont_use <PLACEHOLDER:*> true
     set_dont_use <PLACEHOLDER:*> false
-    # set_dont_use <PLACEHOLDER:CK*BWP*> true
-    # set_dont_use <PLACEHOLDER:DCCK*BWP*> true
-    # set_dont_use <PLACEHOLDER:DEL*BWP*> true
-    # set_dont_use <PLACEHOLDER:G*BWP*> true
+
+    # # Clock and special cells
+    # set_dont_use CK*BWP* true
+    # set_dont_use DCCK*BWP* true
+    # set_dont_use DEL*BWP* true
+    # set_dont_use G*BWP* true
     # set_dont_use <PLACEHOLDER:*OPT*BWP*> true
-    # set_dont_use <PLACEHOLDER:*D16?BWP*> true
-    # set_dont_use <PLACEHOLDER:*D18?BWP*> true
-    # set_dont_use <PLACEHOLDER:*D2?BWP*> true
-    # # set_dont_use <PLACEHOLDER:*D3?BWP*> true
     # set_dont_use <PLACEHOLDER:*BWP*ULVT*> true
+
+    # # Weak/strong drivers
+    # set_dont_use *D0BWP* true
+    # set_dont_use *D0P*BWP* true
+    # set_dont_use *D16BWP* true
+    # set_dont_use *D17BWP* true
+    # set_dont_use *D18BWP* true
+    # set_dont_use *D19BWP* true
+    # set_dont_use *D2?BWP* true
+    # # set_dont_use *D3?BWP* true
 
     # # Force to map to scan flops
     # set_db current_design .dft_scan_map_mode force_all
@@ -207,6 +226,7 @@ gf_create_step -name genus_post_init_design '
 
     # Stylus database access procs
     `@procs_stylus_db`
+    
     # # Dont touch instances
     # set_db [gf_get_insts <PLACEHOLDER:pattern>] .dont_touch map_size_ok
     # set_db [gf_get_insts <PLACEHOLDER:pattern>] .dont_touch true
@@ -239,9 +259,6 @@ gf_create_step -name genus_pre_syn_gen '
 
     # Flow effort
     # set_db syn_generic_effort high
-    
-    # Report timing summary
-    check_timing_intent
 '
 
 # Commands after mapping
@@ -249,11 +266,6 @@ gf_create_step -name genus_post_syn_gen '
 
     # # Write out LEC do file
     # write_lec_data -file_name ./out/$TASK_NAME.lec.data
-    
-    # # Dump reports
-    # report_timing -max_paths 500 > ./reports/$TASK_NAME.tarpt
-    # report_timing -lint -verbose > ./reports/$TASK_NAME.lint
-    # # report_summary -directory ./reports/$TASK_NAME
 '
 
 # Commands before mapping
@@ -269,18 +281,6 @@ gf_create_step -name genus_post_syn_map '
     # Write out LEC scripts
     write_do_lec -golden_design rtl -revised_design fv_map > ./out/$TASK_NAME.lec.do
     # write_lec_data -file_name ./out/$TASK_NAME.lec.data
-    
-    # # Dump reports
-    # report_timing -max_paths 500 > ./reports/$TASK_NAME.tarpt
-    # report_timing -lint -verbose > ./reports/$TASK_NAME.lint
-    # # report_summary -directory ./reports/$TASK_NAME
-
-    # # Write out SDF and SDC
-    # foreach view [get_db analysis_views -if .is_setup] {
-    #     # write_sdf -view $view -edges check_edge -interconn interconnect -nonegchecks > ./out/$TASK_NAME.[get_db $view .name].sdf
-    #     write_sdc -view $view > ./out/$TASK_NAME.[get_db $view .name].sdc
-    # }
-    
 '
 
 # Commands before optimization
@@ -296,18 +296,42 @@ gf_create_step -name genus_post_syn_opt '
     # Write out LEC scripts
     write_do_lec -golden_design rtl -revised_design ./out/$TASK_NAME.v > ./out/$TASK_NAME.lec.do
     # write_lec_data -file_name ./out/$TASK_NAME.lec.data
+'
 
-    # # Dump reports
-    # report_timing -max_paths 500 > ./reports/$TASK_NAME.tarpt
-    # report_timing -lint -verbose > ./reports/$TASK_NAME.lint
-    # # report_summary -directory ./reports/$TASK_NAME
-    # report_clock_gating > ./reports/$TASK_NAME.clock_gating.tarpt
-    # report_power -depth 0 > ./reports/$TASK_NAME.power.tarpt
-    # report_gates -power > ./reports/$TASK_NAME.power_gates.tarpt
-    
-    # # Write out SDF and SDC
-    # foreach view [get_db [get_db analysis_views -if .is_setup] .name] {
-    #     # write_sdf -view $view -edges check_edge -interconn interconnect -nonegchecks > ./out/$TASK_NAME.$view.sdf
-    #     write_sdc -view $view > ./out/$TASK_NAME.$view.sdc
-    # }
+################################################################################
+# Report flow steps - ./genus.reports.gf
+################################################################################
+
+# Post-init Genus reports
+gf_create_step -name genus_design_reports_initial '
+    check_timing_intent
+    report_logic_levels_histogram -bars 10 -skip_buffer -skip_inverter -threshold 10 -detail > ./reports/$TASK_NAME.logic_levels.rpt
+    check_design $DESIGN_NAME > ./reports/$TASK_NAME.check_design.rpt
+    check_floorplan -out_file ./reports/$TASK_NAME.check_floorplan.rpt
+'
+
+# Post-generic Genus reports
+gf_create_step -name genus_design_reports_generic '
+    report_dp > ./reports/$TASK_NAME.dp.rpt
+    report_logic_levels_histogram -bars 10 -skip_buffer -skip_inverter -threshold 10 -detail > ./reports/$TASK_NAME.logic_levels.rpt
+    report_timing -max_paths 500 > ./reports/$TASK_NAME.tarpt
+    report_timing -lint -verbose > ./reports/$TASK_NAME.lint
+    # report_summary -directory ./reports/$TASK_NAME
+'
+
+# Post-optimization Genus reports
+gf_create_step -name genus_design_reports_mapped '
+    report_clock_gating > ./reports/$TASK_NAME.clock_gating.tarpt
+    report_power -depth 0 > ./reports/$TASK_NAME.power.tarpt
+    report_gates -power > ./reports/$TASK_NAME.power_gates.tarpt
+    report_logic_levels_histogram -bars 10 -skip_buffer -skip_inverter -threshold 10 -detail > ./reports/$TASK_NAME.logic_levels.rpt
+    report_timing -max_paths 500 > ./reports/$TASK_NAME.tarpt
+    report_timing -lint -verbose > ./reports/$TASK_NAME.lint
+    # report_summary -directory ./reports/$TASK_NAME
+
+    # Write out SDF and SDC
+    foreach view [get_db [get_db analysis_views -if .is_setup] .name] {
+        # write_sdf -view $view -edges check_edge -interconn interconnect -nonegchecks > ./out/$TASK_NAME.$view.sdf
+        write_sdc -view $view > ./out/$TASK_NAME.$view.sdc
+    }
 '

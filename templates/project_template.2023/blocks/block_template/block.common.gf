@@ -24,16 +24,20 @@
 gf_info "Loading block-specific setup ..."
 
 ################################################################################
-# Flow variables
+# Flow options
 ################################################################################
 
 # Default tasks resources
 gf_set_task_options -cpu 8 -mem 20
-gf_set_task_options 'Debug*' -cpu 4 -mem 10 -parallel 1
 gf_set_task_options '*MMMC' -cpu 1 -mem 1 -local
 
+# # Disable not needed tasks
+# gf_set_task_options -disable FrontendMMMC
+# gf_set_task_options -disable BackendMMMC
+# gf_set_task_options -disable SignoffMMMC
+
 ################################################################################
-# Design variables
+# Flow variables
 ################################################################################
 
 # Top cell name in netlist
@@ -43,9 +47,9 @@ DESIGN_NAME='<PLACEHOLDER:block_name>'
 POWER_NETS_CORE='VDD'
 GROUND_NETS_CORE='VSS'
 
-# # Global IO nets
-# POWER_NETS_IO='<PLACEHOLDER:VDDA VDDPST>'
-# GROUND_NETS_IO='<PLACEHOLDER:VSSA VSSPST>'
+# # Other global nets
+# POWER_NETS_OTHER='<PLACEHOLDER:VDDA VDDPST>'
+# GROUND_NETS_OTHER='<PLACEHOLDER:VSSA VSSPST>'
 
 ################################################################################
 # MMMC configuration by design stage
@@ -69,9 +73,9 @@ gf_create_step -name gconfig_settings_common '
     # gconfig::add_section {
     #     -views {test * * * * *} {$mode test}
     #     -views {* tt * * * *} {$pvt_p {typ}}
-    #     -views {* * 1p210v * * *} {$pvt_v {HV}}
+    #     -views {* * 1p100v * * *} {$pvt_v {HV}}
     #     -views {* * * m40 * *} {$pvt_t {neg40}}
-    #     -views {* ss * * * *} {$pvt_e {max}}
+    #     -views {* ss * * * *} {$pvt_rc {max}}
     #     -views {* tt *  25 * *} {$pvt {typical}}
     #     -views {* * * *   cb *} {$qrc {cbest}}
     #     -views {* * * * * s} {$check {late}}

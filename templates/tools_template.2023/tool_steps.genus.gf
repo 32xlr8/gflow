@@ -39,31 +39,3 @@ gf_create_step -name genus_check_missing_cells '
         sleep 10
     }
 '
-
-# Post-init Genus reports
-gf_create_step -name genus_reports_post_init '
-    check_timing_intent
-    report_logic_levels_histogram -bars 10 -skip_buffer -skip_inverter -threshold 10 -detail > ./reports/$TASK_NAME.logic_levels.rpt
-    check_design $DESIGN_NAME > ./reports/$TASK_NAME.check_design.rpt
-    check_floorplan -out_file ./reports/$TASK_NAME.check_floorplan.rpt
-'
-
-# Post-generic Genus reports
-gf_create_step -name genus_reports_post_generic '
-    report_dp > ./reports/$TASK_NAME.dp.rpt
-    report_logic_levels_histogram -bars 10 -skip_buffer -skip_inverter -threshold 10 -detail > ./reports/$TASK_NAME.logic_levels.rpt
-    report_timing -max_paths 500 > ./reports/$TASK_NAME.tarpt
-    report_timing -lint -verbose > ./reports/$TASK_NAME.lint
-    # report_summary -directory ./reports/$TASK_NAME
-'
-
-# Post-optimization Genus reports
-gf_create_step -name genus_reports_post_optimization '
-    report_clock_gating > ./reports/$TASK_NAME.clock_gating.tarpt
-    report_power -depth 0 > ./reports/$TASK_NAME.power.tarpt
-    report_gates -power > ./reports/$TASK_NAME.power_gates.tarpt
-    report_logic_levels_histogram -bars 10 -skip_buffer -skip_inverter -threshold 10 -detail > ./reports/$TASK_NAME.logic_levels.rpt
-    report_timing -max_paths 500 > ./reports/$TASK_NAME.tarpt
-    report_timing -lint -verbose > ./reports/$TASK_NAME.lint
-    # report_summary -directory ./reports/$TASK_NAME
-'

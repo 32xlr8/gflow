@@ -19,8 +19,8 @@
 # limitations under the License.
 #
 ################################################################################
-# Filename: templates/project_template.2023/blocks/block_template/innovus.debug.gf
-# Purpose:  Interactive implementation debug flow
+# Filename: templates/project_template.2023/blocks/block_template/innovus.output.gf
+# Purpose:  Write out physical data
 ################################################################################
 
 ########################################
@@ -34,66 +34,56 @@ gf_source "./block.common.gf"
 gf_source "./block.files.gf"
 gf_source "./block.innovus.gf"
 
-# Basic flow script options
-gf_set_flow_options -continue -incr -auto_close -hide
-
 ########################################
-# Automatical database selection
+# Innovus data out
 ########################################
 
-# Choose available Innovus database
-gf_choose_file_dir_task -variable DATABASE -keep -prompt "Please select database to load:" -dirs '
-    ../work_*/*/out/*.innovus.db
-    ../work_*/*/out/*.ispatial.db
-'
-gf_spacer
-
-########################################
-# Innovus interactive task
-########################################
-
-gf_create_task -name DebugInnovus
+# Write out reference data
+gf_create_task -name Physical
 gf_use_innovus
 
-# Ask user if need to load timing information
+# Select Innovus database to analyze from latest available if $DATABASE is empty
 gf_spacer
-gf_choose -variable TIMING_MODE -keys YN -time 30 -default Y -prompt "Do you want to read timing information (Y/N)?"
-gf_spacer
+gf_choose_file_dir_task -variable DATABASE -keep -prompt "Please select database or active task:" -dirs '
+    ../work_*/*/out/Route*.innovus.db
+    ../work_*/*/out/Assemble*.innovus.db
+    ../work_*/*/out/ECO*.innovus.db
+' -active -task_to_file '$RUN/out/$TASK.innovus.db' -tasks '
+    ../work_*/*/tasks/Route*
+    ../work_*/*/tasks/ECO*
+    ../work_*/*/tasks/Assemble*
+' 
 
-# Load database
+gf_info "Innovus database \e[32m$DATABASE\e[0m selected"
+
+# TCL commands
 gf_add_tool_commands '
 
     # Current design variables
     set DATABASE {`$DATABASE`}
-    set TIMING_MODE {`$TIMING_MODE`}
 
-    # Pre-load settings
-    `@innovus_pre_read_libs`
-
-    # Read latest available database
-    if {$TIMING_MODE == "Y"} {
-        read_db $DATABASE
-    } else {
-        read_db -no_timing $DATABASE
-    }
-
+    # Read input Innovus database
+    read_db -no_timing $DATABASE
+    
     # Top level design name
     set DESIGN_NAME [get_db current_design .name]
-    
-    # Common tool procedures
-    `@innovus_procs_common`
-    `@innovus_procs_interactive_design`
-    `@innovus_procs_eco_design`
 
-    # Load trace timing utility
-    if {$TIMING_MODE == "Y"} {
-        source ../../../../../../gflow/bin/trace_timing.tcl
-        catch {gui_bind_key Shift+F8 -cmd "trace_timing -highlight -selected"}
-    }
+    # Remember database
+    exec rm -Rf ./out/$TASK_NAME/
+    exec mkdir ./out/$TASK_NAME/
+    exec ln -nsf $DATABASE ./out/$TASK_NAME/$DESIGN_NAME.innovus.db
 
-    set_layer_preference phyCell -color #555555
-    gui_show
+    # Write out design files
+    `@innovus_procs_write_data`
+    `@innovus_data_out_physical_design`
+
+    # Exit interactive session
+    exit
 '
+
+# Task summary
+gf_add_status_marks ^Writing
+gf_add_status_marks 'ERROR:' 'WARNING:' 'no such file' 'cannot access' ' not found '
 
 # Run task
 gf_submit_task

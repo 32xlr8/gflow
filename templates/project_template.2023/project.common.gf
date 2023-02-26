@@ -50,6 +50,9 @@ gf_set_flow_options -today
 # # Verbose logs of failed tasks
 # gf_set_flow_options -verbose
 
+# # Control access for new files
+# umask u=rwx,g=rwx,o-rwx
+    
 ########################################
 # Linux environment initialization
 ########################################
@@ -64,7 +67,6 @@ gf_create_step -name init_shell_environment '
     export PATH="$(echo ":$PATH" | sed -e "s|:<PLACEHOLDER:/PATH_TO/SOFT/ROOT/>[^:]\+||g; s/^://;")"
 
     # Bypass OpenAccess issues
-    # export OA_UNSUPPORTED_PLAT=linux_rhel60
     unset OA_HOME
 
     # License options
@@ -83,9 +85,6 @@ gf_create_step -name init_shell_environment '
 
     # Remove command line stack limit
     ulimit -s unlimited
-    
-    # # Allow write access for users in the same group
-    # umask 0007
     
     # Dump environment variables
     env > ./reports/`$TASK_NAME`.env
@@ -112,5 +111,5 @@ gf_create_step -name init_gconfig '
     source "../../../../../../gflow/bin/gconfig.tcl"
 
     # Load MMMC procedures
-    `gf_paste_step init_mmmc_gconfig`
+    `@init_gconfig_mmmc`
 '

@@ -54,6 +54,8 @@ gf_create_step -name generate_mmmc_files '
 
 # Generate MMMC and OCV configuration
 gf_create_step -name generate_quantus_files '
+
+    # TODO: review and insert into the flow
     try {
         foreach {TAG ANALYSIS_VIEWS} $MMMC_SETS {
         

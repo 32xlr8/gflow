@@ -45,9 +45,11 @@ gf_create_task -name Place
 gf_use_innovus
 
 # Choose netlist if not chosen
-gf_choose_file_dir_task -variable NETLIST_FILE -keep -prompt 'Please select netlist to implement:' -files '
-    ../data/netlists/*.v.gz
-    ../data/netlists/*.v
+gf_choose_file_dir_task -variable NETLIST_FILES -keep -prompt 'Please select netlist to implement:' -files '
+    ../data/*.v
+    ../data/*.v.gz
+    ../data/*/*.v
+    ../data/*/*.v.gz
     ../work_*/*/out/SynMap*.v
     ../work_*/*/out/SynOpt*.v
 ' -want -active -task_to_file '$RUN/out/$TASK.v' -tasks '
@@ -57,15 +59,17 @@ gf_choose_file_dir_task -variable NETLIST_FILE -keep -prompt 'Please select netl
 
 # Choose floorplan if not chosen
 gf_choose_file_dir_task -variable FLOORPLAN_FILE -keep -prompt "Please select floorplan:" -files '
+    ../data/*.fp
     ../data/*/*.fp
     ../work_*/*/out/*.fp
 '
 
 # Check netlist and floorplan are ready
-gf_check_files "$FLOORPLAN_FILE"* "$NETLIST_FILE"
+gf_check_files "$FLOORPLAN_FILE"* "$NETLIST_FILES"
 
 # Choose MMMC file
 gf_choose_file_dir_task -variable MMMC_FILE -keep -prompt "Please select MMMC file:" -files '
+    ../data/*.mmmc.tcl
     ../data/*/*.mmmc.tcl
     ../work_*/*/out/BackendMMMC*.mmmc.tcl
 '
@@ -73,7 +77,7 @@ gf_choose_file_dir_task -variable MMMC_FILE -keep -prompt "Please select MMMC fi
 # Save input files
 gf_add_shell_commands -init '
     mkdir -p ./in/$TASK_NAME/
-    for file in `$NETLIST_FILE` `$FLOORPLAN_FILE` `$SCANDEF_FILE -optional` `$CPF -optional` `$UPF -optional`; do
+    for file in `$NETLIST_FILES` `$FLOORPLAN_FILE` `$SCANDEF_FILE -optional` `$CPF -optional` `$UPF -optional`; do
         cp $file* ./in/$TASK_NAME/
     done
 '
@@ -83,23 +87,23 @@ gf_add_tool_commands '
 
     # Current design variables
     set LEF_FILES {`$CADENCE_TLEF_FILES` `$LEF_FILES`}
-    set NETLIST_FILE {`$NETLIST_FILE`}
+    set NETLIST_FILES {`$NETLIST_FILES`}
     set SCANDEF_FILE {`$SCANDEF_FILE -optional`}
     set LDB_MODE {`$LDB_MODE -optional`}
     set CPF {`$CPF -optional`}
     set UPF {`$UPF -optional`}
     set FLOORPLAN_FILE {`$FLOORPLAN_FILE`}
     set DESIGN_NAME {`$DESIGN_NAME`}
-    set POWER_NETS {`$POWER_NETS_CORE` `$POWER_NETS_IO -optional`}
-    set GROUND_NETS {`$GROUND_NETS_CORE` `$GROUND_NETS_IO -optional`}
+    set POWER_NETS {`$POWER_NETS_CORE` `$POWER_NETS_OTHER -optional`}
+    set GROUND_NETS {`$GROUND_NETS_CORE` `$GROUND_NETS_OTHER -optional`}
     set MMMC_FILE {`$MMMC_FILE`}
     set OCV_FILE "[regsub {\.mmmc\.tcl$} $MMMC_FILE {}].ocv.tcl"
 
+    # Common tool procedures
+    `@innovus_procs_common`
+
     # Pre-load settings
     `@innovus_pre_read_libs`
-
-    # Initialize procs and gconfig
-    source ./scripts/$TASK_NAME.procs.tcl
 
     # Load MMMC configuration
     read_mmmc $MMMC_FILE
@@ -112,7 +116,7 @@ gf_add_tool_commands '
     read_physical -lefs [join $LEF_FILES]
 
     # Read netlist for current design
-    read_netlist $NETLIST_FILE -top $DESIGN_NAME
+    read_netlist [join $NETLIST_FILES] -top $DESIGN_NAME
 
     # Initialize library and design information
     init_design
@@ -208,21 +212,6 @@ gf_add_tool_commands '
 gf_add_status_marks -from 'Final .*Summary' -to 'Density:' WNS TNS max_tran -3 +3
 gf_add_status_marks -from '\|.*max hotspot.*\|' -expr '[\|\+]' -to '^[^\|\+]*$' -1
 gf_add_status_marks 'Could not legalize .* instances in the design'
-
-# Separate procs script
-gf_add_tool_commands -comment '#' -file ./scripts/$TASK_NAME.procs.tcl '
-
-    # Common tool procedures
-    `@procs_innovus_common`
-
-    # Initialize Generic Config environment
-    `@init_gconfig`
-
-    `@gconfig_technology_settings`
-    `@gconfig_settings_common`
-
-    `@gconfig_cadence_mmmc_files`
-'
 
 # Failed if some files not found
 gf_add_failed_marks 'ERROR:.\+No files'

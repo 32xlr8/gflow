@@ -31,5 +31,10 @@ gf_info "Loading project-specific Genus steps ..."
 
 # Tool initialization in Linux environment
 gf_create_step -name init_genus_environment '
+
+    # # Manually override OpenAccess lib platform
+    # export OA_UNSUPPORTED_PLAT=linux_rhel60
+
+    # Add path the directory with tool binaries
     export PATH="${PATH}:<PLACEHOLDER:/PATH_TO_GENUS/bin>"
 '

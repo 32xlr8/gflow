@@ -23,7 +23,7 @@
 
 gf_info "Loading tool-specific gconfig steps ..."
 
-gf_create_step -name init_mmmc_gconfig '
+gf_create_step -name init_gconfig_mmmc '
 
     ##########################################################
     # MMMC-specific configuration
@@ -679,6 +679,72 @@ gf_create_step -name init_mmmc_gconfig '
         } else {
             puts {}
             return $result
+        }
+    }
+'
+
+
+# Proc to apply IR-drop-aware OCV derates
+gf_create_step -name gconfig_procs_ocv '
+
+    # Proc to apply IR-drop-aware OCV derates
+    proc gf_apply_ir_cell_derates {IR cells_IR_dV_dT_table check_derates_pattern delay_corner_name args} {
+        set derated_cells [get_db base_cells $check_derates_pattern]
+        foreach row $cells_IR_dV_dT_table {
+            set cells [lindex $row 0]
+            set IR_row [lindex $row 1]
+            set dV_row [lindex $row 2]
+            set dT [lindex $row 3]
+            set PDF [lindex $row 4]
+            if {[llength $IR_row] < 1} {
+                puts "\033\[31;41m \033\[0m ERROR: \033\[1m$cells\033\[0m IR-drop table is empty in $delay_corner_name delay corner"
+            } elseif {[llength $IR_row] != [llength $dV_row]} {
+                puts "\033\[31;41m \033\[0m ERROR: \033\[1m$cells\033\[0m IR-drop and dV/dT table columns number is different in $delay_corner_name delay corner"
+            } else {
+                if {$IR > [lindex $IR_row end]} {
+                    set dV [lindex $dV_row end]
+                    puts "\033\[31;41m \033\[0m ERROR: \033\[1m$cells\033\[0m IR-drop value \033\[1m${IR}\033\[0mmV is out of the range in $delay_corner_name delay corner"
+                } else {
+                    set dV 0
+                    set IR_left 0
+                    set dV_left 0
+                    set index 0
+                    foreach value $IR_row {
+                        set IR_right $value
+                        set dV_right [lindex $dV_row $index]
+                        if {($IR >= $IR_left) && ($IR < $IR_right)} {
+                            if {$dV_right < $dV_left} {
+                                puts "\033\[31;41m \033\[0m ERROR: \033\[1m$cells\033\[0m IR-drop table is not monotonous in $delay_corner_name delay corner"
+                            }
+                            if {$IR_right < $IR_left} {
+                                puts "\033\[31;41m \033\[0m ERROR: \033\[1m$cells\033\[0m dV/dT table is not monotonous in $delay_corner_name delay corner"
+                            } 
+                            if {($dV_right != $dV_left) && ($IR_right != $IR_left)} {
+                                set dV [expr {0.0001*round(($dV_right-($dV_right-$dV_left)*(($IR-$IR_right)/($IR_left-$IR_right)))*10000)}]
+                            }
+                        }
+                        set IR_left $IR_right
+                        set dV_left $dV_right
+                        incr index
+                    }
+                }
+                if {[get_db base_cells $cells] != ""} {
+                    foreach command $args {eval "$command"}
+                    foreach base_cell [get_db [get_db base_cells $cells] .name] {
+                        if {[lsearch -exact $derated_cells $base_cell]<0} {
+                            lappend derated_cells $base_cell
+                        } else {
+                            puts "\033\[33;43m \033\[0m WARNING: \033\[1m$base_cell\033\[0m dV/dT derates applied several times in $delay_corner_name delay corner"
+                        }
+                    }
+                }
+            }
+        }
+        if {$check_derates_pattern == ""} {set check_derates_pattern {*}}
+        foreach base_cell [get_db [get_db base_cells $check_derates_pattern] .name] {
+            if {[lsearch -exact $derated_cells $base_cell]<0} {
+                puts "\033\[31;41m \033\[0m ERROR: \033\[1m$base_cell\033\[0m dV/dT derates not found for $delay_corner_name delay corner"
+            }
         }
     }
 '

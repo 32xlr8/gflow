@@ -65,9 +65,6 @@ gf_add_tool_commands '
     # Pre-load settings
     `@innovus_pre_read_libs`
 
-    # Initialize procs and gconfig
-    source ./scripts/$TASK_NAME.procs.tcl
-    
     # Read latest available database
     if {$TIMING_MODE == "Y"} {
         read_db $DATABASE
@@ -78,6 +75,11 @@ gf_add_tool_commands '
     # Top level design name
     set DESIGN_NAME [get_db current_design .name]
     
+    # Common tool procedures
+    `@innovus_procs_common`
+    `@innovus_procs_interactive_design`
+    `@innovus_procs_eco_design`
+
     # Load trace timing utility
     if {$TIMING_MODE == "Y"} {
         source ../../../../../../gflow/bin/trace_timing.tcl
@@ -85,23 +87,6 @@ gf_add_tool_commands '
 
     set_layer_preference phyCell -color #555555
     gui_show
-'
-
-# Separate procs script
-gf_add_tool_commands -comment '#' -file ./scripts/$TASK_NAME.procs.tcl '
-
-    # Common tool procedures
-    `@procs_innovus_common`
-    `@procs_innovus_interactive_design`
-    `@procs_innovus_eco_design`
-
-    # Initialize Generic Config environment
-    `@init_gconfig`
-
-    `@gconfig_technology_settings`
-    `@gconfig_settings_common`
-
-    `@gconfig_cadence_mmmc_files`
 '
 
 # Run task

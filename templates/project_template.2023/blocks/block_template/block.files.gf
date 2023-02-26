@@ -42,7 +42,7 @@ LEF_FILES='
 '
 
 # GDS files (stream out)
-BLOCK_GDS_FILES='
+GDS_FILES='
     <PLACEHOLDER:/PATH_TO_STANDARD_CELL_FILE.gds>
     <PLACEHOLDER:/PATH_TO_MACRO_FILE.gds>
     <PLACEHOLDER:/PATH_TO_FEOL_TCD_FILE.gds>
@@ -51,7 +51,7 @@ BLOCK_GDS_FILES='
 
 # # Cadence GDS map file and units in nm
 # CADENCE_GDS_LAYER_MAP_FILE='<PLACEHOLDER:/PATH_TO_INNOVUS_STREAM_OUT.map>'
-# CADENCE_GDS_UNITS=1000
+# GDS_UNITS=1000
 
 # Cadence MMMC configuration (TCL flow step)
 gf_create_step -name gconfig_cadence_mmmc_files '
@@ -108,24 +108,26 @@ gf_create_step -name gconfig_cadence_mmmc_files '
 
     # # Block-specific SDC files
     # gconfig::add_files sdc -views {scan * * * * *} {
-    #     <PLACEHOLDER:../../../../data/constraints/scan.sdc>
+    #     <PLACEHOLDER:../../../../data/scan.sdc>
     # }
     gconfig::add_files sdc -views {func * * * * *} {
-        <PLACEHOLDER:../../../../data/constraints/func.sdc>
+        <PLACEHOLDER:../../../../data/func.sdc>
     }
+
+    # # Clock uncertainty stored in separate SDC files
     # gconfig::add_files sdc -views {func tt * * * *} {
-    #     <PLACEHOLDER:../../../../data/constraints/func.typ.sdc>
+    #     <PLACEHOLDER:../../../../data/uncertainty.tt.sdc>
     # }
     # gconfig::add_files sdc -views {func ss * * * *} {
-    #     <PLACEHOLDER:../../../../data/constraints/func.slow.sdc>
+    #     <PLACEHOLDER:../../../../data/uncertainty.ss.sdc>
     # }
     # gconfig::add_files sdc -views {func ff * * * *} {
-    #     <PLACEHOLDER:../../../../data/constraints/func.fast.sdc>
+    #     <PLACEHOLDER:../../../../data/uncertainty.ff.sdc>
     # }
     
     # # View-independent constraints
     # gconfig::add_files sdc {
-    #     ../../../../data/constraints/exceptions.sdc
+    #     ../../../../data/exceptions.sdc
     # }
 '
 
@@ -162,7 +164,7 @@ LVS_SPICE_FILES='
 ################################################################################
 
 # # Scan chains definition DEF file
-# SCANDEF_FILE='../../../../data/netlists/DESIGN_NAME.*.scandef'
+# SCANDEF_FILE='../../../../data/DESIGN_NAME.*.scandef'
 
 # # LP design power intent file
 # CPF='../../../../data/DESIGN_NAME.*.cpf'
@@ -173,9 +175,9 @@ LVS_SPICE_FILES='
 # FLOORPLAN_FILE='../../../innovus.fp.0000/out/Floorplan.*.fp'
 
 # # Pre-selected netlist for implementation
-# NETLIST_FILE="../../../../data/netlists/DESIGN_NAME.*.v"
-# NETLIST_FILE="../../../frontend.0000/out/SynMap.v"
-# NETLIST_FILE="../../../frontend.0000/out/SynOpt.v"
+# NETLIST_FILES='../../../../data/DESIGN_NAME.*.v'
+# NETLIST_FILES='../../../frontend.0000/out/SynMap.v'
+# NETLIST_FILES='../../../frontend.0000/out/SynOpt.v'
 
 # Foundry legacy scripts
 # DFM_VIA_SWAP_SCRIPT=<PLACEHOLDER:/path/to/the_script.tcl>
@@ -188,10 +190,10 @@ LVS_SPICE_FILES='
 # INNOVUS_PARTITIONS='<PLACEHOLDER:block1_name block2_name ...>'
 
 # # Hierarchical flow: top level database (leave empty for interactive selection)
-# INNOVUS_TOP_DATABASE='<PLACEHOLDER:../../../../../DESIGN_NAME/work_*/innovus.impl.0000/out/PostR.innovus.db>'
+# INNOVUS_TOP_DATABASE='<PLACEHOLDER:../../../../../DESIGN_NAME/work_*/innovus.impl.0000/out/Route.innovus.db>'
 
 # # Hierarchical flow: partition databases (leave empty for interactive selection)
 # INNOVUS_PARTITION_DATABASES='
-#     <PLACEHOLDER:0../../../../../block1_name/work_*/innovus.impl.0000/out/PostR.innovus.db>
+#     <PLACEHOLDER:0../../../../../block1_name/work_*/innovus.impl.0000/out/Route.innovus.db>
 #     <PLACEHOLDER:0../../../../../block2_name/work_*/innovus.eco.0000/out/ECO.innovus.db>
 #'

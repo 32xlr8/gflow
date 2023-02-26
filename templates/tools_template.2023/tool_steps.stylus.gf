@@ -91,6 +91,19 @@ gf_create_step -name procs_stylus_db '
         return $results
     }
 
+    # Print evaluated legacy script content
+    proc gf_verbose_legacy_script {script} {
+        eval_legacy "
+            foreach gf_line \[split {$script} \\n\] {
+                if {\[regexp {^\\s*set\\s} \$gf_line\]} {
+                    catch {eval_legacy \$gf_line}
+                }
+                if {[catch {puts \[subst \$gf_line\]}]} {
+                    puts \$gf_line
+                }
+            }
+        "
+    }
 '
 
 ################################################################################

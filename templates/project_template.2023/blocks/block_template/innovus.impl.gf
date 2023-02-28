@@ -77,7 +77,7 @@ gf_choose_file_dir_task -variable MMMC_FILE -keep -prompt "Please select MMMC fi
 # Save input files
 gf_add_shell_commands -init '
     mkdir -p ./in/$TASK_NAME/
-    for file in `$NETLIST_FILES` `$FLOORPLAN_FILE` `$SCANDEF_FILE -optional` `$CPF -optional` `$UPF -optional`; do
+    for file in `$NETLIST_FILES` `$FLOORPLAN_FILE` `$SCANDEF_FILE -optional` `$CPF_FILE -optional` `$UPF_FILE -optional`; do
         cp $file* ./in/$TASK_NAME/
     done
 '
@@ -90,8 +90,8 @@ gf_add_tool_commands '
     set NETLIST_FILES {`$NETLIST_FILES`}
     set SCANDEF_FILE {`$SCANDEF_FILE -optional`}
     set LDB_MODE {`$LDB_MODE -optional`}
-    set CPF {`$CPF -optional`}
-    set UPF {`$UPF -optional`}
+    set CPF_FILE {`$CPF_FILE -optional`}
+    set UPF_FILE {`$UPF_FILE -optional`}
     set FLOORPLAN_FILE {`$FLOORPLAN_FILE`}
     set DESIGN_NAME {`$DESIGN_NAME`}
     set POWER_NETS {`$POWER_NETS_CORE` `$POWER_NETS_OTHER -optional`}
@@ -122,17 +122,17 @@ gf_add_tool_commands '
     init_design
 
     # Read CPF power intent information
-    if {[file exists $CPF]} {
-        read_power_intent -cpf $CPF
+    if {[file exists $CPF_FILE]} {
+        read_power_intent -cpf $CPF_FILE
     }
 
     # Read 1801 power intent information
-    if {[file exists $UPF]} {
-        read_power_intent -1801 $UPF
+    if {[file exists $UPF_FILE]} {
+        read_power_intent -1801 $UPF_FILE
     }
 
     # Apply power intent
-    if {[file exists $CPF] || [file exists $UPF]} {
+    if {[file exists $CPF_FILE] || [file exists $UPF_FILE]} {
         commit_power_intent
         foreach delay_corner [get_db delay_corners] {
             set timing_condition [get_db $delay_corner .late_timing_condition.name]
@@ -143,13 +143,13 @@ gf_add_tool_commands '
         }
         
     # Error if CPF is incorrect
-    } elseif {$CPF != {}} {
-        puts "\033\[41m \033\[0m CPF $CPF not found"
+    } elseif {$CPF_FILE != {}} {
+        puts "\033\[41m \033\[0m CPF $CPF_FILE not found"
         suspend
 
     # Error if UPF is incorrect
-    } elseif {$UPF != {}} {
-        puts "\033\[41m \033\[0m UPF $UPF not found"
+    } elseif {$UPF_FILE != {}} {
+        puts "\033\[41m \033\[0m UPF $UPF_FILE not found"
         suspend
     }    
     

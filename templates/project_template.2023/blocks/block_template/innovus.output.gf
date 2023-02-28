@@ -39,7 +39,7 @@ gf_source "./block.innovus.gf"
 ########################################
 
 # Write out reference data
-gf_create_task -name Physical
+gf_create_task -name DataOut
 gf_use_innovus
 
 # Select Innovus database to analyze from latest available if $DATABASE is empty
@@ -48,7 +48,7 @@ gf_choose_file_dir_task -variable DATABASE -keep -prompt "Please select database
     ../work_*/*/out/Route*.innovus.db
     ../work_*/*/out/Assemble*.innovus.db
     ../work_*/*/out/ECO*.innovus.db
-' -active -task_to_file '$RUN/out/$TASK.innovus.db' -tasks '
+' -want -active -task_to_file '$RUN/out/$TASK.innovus.db' -tasks '
     ../work_*/*/tasks/Route*
     ../work_*/*/tasks/ECO*
     ../work_*/*/tasks/Assemble*
@@ -73,6 +73,9 @@ gf_add_tool_commands '
     exec mkdir ./out/$TASK_NAME/
     exec ln -nsf $DATABASE ./out/$TASK_NAME/$DESIGN_NAME.innovus.db
 
+    # Add empty cell macros to add to GDS
+    read_physical -add_lefs ./scripts/$TASK_NAME.empty_cells.lef
+
     # Write out design files
     `@innovus_procs_write_data`
     `@innovus_data_out_physical_design`
@@ -80,6 +83,15 @@ gf_add_tool_commands '
     # Exit interactive session
     exit
 '
+
+# Create LEF for empty cells to be added to GDS
+gf_add_tool_commands -ext empty_cells.lef '`@innovus_data_out_empty_cells_lef`'
+
+# Shell commands to update MD5 sum
+gf_add_shell_commands -post "
+    md5sum ./out/$TASK_NAME.gds.gz > ./out/$TASK_NAME.gds.gz.md5sum
+"
+
 
 # Task summary
 gf_add_status_marks ^Writing

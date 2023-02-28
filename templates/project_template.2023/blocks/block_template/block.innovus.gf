@@ -56,7 +56,7 @@ gf_set_task_options Floorplan -cpu 4 -mem 15
 # LOGICAL_NETLIST_EXCLUDE_CELLS='<PLACEHOLDER:PVDD* PVSS*>'
 
 # # Optional: cells to exclude from netlist for LVS
-# PHYSICAL_NETLIST_EXCLUDE_CELLS='<PLACEHOLDER:FILL* PCORNER* PFILLER* PRCUT*>'
+# PHYSICAL_NETLIST_EXCLUDE_CELLS='<PLACEHOLDER:*_DTCD_* *_ICOVL_* TAP* FILL* BOUNDARY* PRCUT* PFILLER* PCORNER* label `$DESIGN_NAME`_dummy_fill_inst>'
 
 # # Set to "Y" to save libraries in LDB format
 # LDB_MODE=Y
@@ -152,6 +152,9 @@ gf_create_step -name innovus_post_init_design_physical_mode '
     # set_db floorplan_row_height_increment_corner_to_corner 4
     # set_db floorplan_row_height_increment_in_corner_to_corner 0
     # set_db floorplan_row_height_increment_in_corner_to_in_corner 4
+
+    # # Leave two-site gap for standard cells without on-site filler
+    # set_db place_detail_legalization_inst_gap 2
 
     # Decap and filler cells
     # set_db add_fillers_check_drc false
@@ -348,9 +351,6 @@ gf_create_step -name innovus_post_init_design '
     
     # Placement settings
     if {1} {
-
-        # # Leave two-site gap for standard cells without on-site filler
-        # set_db place_detail_legalization_inst_gap 2
 
         # # Use empty filler and allow 1 gap spacing during placement
         # set_db place_detail_use_no_diffusion_one_site_filler true
@@ -1826,4 +1826,33 @@ gf_create_step -name innovus_data_out_physical_design '
     }
     
     gf_write_current_source_locations
+'
+
+# Empty cells LEF for StreamOut
+gf_create_step -name innovus_data_out_empty_cells_lef '
+    VERSION 5.4 ;
+        NAMESCASESENSITIVE ON ;
+        BUSBITCHARS "[]" ;
+        DIVIDERCHAR "/" ;
+        MACRO '$DESIGN_NAME'_dummy_fill
+         CLASS COVER ;
+         FOREIGN '$DESIGN_NAME'_dummy_fill 0.000 0.000 ;
+         ORIGIN 0.000 0.000 ;
+         SIZE 10.000 BY 10.00 ;
+         SYMMETRY X Y ;
+        END '$DESIGN_NAME'_dummy_fill
+        MACRO <PLACEHOLDER:label>
+         CLASS COVER ;
+         FOREIGN <PLACEHOLDER:label> 0.000 0.000 ;
+         ORIGIN 0.000 0.000 ;
+         SIZE 10.000 BY 10.00 ;
+         SYMMETRY X Y ;
+        END <PLACEHOLDER:label>
+    END LIBRARY
+'
+
+# Empty cells spice for LVS
+gf_create_step -name innovus_data_out_empty_cells_spice '
+    .SUBCKT '$DESIGN_NAME'_dummy_fill
+    .ENDS
 '

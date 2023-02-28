@@ -90,8 +90,8 @@ gf_create_step -name gconfig_settings_frontend '
     # ------------------------
     # - each scenario is {<scenario_name> {{analysis_view_1} {analysis_view_2} ...}}
     <PLACEHOLDER>
-    set MMMC_SETS {
-        default {
+    set TIMING_SETS {
+        basic {
             {func ss 0p900v m40 cwt s}
         }
     }
@@ -182,12 +182,12 @@ gf_create_step -name gconfig_settings_backend '
     # ------------------------
     # - each scenario is {<scenario_name> {{analysis_view_1} {analysis_view_2} ...}}
     <PLACEHOLDER>
-    set MMMC_SETS {
+    set TIMING_SETS {
         minimal {
             {func ss 0p900v m40 cwt s}
             {func ff 1p100v m40 cb h}
         }
-        default {
+        basic {
             {func ss 0p900v m40 rcwt s}
             {func ss 0p900v 125 cwt s}
             {func ff 1p100v m40 cw h}
@@ -281,8 +281,8 @@ gf_create_step -name gconfig_settings_signoff '
     # ------------------------
     # - each scenario is {<scenario_name> {{analysis_view_1} {analysis_view_2} ...}}
     <PLACEHOLDER>
-    set MMMC_SETS {
-        full {
+    set TIMING_SETS {
+        recommended {
             {func tt 1p000v 85 ct s}
             {func tt 1p000v 85 ct h}
 
@@ -311,7 +311,7 @@ gf_create_step -name gconfig_settings_signoff '
             {func ff 1p100v 0 rcb h} 
             {func ff 1p100v 0 rcw h}
         }
-        default {
+        basic {
             {func ss 0p900v m40 cwt s} 
             {func ss 0p900v 125 cwt s}
             
@@ -324,6 +324,35 @@ gf_create_step -name gconfig_settings_signoff '
             {func ff 1p100v 0 cw h} 
             {func ff 1p100v 125 cb h} 
             {func ff 1p100v 125 cw h} 
+        }
+    }
+    
+    # -------------------------
+    # Power analysis scenarios:
+    # -------------------------
+    # - each scenario is {<scenario_name> {view_type {analysis_view} ...}}
+    # - PGV_SPEF_CORNER - PGV generation extraction corner
+    # - SIGNAL_SPEF_CORNER - Signal nets extraction corner
+    # - POWER_SPEF_CORNER - Power grid extraction corner
+    # - STATIC_POWER_VIEW - Static power analysis view
+    # - DINAMIC_POWER_VIEW - Dynamic power analysis view
+    # - STATIC_RAIL_VIEW - Static rail analysis view
+    # - DINAMIC_RAIL_VIEW - Dynamic rail analysis view
+    # - SIGNAL_EM_VIEW - Signal electromigration analysis view
+    <PLACEHOLDER>
+    set POWER_SETS {
+        default {
+            PGV_SPEF_CORNER {* * * 125 rcw *}
+            SIGNAL_SPEF_CORNER {* * * m40 rcb *}
+            POWER_SPEF_CORNER {* * * 125 cw *}
+            
+            STATIC_POWER_VIEW {func ff 1p100v 125 cw h}
+            DINAMIC_POWER_VIEW {func ff 1p100v 125 cw h}
+            
+            STATIC_RAIL_VIEW {func ss 0p900v 125 rcw h}
+            DINAMIC_RAIL_VIEW {func ss 0p900v 125 rcw h}
+
+            SIGNAL_EM_VIEW {func ff 1p100v 125 cw h}
         }
     }
     

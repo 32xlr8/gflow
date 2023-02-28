@@ -131,14 +131,12 @@ gf_create_step -name gconfig_cadence_mmmc_files '
     # }
 '
 
-# Synopsys MCMM configuration (TCL flow step)
-gf_create_step -name gconfig_synopsys_mcmm_files '
-    # To be defined
-'
-
 ################################################################################
 # Signoff files
 ################################################################################
+
+# # Hierarchical cells file used for LVS (auto-generated when empty)
+# HCELL_FILE='<PLACEHOLDER:../../../../data/hcell>'
 
 # Spice netlist files for LVS
 LVS_SPICE_FILES='
@@ -149,15 +147,28 @@ LVS_SPICE_FILES='
     <PLACEHOLDER:/PATH_TO_MACRO_FILE.spi>
 '
 
+# # Physical verification rules for Calibre
+# CALIBRE_DRC_RULES='<PLACEHOLDER:/PATH_TO_DRC_RULE_FILE>'
+# CALIBRE_LVS_RULES='<PLACEHOLDER:/PATH_TO_LVS_RULE_FILE>'
+# CALIBRE_FILL_RULES='<PLACEHOLDER:/PATH_TO_COMBINED_FEOL_BEOL_FILL_RULE_FILE>'
+# CALIBRE_ANT_RULES='<PLACEHOLDER:/PATH_TO_ANTENNA_RULE_FILE>'
+# CALIBRE_BUMP_RULES='<PLACEHOLDER:/PATH_TO_BUMP_RULE_FILE>'
+
 # # Spice models for PGV generation 
-# PGV_SPICE_MODELS='<PLACEHOLDER:/PATH_TO/models/spectre/*.scs>'
-# PGV_SPICE_CORNERS='<PLACEHOLDER:ss>'
-# PGV_SPICE_SCALING=<PLACEHOLDER:0.9>
+# VOLTUS_PGV_SPICE_MODELS='<PLACEHOLDER:/PATH_TO/models/spectre/*.scs>'
+# VOLTUS_PGV_SPICE_CORNERS='<PLACEHOLDER:ss>'
+# VOLTUS_PGV_SPICE_SCALING=<PLACEHOLDER:0.9>
 
 # Extracted spice files with coordinates for macro PGV generation
-# PGV_SPICE_FILES='
+# VOLTUS_PGV_SPICE_FILES='
 #     <PLACEHOLDER:/PATH_TO_MACRO_FILE.spi>
 # '
+
+# # Signal EM analysis rule file
+# VOLTUS_ICT_EM_RULE='<PLACEHOLDER:/PATH_TO/VOLTUS_EM_RULE.ictem>'
+
+# # Foundry legacy scripts
+# DFM_VIA_SWAP_SCRIPT=<PLACEHOLDER:/path/to/the_script.tcl>
 
 ################################################################################
 # Optional flow files
@@ -166,9 +177,9 @@ LVS_SPICE_FILES='
 # # Scan chains definition DEF file
 # SCANDEF_FILE='../../../../data/DESIGN_NAME.*.scandef'
 
-# # LP design power intent file
-# CPF='../../../../data/DESIGN_NAME.*.cpf'
-# UPF='../../../../data/DESIGN_NAME.*.upf'
+# # Power intent file for low-power design
+# CPF_FILE='../../../../data/DESIGN_NAME.*.cpf'
+# UPF_FILE='../../../../data/DESIGN_NAME.*.upf'
 
 # # Pre-selected floorplan for synthesis and implementation
 # FLOORPLAN_FILE='../../../../data/DESIGN_NAME.*.fp'
@@ -178,9 +189,6 @@ LVS_SPICE_FILES='
 # NETLIST_FILES='../../../../data/DESIGN_NAME.*.v'
 # NETLIST_FILES='../../../frontend.0000/out/SynMap.v'
 # NETLIST_FILES='../../../frontend.0000/out/SynOpt.v'
-
-# Foundry legacy scripts
-# DFM_VIA_SWAP_SCRIPT=<PLACEHOLDER:/path/to/the_script.tcl>
 
 ################################################################################
 # Optional hierarchical flow files

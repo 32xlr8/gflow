@@ -89,8 +89,8 @@ gf_add_tool_commands '
     set LEF_FILES {`$CADENCE_TLEF_FILES` `$LEF_FILES`}
     set NETLIST_FILES {`$NETLIST_FILES`}
     set SCANDEF_FILE {`$SCANDEF_FILE -optional`}
-    set CPF {`$CPF -optional`}
-    set UPF {`$UPF -optional`}
+    set CPF_FILE {`$CPF_FILE -optional`}
+    set UPF_FILE {`$UPF_FILE -optional`}
     set FLOORPLAN_FILE {`$FLOORPLAN_FILE`}
     set DESIGN_NAME {`$DESIGN_NAME`}
     set POWER_NETS {`$POWER_NETS_CORE` `$POWER_NETS_OTHER -optional`}
@@ -134,17 +134,17 @@ gf_add_tool_commands '
     init_design
 
     # Read CPF power intent information
-    if {[file exists $CPF]} {
-        read_power_intent -cpf $CPF
+    if {[file exists $CPF_FILE]} {
+        read_power_intent -cpf $CPF_FILE
     }
 
     # Read 1801 power intent information
-    if {[file exists $UPF]} {
-        read_power_intent -1801 $UPF
+    if {[file exists $UPF_FILE]} {
+        read_power_intent -1801 $UPF_FILE
     }
 
     # Apply power intent
-    if {[file exists $CPF] || [file exists $UPF]} {
+    if {[file exists $CPF_FILE] || [file exists $UPF_FILE]} {
         commit_power_intent
         foreach delay_corner [get_db delay_corners] {
             set timing_condition [get_db $delay_corner .late_timing_condition.name]
@@ -155,13 +155,13 @@ gf_add_tool_commands '
         }
         
     # Error if CPF is incorrect
-    } elseif {$CPF != {}} {
-        puts "\033\[41;31m \033\[0m CPF $CPF not found"
+    } elseif {$CPF_FILE != {}} {
+        puts "\033\[41;31m \033\[0m CPF $CPF_FILE not found"
         suspend
     
     # Error if UPF is incorrect
-    } elseif {$UPF != {}} {
-        puts "\033\[41;31m \033\[0m UPF $UPF not found"
+    } elseif {$UPF_FILE != {}} {
+        puts "\033\[41;31m \033\[0m UPF $UPF_FILE not found"
         suspend
     }
     

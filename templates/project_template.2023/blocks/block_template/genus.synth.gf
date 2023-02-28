@@ -163,7 +163,7 @@ gf_add_tool_commands '
 '
 
 # Task marks
-gf_add_status_marks Error
+gf_add_status_marks Error ' successful .* failed '
 gf_add_failed_marks 'ERROR:.\+No files'
 gf_add_success_marks 'No unresolved references'
 

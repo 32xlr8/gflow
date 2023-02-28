@@ -39,7 +39,7 @@ gf_source "./block.files.gf"
 # Generate MMMC and OCV configuration
 gf_create_step -name generate_mmmc_files '
     try {
-        foreach {TAG ANALYSIS_VIEWS} $MMMC_SETS {
+        foreach {TAG ANALYSIS_VIEWS} $TIMING_SETS {
             exec rm -f ./out/$TASK_NAME.$TAG.ocv.tcl ./out/$TASK_NAME.$TAG.mmmc.tcl
             gconfig::get_ocv_commands -views $ANALYSIS_VIEWS -dump_to_file ./out/$TASK_NAME.$TAG.ocv.tcl
             gconfig::get_mmmc_commands -views $ANALYSIS_VIEWS -dump_to_file ./out/$TASK_NAME.$TAG.mmmc.tcl
@@ -57,7 +57,7 @@ gf_create_step -name generate_quantus_files '
 
     # TODO: review and insert into the flow
     try {
-        foreach {TAG ANALYSIS_VIEWS} $MMMC_SETS {
+        foreach {TAG ANALYSIS_VIEWS} $TIMING_SETS {
         
             # Get qrc/extract corners from signoff views list
             set unique_qrc_corners {}

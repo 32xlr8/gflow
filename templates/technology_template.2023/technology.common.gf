@@ -61,10 +61,10 @@ gf_create_step -name gconfig_ocv_settings '
     # }
     #
     # # Voltage and temperature OCV requirements
-    # # Default IR-drop value for voltage OCV to be defined in block.common.gf
-    # # Derate tables: <cell pattern> <voltage-drop table> <dV derate table> <dT> <reference PDF>
-    # # Views mask is {<constraint_mode> <process> <voltage> <temperature> <rc_corner> <check>}
-    # # Run ./gflow/templates/technology_template.2023/create_tsmc_vt_tables.sh ./TSMCHOME/digital/Front_End/*/ utility to get it from PDF
+    # # - Default IR-drop value for voltage OCV to be defined in block.common.gf
+    # # - Derate tables: <cell pattern> <voltage-drop table> <dV derate table> <dT> <reference PDF>
+    # # - Views mask is {<constraint_mode> <process> <voltage> <temperature> <rc_corner> <check>}
+    # # - Run ./gflow/templates/technology_template.2023/create_tsmc_vt_tables.sh ./TSMCHOME/digital/Front_End/*/ utility to get it from PDF
     # gconfig::add_section {
     #     -views {* <PLACEHOLDER:pvt_p> <PLACEHOLDER:pvt_v> <PLACEHOLDER:pvt_t> * *} $cells_IR_dV_dT_table {
     #         { <PLACEHOLDER:cells pattern> {<PLACEHOLDER:IR-drop values} {<PLACEHOLDER:voltage derates>}  {<PLACEHOLDER:temperature derate>} {PDF}}

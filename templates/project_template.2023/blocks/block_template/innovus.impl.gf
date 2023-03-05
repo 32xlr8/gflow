@@ -347,3 +347,108 @@ gf_add_status_marks 'number of DRC violations'
 
 # Run task
 gf_submit_task
+
+########################################
+# Innovus pre-cts reports task
+########################################
+
+gf_create_task -name ReportPlace -mother Place -group Reports -parallel 1
+gf_use_innovus_batch
+
+# TCL commands
+gf_add_tool_commands '
+
+    # Pre-load settings
+    `@innovus_pre_read_libs`
+
+    # Load Innovus database
+    read_db ./out/$MOTHER_TASK_NAME.innovus.db
+    
+    # Start metric collection
+    `@collect_metrics`
+
+    # Create reports directory
+    exec mkdir -p ./reports/$TASK_NAME
+    
+    # Design-specific reports
+    `@innovus_design_reports_post_place`
+    
+    # Report collected metrics
+    `@report_metrics`
+'
+
+# Print timing summary
+gf_add_status_marks -from 'time_design Summary' -1 -from '(Setup|Hold) mode' -to 'Density:' -exclude '^\s*$'
+
+# Submit task
+gf_submit_task -silent
+
+########################################
+# Innovus post-clock reports tasks
+########################################
+
+gf_create_task -name ReportClock -mother Clock -group Reports -parallel 1
+gf_use_innovus_batch
+
+# TCL commands
+gf_add_tool_commands '
+
+    # Pre-load settings
+    `@innovus_pre_read_libs`
+
+    # Load Innovus database
+    read_db ./out/$MOTHER_TASK_NAME.innovus.db
+
+    # Start metric collection
+    `@collect_metrics`
+
+    # Create reports directory
+    exec mkdir -p ./reports/$TASK_NAME
+    
+    # Design-specific reports
+    `@innovus_design_reports_post_clock`
+
+    # Report collected metrics
+    `@report_metrics`
+'
+
+# Print timing summary
+gf_add_status_marks -from 'time_design Summary' -1 -from '(Setup|Hold) mode' -to 'Density:' -exclude '^\s*$'
+
+# Submit task
+gf_submit_task -silent
+
+########################################
+# Innovus post-route reports task
+########################################
+
+gf_create_task -name ReportRoute -mother Route -group Reports -parallel 1
+gf_use_innovus_batch
+
+# TCL commands
+gf_add_tool_commands '
+
+    # Pre-load settings
+    `@innovus_pre_read_libs`
+
+    # Load Innovus database
+    read_db ./out/$MOTHER_TASK_NAME.innovus.db
+
+   # Start metric collection
+    `@collect_metrics`
+
+    # Create reports directory
+    exec mkdir -p ./reports/$TASK_NAME
+    
+    # Design-specific reports
+    `@innovus_design_reports_post_route`
+
+    # Report collected metrics
+    `@report_metrics`
+'
+
+# Print timing summary
+gf_add_status_marks -from 'time_design Summary' -1 -from '(Setup|Hold) mode' -to 'Density:' -exclude '^\s*$'
+
+# Submit task
+gf_submit_task -silent

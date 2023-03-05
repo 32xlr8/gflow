@@ -100,9 +100,7 @@ gf_create_step -name genus_read_rtl '
     # set_db optimize_constant_1_flops false
 
     # # RTL files
-    # set RTL_FILES {
-    #     file1.sv
-    # }
+    # set RTL_FILES {`$RTL_FILES`}
     
     # # Read HDL files
     # read_hdl -define {<PLACEHOLDER:DEFINE>} <PLACEHOLDER.v>
@@ -299,28 +297,23 @@ gf_create_step -name genus_post_syn_opt '
 '
 
 ################################################################################
-# Report flow steps - ./genus.reports.gf
+# Report flow steps - ./genus.synth.gf
 ################################################################################
 
-# Post-init Genus reports
-gf_create_step -name genus_design_reports_initial '
-    check_timing_intent
+# Post-generic synthesis Genus reports
+gf_create_step -name genus_design_reports_post_syn_gen '
+    report_dp > ./reports/$TASK_NAME.dp.rpt
     report_logic_levels_histogram -bars 10 -skip_buffer -skip_inverter -threshold 10 -detail > ./reports/$TASK_NAME.logic_levels.rpt
     check_design $DESIGN_NAME > ./reports/$TASK_NAME.check_design.rpt
     check_floorplan -out_file ./reports/$TASK_NAME.check_floorplan.rpt
-'
-
-# Post-generic Genus reports
-gf_create_step -name genus_design_reports_generic '
-    report_dp > ./reports/$TASK_NAME.dp.rpt
-    report_logic_levels_histogram -bars 10 -skip_buffer -skip_inverter -threshold 10 -detail > ./reports/$TASK_NAME.logic_levels.rpt
+    check_timing_intent > ./reports/$TASK_NAME.check_timing_intent.rpt
     report_timing -max_paths 500 > ./reports/$TASK_NAME.tarpt
     report_timing -lint -verbose > ./reports/$TASK_NAME.lint
     # report_summary -directory ./reports/$TASK_NAME
 '
 
-# Post-optimization Genus reports
-gf_create_step -name genus_design_reports_mapped '
+# Post-mapping Genus reports
+gf_create_step -name genus_design_reports_post_syn_map '
     report_clock_gating > ./reports/$TASK_NAME.clock_gating.tarpt
     report_power -depth 0 > ./reports/$TASK_NAME.power.tarpt
     report_gates -power > ./reports/$TASK_NAME.power_gates.tarpt

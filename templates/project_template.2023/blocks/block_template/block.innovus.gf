@@ -1628,38 +1628,11 @@ gf_create_step -name innovus_pre_floorplan '
 '
 
 ################################################################################
-# Report flow steps - ./innovus.reports.gf
+# Report flow steps - ./innovus.impl.gf
 ################################################################################
 
-# Additional pre-place design stage reports
-gf_create_step -name innovus_design_reports_pre_place '
-
-    # Set of pre-place reports in simultaneous setup and hold mode
-    `@innovus_time_design_late_early_summary`
-
-    # Basic timing check
-    check_timing -verbose > ./reports/$TASK_NAME/check.timing.rpt
-
-    # Report late timing derate factors
-    foreach corner [get_db [get_db delay_corners -if .is_setup] .name] {
-        report_timing_derate -delay_corner $corner > "./reports/$TASK_NAME/derates.$corner.rpt"
-    }
-
-    # Report late timing
-    foreach view [get_db [get_db analysis_views -if .is_setup] .name] {
-        report_timing -late -max_paths 150 -path_type full_clock -split_delay > ./reports/$TASK_NAME/timing.late.gba.all.$view.tarpt
-        report_timing -late -max_paths 10000 -max_slack 0.0 -path_type summary > ./reports/$TASK_NAME/timing.late.gba.all.violated.$view.tarpt
-    }
-
-    # Report early timing
-    foreach view [get_db [get_db analysis_views -if .is_hold] .name] {
-        report_timing -early -max_paths 150 -path_type full_clock -split_delay > ./reports/$TASK_NAME/timing.early.gba.all.$view.tarpt
-        report_timing -early -max_paths 10000 -max_slack 0.0 -path_type summary > ./reports/$TASK_NAME/timing.early.gba.all.violated.$view.tarpt
-    }
-'
-
 # Pre-clock design stage reports
-gf_create_step -name innovus_design_reports_pre_clock '
+gf_create_step -name innovus_design_reports_post_place '
 
     # Set of pre-clock reports in simultaneous setup and hold mode
     `@innovus_time_design_late_early_summary`
@@ -1667,7 +1640,7 @@ gf_create_step -name innovus_design_reports_pre_clock '
 '
 
 # Pre-route design stage reports
-gf_create_step -name innovus_design_reports_pre_route '
+gf_create_step -name innovus_design_reports_post_clock '
 
     # Set of pre-place reports in simultaneous setup and hold mode
     `@innovus_time_design_late_early_summary`

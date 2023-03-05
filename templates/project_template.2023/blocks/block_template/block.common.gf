@@ -157,7 +157,7 @@ gf_create_step -name gconfig_settings_frontend '
     # - default_uncertainty - use when SDC files do not contain set_clock_uncertainty commands
     <PLACEHOLDER>
     # gconfig::enable_switches default_uncertainty
-
+    #
     # # Set PLL jitter value in ps
     # gconfig::add_section {
     #     -when default_uncertainty {
@@ -256,7 +256,7 @@ gf_create_step -name gconfig_settings_backend '
     # - default_uncertainty - use when SDC files do not contain set_clock_uncertainty commands
     <PLACEHOLDER>
     # gconfig::enable_switches default_uncertainty
-
+    #
     # # Set PLL jitter value in ps
     # gconfig::add_section {
     #     -when default_uncertainty {
@@ -417,7 +417,7 @@ gf_create_step -name gconfig_settings_signoff '
     # - default_uncertainty - use when SDC files do not contain set_clock_uncertainty commands
     <PLACEHOLDER>
     # gconfig::enable_switches default_uncertainty
-
+    #
     # # Set PLL jitter value in ps
     # gconfig::add_section {
     #     -when default_uncertainty {

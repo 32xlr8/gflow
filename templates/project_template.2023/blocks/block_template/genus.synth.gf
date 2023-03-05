@@ -265,3 +265,90 @@ gf_add_tool_commands '
 # Run task
 gf_add_status_marks Error
 gf_submit_task
+
+########################################
+# Genus post syn-gen reports task
+########################################
+
+gf_create_task -name ReportSynGen -mother SynGen -group Reports -parallel 1
+gf_use_genus_batch
+
+# TCL commands
+gf_add_tool_commands '
+
+    # Load Genus database
+    read_db ./out/$MOTHER_TASK_NAME.genus.db
+
+    # Start metric collection
+    `@collect_metrics`
+
+    # Create reports directory
+    exec mkdir -p ./reports/$TASK_NAME
+    
+    # Design-specific reports
+    `@genus_design_reports_post_syn_gen`
+    
+    # Report collected metrics
+    `@report_metrics`
+'
+
+# Submit task
+gf_submit_task -silent
+
+########################################
+# Genus post syn-map reports task
+########################################
+
+gf_create_task -name ReportSynMap -mother SynMap -group Reports -parallel 1
+gf_use_genus_batch
+
+# TCL commands
+gf_add_tool_commands '
+
+    # Load Genus database
+    read_db ./out/$MOTHER_TASK_NAME.genus.db
+
+    # Start metric collection
+    `@collect_metrics`
+
+    # Create reports directory
+    exec mkdir -p ./reports/$TASK_NAME
+    
+    # Design-specific reports
+    `@genus_design_reports_post_syn_map`
+
+    # Report collected metrics
+    `@report_metrics`
+'
+
+# Submit task
+gf_submit_task -silent
+
+########################################
+# Genus post syn-opt reports task
+########################################
+
+gf_create_task -name ReportSynOpt -mother SynOpt -group Reports -parallel 1
+gf_use_genus_batch
+
+# TCL commands
+gf_add_tool_commands '
+
+    # Load Genus database
+    read_db ./out/$MOTHER_TASK_NAME.genus.db
+
+    # Start metric collection
+    `@collect_metrics`
+
+    # Create reports directory
+    exec mkdir -p ./reports/$TASK_NAME
+    
+    # Design-specific reports
+    `@genus_design_reports_post_syn_map`
+
+    # Report collected metrics
+    `@report_metrics`
+'
+
+# Submit task
+gf_submit_task -silent

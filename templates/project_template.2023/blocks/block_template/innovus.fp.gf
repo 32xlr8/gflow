@@ -71,9 +71,9 @@ gf_spacer
 # Choose MMMC file
 if [ "$TIMING_MODE" == "Y" ]; then
     gf_choose_file_dir_task -variable MMMC_FILE -keep -prompt "Please select MMMC file:" -files '
-        ../data/*.mmmc.tcl
-        ../data/*/*.mmmc.tcl
-        ../work_*/*/out/BackendMMMC*.mmmc.tcl
+        ../data/*.timing.mmmc.tcl
+        ../data/*/*.timing.mmmc.tcl
+        ../work_*/*/out/ConfigBackend*.timing.mmmc.tcl
     '
 else
     MMMC_FILE=""
@@ -210,7 +210,10 @@ gf_add_tool_commands '
 
     # Check cells with missing LEF files
     `@innovus_check_missing_cells`
-    
+
+    # Enable rectilinear floorplanning
+    set_preference EnableRectilinearDesign 1
+
     gui_show
     gui_fit
     gui_set_draw_view fplan

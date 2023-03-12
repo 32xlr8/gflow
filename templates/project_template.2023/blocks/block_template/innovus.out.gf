@@ -19,7 +19,7 @@
 # limitations under the License.
 #
 ################################################################################
-# Filename: templates/project_template.2023/blocks/block_template/innovus.output.gf
+# Filename: templates/project_template.2023/blocks/block_template/innovus.out.gf
 # Purpose:  Write out physical data
 ################################################################################
 
@@ -89,7 +89,7 @@ gf_add_tool_commands -ext empty_cells.lef '`@innovus_data_out_empty_cells_lef`'
 
 # Shell commands to update MD5 sum
 gf_add_shell_commands -post "
-    md5sum ./out/$TASK_NAME.gds.gz > ./out/$TASK_NAME.gds.gz.md5sum
+    md5sum ./out/$TASK_NAME/*.gds.gz > ./out/$TASK_NAME.gds.gz.md5sum
 "
 
 

@@ -44,7 +44,7 @@ function gf_use_quantus_batch {
         `@init_quantus_environment`
         
         # Run the tool
-        quantus -cmd -files ./scripts/`$TASK_NAME`.ccl
+        quantus -cmd ./scripts/`$TASK_NAME`.ccl
     '
 
     # Multi-CPU mode

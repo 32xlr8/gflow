@@ -64,9 +64,15 @@ gf_add_tool_commands '
     # Top level design name
     set DESIGN_NAME [get_db current_design .name]
     
-    # Load trace timing utility
-    source ../../../../../../gflow/bin/trace_timing.tcl
-    
+    # Trace timing utility
+    catch {
+        source ../../../../../../gflow/bin/trace_timing.tcl
+        proc gf_gui_trace_timing_highlight_selected {} {trace_timing -highlight -selected}
+        gui_bind_key Shift+F8 -cmd "gf_gui_trace_timing_highlight_selected"
+        puts "Use \[Shift+F8\] to trace timing through selected instance"
+    }
+
+
     gui_show
 '
 

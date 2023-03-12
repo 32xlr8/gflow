@@ -24,34 +24,38 @@
 gf_info "Loading block-specific files setup ..."
 
 ################################################################################
-# Synthesis and implementation files
+# Physical files - many flows
 ################################################################################
 
 # Technology LEF files (Cadence PRTF)
 CADENCE_TLEF_FILES='
-    <PLACEHOLDER:/PATH_TO_TECHNOLOGY.tlef>
+    <PLACEHOLDER>/PATH_TO_TECHNOLOGY.tlef
 '
 
 # LEF files (physical information)
 LEF_FILES='
-    <PLACEHOLDER:/PATH_TO_STANDARD_CELL_FILE.lef>
-    <PLACEHOLDER:/PATH_TO_STANDARD_CELL_FILE_par.lef>
-    <PLACEHOLDER:/PATH_TO_MACRO_FILE.lef>
-    <PLACEHOLDER:/PATH_TO_FEOL_TCD_FILE.lef>
-    <PLACEHOLDER:/PATH_TO_BEOL_TCD_FILE.lef>
+    <PLACEHOLDER>/PATH_TO_STANDARD_CELL_FILE.lef
+    <PLACEHOLDER>/PATH_TO_STANDARD_CELL_FILE_par.lef
+    <PLACEHOLDER>/PATH_TO_MACRO_FILE.lef
+    <PLACEHOLDER>/PATH_TO_FEOL_TCD_FILE.lef
+    <PLACEHOLDER>/PATH_TO_BEOL_TCD_FILE.lef
 '
 
-# GDS files (stream out)
-GDS_FILES='
-    <PLACEHOLDER:/PATH_TO_STANDARD_CELL_FILE.gds>
-    <PLACEHOLDER:/PATH_TO_MACRO_FILE.gds>
-    <PLACEHOLDER:/PATH_TO_FEOL_TCD_FILE.gds>
-    <PLACEHOLDER:/PATH_TO_BEOL_TCD_FILE.gds>
-'
-
+# # GDS files (stream out) - ./innovus.out.gf
+# GDS_FILES='
+#     <PLACEHOLDER>/PATH_TO_STANDARD_CELL_FILE.gds
+#     <PLACEHOLDER>/PATH_TO_MACRO_FILE.gds
+#     <PLACEHOLDER>/PATH_TO_FEOL_TCD_FILE.gds
+#     <PLACEHOLDER>/PATH_TO_BEOL_TCD_FILE.gds
+# '
+#
 # # Cadence GDS map file and units in nm
-# CADENCE_GDS_LAYER_MAP_FILE='<PLACEHOLDER:/PATH_TO_INNOVUS_STREAM_OUT.map>'
+# CADENCE_GDS_LAYER_MAP_FILE='<PLACEHOLDER>/PATH_TO_INNOVUS_STREAM_OUT.map'
 # GDS_UNITS=1000
+
+################################################################################
+# Timing analysis files - ./gconfig.gen.gf for many flows
+################################################################################
 
 # Cadence MMMC configuration (TCL flow step)
 gf_create_step -name gconfig_cadence_mmmc_files '
@@ -108,21 +112,21 @@ gf_create_step -name gconfig_cadence_mmmc_files '
 
     # # Block-specific SDC files
     # gconfig::add_files sdc -views {scan * * * * *} {
-    #     <PLACEHOLDER:../../../../data/scan.sdc>
+    #     <PLACEHOLDER>../../../../data/scan.sdc
     # }
     gconfig::add_files sdc -views {func * * * * *} {
-        <PLACEHOLDER:../../../../data/func.sdc>
+        <PLACEHOLDER>../../../../data/func.sdc
     }
 
     # # Clock uncertainty stored in separate SDC files
     # gconfig::add_files sdc -views {func tt * * * *} {
-    #     <PLACEHOLDER:../../../../data/uncertainty.tt.sdc>
+    #     <PLACEHOLDER>../../../../data/uncertainty.tt.sdc
     # }
     # gconfig::add_files sdc -views {func ss * * * *} {
-    #     <PLACEHOLDER:../../../../data/uncertainty.ss.sdc>
+    #     <PLACEHOLDER>../../../../data/uncertainty.ss.sdc
     # }
     # gconfig::add_files sdc -views {func ff * * * *} {
-    #     <PLACEHOLDER:../../../../data/uncertainty.ff.sdc>
+    #     <PLACEHOLDER>../../../../data/uncertainty.ff.sdc
     # }
     
     # # View-independent constraints
@@ -132,52 +136,67 @@ gf_create_step -name gconfig_cadence_mmmc_files '
 '
 
 ################################################################################
-# RTL files
+# RTL files - ./genus.fe.gf
 ################################################################################
 
-# # RTL files for synthesis
-# RTL_FILES='
-#     block_name.sv
+# # Paths to locate relative RTL files
+# RTL_SEARCH_PATHS='
+#     <PLACEHOLDER>../../../../../../data/hdl
+#     <PLACEHOLDER>../../../../data/hdl
 # '
+# 
+# # Option 1: List of system-verilog RTL files for synthesis
+# RTL_FILES='
+#     <PLACEHOLDER>block_name.sv
+# '
+# # Option 2: System-verilog RTL files list for synthesis
+# RTL_FILES_LIST='<PLACEHOLDER>/path/to/block_name.f'
 
 ################################################################################
-# Signoff files
+# Signoff files - physical and power signoff
 ################################################################################
 
 # # Hierarchical cells file used for LVS (auto-generated when empty)
-# HCELL_FILE='<PLACEHOLDER:../../../../data/hcell>'
+# HCELL_FILE='<PLACEHOLDER>../../../../data/hcell'
 
 # Spice netlist files for LVS
 LVS_SPICE_FILES='
-    <PLACEHOLDER:/PATH_TO_LVS_DIR/source.added>
-    <PLACEHOLDER:/PATH_TO_STANDARD_CELL_FILE.cdl>
-    <PLACEHOLDER:/PATH_TO_STANDARD_CELL_FILE.spi>
-    <PLACEHOLDER:/PATH_TO_MACRO_FILE.cdl>
-    <PLACEHOLDER:/PATH_TO_MACRO_FILE.spi>
+    <PLACEHOLDER>/PATH_TO_LVS_DIR/source.added
+    <PLACEHOLDER>/PATH_TO_STANDARD_CELL_FILE.cdl
+    <PLACEHOLDER>/PATH_TO_STANDARD_CELL_FILE.spi
+    <PLACEHOLDER>/PATH_TO_MACRO_FILE.cdl
+    <PLACEHOLDER>/PATH_TO_MACRO_FILE.spi
 '
 
 # # Physical verification rules for Calibre
-# CALIBRE_DRC_RULES='<PLACEHOLDER:/PATH_TO_DRC_RULE_FILE>'
-# CALIBRE_LVS_RULES='<PLACEHOLDER:/PATH_TO_LVS_RULE_FILE>'
-# CALIBRE_FILL_RULES='<PLACEHOLDER:/PATH_TO_COMBINED_FEOL_BEOL_FILL_RULE_FILE>'
-# CALIBRE_ANT_RULES='<PLACEHOLDER:/PATH_TO_ANTENNA_RULE_FILE>'
-# CALIBRE_BUMP_RULES='<PLACEHOLDER:/PATH_TO_BUMP_RULE_FILE>'
+# CALIBRE_DRC_RULES='<PLACEHOLDER>/PATH_TO_DRC_RULE_FILE'
+# CALIBRE_LVS_RULES='<PLACEHOLDER>/PATH_TO_LVS_RULE_FILE'
+# CALIBRE_FILL_RULES='<PLACEHOLDER>/PATH_TO_COMBINED_FEOL_BEOL_FILL_RULE_FILE'
+# CALIBRE_ANT_RULES='<PLACEHOLDER>/PATH_TO_ANTENNA_RULE_FILE'
+# CALIBRE_BUMP_RULES='<PLACEHOLDER>/PATH_TO_BUMP_RULE_FILE'
+
+# # Specify metal fill top cell name to enable in extraction flow
+# DUMMY_TOP="<PLACEHOLDER>${DESIGN_NAME}_dummy_fill"
+
+# # Optional Quantus extraction files - see ./block.quantus.gf
+# QUANTUS_DEF_LAYER_MAP_FILE='/PATH_TO/PRTF_Innovus_*/PR_tech/Cadence/QrcMap/PRTF_Innovus_*.map'
+# QUANTUS_GDS_LAYER_MAP_FILE='/PATH_TO/PRTF_Innovus_*/PR_tech/Cadence/QrcDummyMap/PRTF_Innovus_*'
 
 # # Spice models for PGV generation 
-# VOLTUS_PGV_SPICE_MODELS='<PLACEHOLDER:/PATH_TO/models/spectre/*.scs>'
-# VOLTUS_PGV_SPICE_CORNERS='<PLACEHOLDER:ss>'
-# VOLTUS_PGV_SPICE_SCALING=<PLACEHOLDER:0.9>
+# VOLTUS_PGV_SPICE_MODELS='<PLACEHOLDER>/PATH_TO/models/spectre/*.scs'
+# VOLTUS_PGV_SPICE_CORNERS='<PLACEHOLDER>ss'
+# VOLTUS_PGV_SPICE_SCALING=<PLACEHOLDER>0.9
 
 # Extracted spice files with coordinates for macro PGV generation
 # VOLTUS_PGV_SPICE_FILES='
-#     <PLACEHOLDER:/PATH_TO_MACRO_FILE.spi>
+#     <PLACEHOLDER>/PATH_TO_MACRO_FILE.spi
 # '
 
 # # Signal EM analysis rule file
-# VOLTUS_ICT_EM_RULE='<PLACEHOLDER:/PATH_TO/VOLTUS_EM_RULE.ictem>'
+# VOLTUS_ICT_EM_RULE='<PLACEHOLDER>/PATH_TO/VOLTUS_EM_RULE.ictem'
 
 # # Foundry legacy scripts
-# DFM_VIA_SWAP_SCRIPT=<PLACEHOLDER:/path/to/the_script.tcl>
+# DFM_VIA_SWAP_SCRIPT=<PLACEHOLDER>/path/to/the_script.tcl
 
 ################################################################################
 # Optional flow files
@@ -204,13 +223,13 @@ LVS_SPICE_FILES='
 ################################################################################
 
 # # Hierarchical flow: partitions to assemble
-# INNOVUS_PARTITIONS='<PLACEHOLDER:block1_name block2_name ...>'
+# INNOVUS_PARTITIONS='<PLACEHOLDER>block1_name block2_name ...'
 
 # # Hierarchical flow: top level database (leave empty for interactive selection)
-# INNOVUS_TOP_DATABASE='<PLACEHOLDER:../../../../../DESIGN_NAME/work_*/innovus.impl.0000/out/Route.innovus.db>'
+# INNOVUS_TOP_DATABASE='<PLACEHOLDER>../../../../../DESIGN_NAME/work_*/innovus.be.0000/out/Route.innovus.db'
 
 # # Hierarchical flow: partition databases (leave empty for interactive selection)
 # INNOVUS_PARTITION_DATABASES='
-#     <PLACEHOLDER:0../../../../../block1_name/work_*/innovus.impl.0000/out/Route.innovus.db>
-#     <PLACEHOLDER:0../../../../../block2_name/work_*/innovus.eco.0000/out/ECO.innovus.db>
+#     <PLACEHOLDER>../../../../../block1_name/work_*/innovus.be.0000/out/Route.innovus.db
+#     <PLACEHOLDER>../../../../../block2_name/work_*/innovus.eco.0000/out/ECO.innovus.db
 #'

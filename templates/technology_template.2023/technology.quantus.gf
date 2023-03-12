@@ -24,7 +24,7 @@
 gf_info "Loading technology-specific Quantus steps ..."
 
 # Technology-specific tool environment
-gf_create_step -name quantus_technology_settings '
+gf_create_step -name quantus_pre_init_design_technology '
 
     # Cross-coupling mode required for SI
     extract \
@@ -43,7 +43,7 @@ gf_create_step -name quantus_technology_settings '
     
     # Process scale factor
     extraction_setup \
-        -layout_scale <PLACEHOLDER:1.0>
+        -layout_scale <PLACEHOLDER>1.0
 
     extraction_setup \
         -promote_pin_pad logical

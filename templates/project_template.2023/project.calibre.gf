@@ -30,9 +30,9 @@ gf_info "Loading project-specific Calibre settings ..."
 
 # Tool initialization in Linux environment
 gf_create_step -name init_calibre_environment '
-    export MGC_HOME=<PLACEHOLDER:/PATH_TO_AOI_CAL>
+    export MGC_HOME=<PLACEHOLDER>/PATH_TO_AOI_CAL
     export PATH=$MGC_HOME/bin:$PATH
-    export MGLS_LICENSE_FILES=<PLACEHOLDER:29700@$HOSTNAME>
+    export MGLS_LICENSE_FILES=<PLACEHOLDER>29700@$HOSTNAME
     export MGC_DISABLE_BACKING_STORE=true
     export USE_CALIBRE_VCO=aoi
 '

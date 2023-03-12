@@ -19,7 +19,7 @@
 # limitations under the License.
 #
 ################################################################################
-# Filename: templates/project_template.2023/blocks/block_template/innovus.impl.gf
+# Filename: templates/project_template.2023/blocks/block_template/innovus.be.gf
 # Purpose:  Batch implementation flow
 ################################################################################
 
@@ -69,9 +69,9 @@ gf_check_files "$FLOORPLAN_FILE"* "$NETLIST_FILES"
 
 # Choose MMMC file
 gf_choose_file_dir_task -variable MMMC_FILE -keep -prompt "Please select MMMC file:" -files '
-    ../data/*.mmmc.tcl
-    ../data/*/*.mmmc.tcl
-    ../work_*/*/out/BackendMMMC*.mmmc.tcl
+    ../data/*.timing.mmmc.tcl
+    ../data/*/*.timing.mmmc.tcl
+    ../work_*/*/out/ConfigBackend*.timing.mmmc.tcl
 '
 
 # Save input files
@@ -352,7 +352,7 @@ gf_submit_task
 # Innovus pre-cts reports task
 ########################################
 
-gf_create_task -name ReportPlace -mother Place -group Reports -parallel 1
+gf_create_task -name ReportPlace -mother Place -group Reports
 gf_use_innovus_batch
 
 # TCL commands
@@ -387,7 +387,7 @@ gf_submit_task -silent
 # Innovus post-clock reports tasks
 ########################################
 
-gf_create_task -name ReportClock -mother Clock -group Reports -parallel 1
+gf_create_task -name ReportClock -mother Clock -group Reports
 gf_use_innovus_batch
 
 # TCL commands
@@ -422,7 +422,7 @@ gf_submit_task -silent
 # Innovus post-route reports task
 ########################################
 
-gf_create_task -name ReportRoute -mother Route -group Reports -parallel 1
+gf_create_task -name ReportRoute -mother Route -group Reports
 gf_use_innovus_batch
 
 # TCL commands

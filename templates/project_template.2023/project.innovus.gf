@@ -36,5 +36,5 @@ gf_create_step -name init_innovus_environment '
     # export OA_UNSUPPORTED_PLAT=linux_rhel60
 
     # Add path the directory with tool binaries
-    export PATH="${PATH}:<PLACEHOLDER:/PATH_TO_INNOVUS/bin>"
+    export PATH="${PATH}:<PLACEHOLDER>/PATH_TO_INNOVUS/bin"
 '

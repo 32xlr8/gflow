@@ -34,7 +34,7 @@ gf_set_task_options -enable LVS*
 ################################################################################
 
 # # Nets to connect virtually during LVS
-# LVS_VIRTUAL_NET_CONNECT="<PLACEHOLDER:POC VDD VSS VSSPST VDDPST AVDD AVSS>"
+# LVS_VIRTUAL_NET_CONNECT="<PLACEHOLDER>POC VDD VSS VSSPST VDDPST AVDD AVSS"
 
 # Sed commands to replace LEF metal layer names with GDS text layer numbers 
 MAP_PORT_NAMES_SED_SCRIPT='

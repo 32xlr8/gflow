@@ -24,98 +24,135 @@
 gf_info "Loading block-specific Quantus steps ..."
 
 ################################################################################
+# Flow options
+################################################################################
+
+# # Override tasks resources
+# gf_set_task_options -cpu 8 -mem 15
+
+# # Override resources for batch tasks
+# gf_set_task_options Extraction -cpu 8 -mem 15
+
+################################################################################
+# Flow variables
+################################################################################
+
+# # Specific configuration file
+# CONFIG_FILE='/path/to/ConfigBackend*.timing.tcl'
+
+################################################################################
 # Flow steps
 ################################################################################
 
-# Project-specific tool environment
-gf_create_step -name quantus_project_settings '
+# CCL commands before parasitics extraction for timing analysis
+gf_create_step -name quantus_pre_init_design_timing '
+    # Reserved
+'
 
-    # LEF to QRC layer mapping
-    extraction_setup -technology_layer_map \
-        PO poly \
-        NWELL none \
-        PWELL none \
-        VTH_P none \
-        VTL_P none \
-        VTUL_P none \
-        CO polyCont \
-        M1 metal1 \
-        M2 metal2 \
-        <PLACEHOLDER:LEF_layer QRC_layer> \
-        AP metal9 \
-        VIA1 VIA1 \
-        <PLACEHOLDER:LEF_layer QRC_layer> \
-        RV VIA8
+# CCL commands before parasitics extraction for power analysis
+gf_create_step -name quantus_pre_init_design_power '
+    # Reserved
+'
 
-    # # LEF to GDS layer mapping
+# CCL Commands before design initialized
+gf_create_step -name quantus_pre_init_design '
+
+    # Please choose one of option 1.*  and 2.*
+
+    # Option 1.1: LEF to QRC layer mapping file (./block.files.gf)
+    include "`$QUANTUS_DEF_LAYER_MAP_FILE -optional`"
+    
+    # # Option 1.2: LEF to QRC manual layer mapping
+    # extraction_setup -technology_layer_map \
+    #     PO poly \
+    #     NWELL none \
+    #     PWELL none \
+    #     VTH_P none \
+    #     VTL_P none \
+    #     VTUL_P none \
+    #     CO polyCont \
+    #     M1 metal1 \
+    #     M2 metal2 \
+    #     <PLACEHOLDER>LEF_layer QRC_layer \
+    #     AP metal9 \
+    #     VIA1 VIA1 \
+    #     <PLACEHOLDER>LEF_layer QRC_layer \
+    #     RV VIA8
+
+    # Option 2.1.1/2.2.1: LEF to GDS layer and metal fill mapping file (./block.files.gf)
+    extraction_setup -stream_layer_map_file "`$QUANTUS_GDS_LAYER_MAP_FILE -optional`"
+    
+    # # Option 2.1.2: LEF to GDS manual layer mapping without DPT layers
     # extraction_setup -gds_layer_map \
-       # <PLACEHOLDER:LEF_layer GDS_layer_num GDS_data_type> \
-       # PO    17  0  \
-       # CO    30  0  \
-       # M1    31  0  \
-       # VIA1  51  0  \
-       # RV    85  0  \
-       # AP    74  0
-    # # LEF to GDS layer mapping
-    #extraction_setup -gds_layer_map_by_color \
-       # - M0 180 250 \
-       # 1 M0 180 255 \
-       # 2 M0 180 256 \
-       # <PLACEHOLDER:mask LEF_layer GDS_layer_num GDS_data_type> \
-       # - AP 74 0 \
-       # - VIA0 159 250 \
-       # - VIA1 51 250 \
-       # 1 VIA1 51 255 \
-       # 2 VIA1 51 256 \
-       # <PLACEHOLDER:mask LEF_layer GDS_layer_num GDS_data_type> \
-       - RV 85 0
-
-    # # LEF to GDS metal fill layer mapping
+    #    <PLACEHOLDER>LEF_layer GDS_layer_num GDS_data_type \
+    #    PO    17  0  \
+    #    CO    30  0  \
+    #    M1    31  0  \
+    #    VIA1  51  0  \
+    #    RV    85  0  \
+    #    AP    74  0
+    #
+    # # Option 2.1.3: LEF to GDS manual layer mapping with DPT layers
+    # extraction_setup -gds_layer_map_by_color \
+    #    - M0 180 250 \
+    #    1 M0 180 255 \
+    #    2 M0 180 256 \
+    #    <PLACEHOLDER>mask LEF_layer GDS_layer_num GDS_data_type \
+    #    - AP 74 0 \
+    #    - VIA0 159 250 \
+    #    - VIA1 51 250 \
+    #    1 VIA1 51 255 \
+    #    2 VIA1 51 256 \
+    #    <PLACEHOLDER>mask LEF_layer GDS_layer_num GDS_data_type \
+    #    - RV 85 0
+    #
+    # # Option 2.2.2: LEF to GDS metal fill manual layer mapping without DPT layers
     # extraction_setup -gds_fill_layer_map \
-       # OD 6 1 \
-       # OD 6 7 \
-       # PO 17 1 \
-       # PO 17 7 \
-       # PO 17 11 \
-       # PO 17 12 \
-       # M1 31 1 \
-       # M1 31 7 \
-       # M1 31 209 \
-       # M2 32 1 \
-       # M2 32 7 \
-       # M2 32 209 \
-       # M3 33 1 \
-       # M3 33 7 \
-       # M4 34 1 \
-       # M4 34 7 \
-       # <PLACEHOLDER:LEF_layer GDS_layer_num GDS_data_type> \
-       # VIA1 51 1 \
-       # VIA2 52 1 \
-       # VIA3 53 1 \
-       # <PLACEHOLDER:LEF_layer GDS_layer_num GDS_data_type>
-    # # LEF to GDS metal fill layer mapping
+    #    OD 6 1 \
+    #    OD 6 7 \
+    #    PO 17 1 \
+    #    PO 17 7 \
+    #    PO 17 11 \
+    #    PO 17 12 \
+    #    M1 31 1 \
+    #    M1 31 7 \
+    #    M1 31 209 \
+    #    M2 32 1 \
+    #    M2 32 7 \
+    #    M2 32 209 \
+    #    M3 33 1 \
+    #    M3 33 7 \
+    #    M4 34 1 \
+    #    M4 34 7 \
+    #    <PLACEHOLDER>LEF_layer GDS_layer_num GDS_data_type \
+    #    VIA1 51 1 \
+    #    VIA2 52 1 \
+    #    VIA3 53 1 \
+    #    <PLACEHOLDER>LEF_layer GDS_layer_num GDS_data_type
+    #  
+    # # Option 2.2.3: LEF to GDS metal fill manual layer mapping with DPT layers
     # extraction_setup -gds_fill_layer_map_by_color \
-       # - OD 6 1 \
-       # - OD 6 7 \
-       # - OD 6 21 \
-       # - OD 6 22 \
-       # - OD 6 25 \
-       # - COD_H 6 26 \
-       # - COD_V 6 27 \
-       # - COD_BLOCK 6 28 \
-       # - PO 17 1 \
-       # - PO 17 7 \
-       # - PO 17 8 \
-       # - CPO 17 23 \
-       # - M1 31 2 \
-       # - M1 31 3 \
-       # 1 M2 32 72 \
-       # 2 M2 32 73 \
-       # 1 M3 33 72 \
-       # 2 M3 33 73 \
-       # - M4 34 151 \
-       # - M4 34 157 \
-       # <PLACEHOLDER:mask LEF_layer GDS_layer_num GDS_data_type> \
-       # - VIA1 51 71 \
-       # <PLACEHOLDER:mask LEF_layer GDS_layer_num GDS_data_type>
+    #    - OD 6 1 \
+    #    - OD 6 7 \
+    #    - OD 6 21 \
+    #    - OD 6 22 \
+    #    - OD 6 25 \
+    #    - COD_H 6 26 \
+    #    - COD_V 6 27 \
+    #    - COD_BLOCK 6 28 \
+    #    - PO 17 1 \
+    #    - PO 17 7 \
+    #    - PO 17 8 \
+    #    - CPO 17 23 \
+    #    - M1 31 2 \
+    #    - M1 31 3 \
+    #    1 M2 32 72 \
+    #    2 M2 32 73 \
+    #    1 M3 33 72 \
+    #    2 M3 33 73 \
+    #    - M4 34 151 \
+    #    - M4 34 157 \
+    #    <PLACEHOLDER>mask LEF_layer GDS_layer_num GDS_data_type \
+    #    - VIA1 51 71 \
+    #    <PLACEHOLDER>mask LEF_layer GDS_layer_num GDS_data_type
 '

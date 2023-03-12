@@ -19,7 +19,7 @@
 # limitations under the License.
 #
 ################################################################################
-# Filename: templates/project_template.2023/blocks/block_template/genus.synth.gf
+# Filename: templates/project_template.2023/blocks/block_template/genus.fe.gf
 # Purpose:  Batch synthesis flow
 ################################################################################
 
@@ -30,11 +30,9 @@
 # Project and block initialization scripts
 gf_source "../../project.common.gf"
 gf_source "../../project.genus.gf"
-gf_source "../../project.modus.gf"
 gf_source "./block.common.gf"
 gf_source "./block.files.gf"
 gf_source "./block.genus.gf"
-gf_source "./block.modus.gf"
 
 ########################################
 # Genus generic synthesis
@@ -63,9 +61,9 @@ fi
 
 # Choose MMMC file
 gf_choose_file_dir_task -variable MMMC_FILE -keep -prompt "Please select MMMC file:" -files '
-    ../data/*.mmmc.tcl
-    ../data/*/*.mmmc.tcl
-    ../work_*/*/out/FrontendMMMC*.mmmc.tcl
+    ../data/*.timing.mmmc.tcl
+    ../data/*/*.timing.mmmc.tcl
+    ../work_*/*/out/ConfigFrontend*.timing.mmmc.tcl
 '
 
 # TCL commands
@@ -270,7 +268,7 @@ gf_submit_task
 # Genus post syn-gen reports task
 ########################################
 
-gf_create_task -name ReportSynGen -mother SynGen -group Reports -parallel 1
+gf_create_task -name ReportSynGen -mother SynGen -group Reports
 gf_use_genus_batch
 
 # TCL commands
@@ -299,7 +297,7 @@ gf_submit_task -silent
 # Genus post syn-map reports task
 ########################################
 
-gf_create_task -name ReportSynMap -mother SynMap -group Reports -parallel 1
+gf_create_task -name ReportSynMap -mother SynMap -group Reports
 gf_use_genus_batch
 
 # TCL commands
@@ -328,7 +326,7 @@ gf_submit_task -silent
 # Genus post syn-opt reports task
 ########################################
 
-gf_create_task -name ReportSynOpt -mother SynOpt -group Reports -parallel 1
+gf_create_task -name ReportSynOpt -mother SynOpt -group Reports
 gf_use_genus_batch
 
 # TCL commands

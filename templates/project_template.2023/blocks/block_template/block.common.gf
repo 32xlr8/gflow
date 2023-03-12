@@ -29,27 +29,27 @@ gf_info "Loading block-specific setup ..."
 
 # Default tasks resources
 gf_set_task_options -cpu 8 -mem 20
-gf_set_task_options '*MMMC' -cpu 1 -mem 1 -local
+gf_set_task_options 'Config*' -cpu 1 -mem 1 -local
 
 # # Disable not needed tasks
-# gf_set_task_options -disable FrontendMMMC
-# gf_set_task_options -disable BackendMMMC
-# gf_set_task_options -disable SignoffMMMC
+# gf_set_task_options -disable ConfigFrontend
+# gf_set_task_options -disable ConfigBackend
+# gf_set_task_options -disable ConfigSignoff
 
 ################################################################################
 # Flow variables
 ################################################################################
 
 # Top cell name in netlist
-DESIGN_NAME='<PLACEHOLDER:block_name>'
+DESIGN_NAME='<PLACEHOLDER>block_name'
 
 # Global core nets
 POWER_NETS_CORE='VDD'
 GROUND_NETS_CORE='VSS'
 
 # # Other global nets
-# POWER_NETS_OTHER='<PLACEHOLDER:VDDA VDDPST>'
-# GROUND_NETS_OTHER='<PLACEHOLDER:VSSA VSSPST>'
+# POWER_NETS_OTHER='<PLACEHOLDER>VDDA VDDPST'
+# GROUND_NETS_OTHER='<PLACEHOLDER>VSSA VSSPST'
 
 ################################################################################
 # MMMC configuration by design stage
@@ -84,12 +84,12 @@ gf_create_step -name gconfig_settings_common '
 
 # Synthesis settings
 gf_create_step -name gconfig_settings_frontend '
+    <PLACEHOLDER> Review frontend settings for synthesis
     
     # ------------------------
     # List of named scenarios:
     # ------------------------
     # - each scenario is {<scenario_name> {{analysis_view_1} {analysis_view_2} ...}}
-    <PLACEHOLDER>
     set TIMING_SETS {
         basic {
             {func ss 0p900v m40 cwt s}
@@ -103,7 +103,6 @@ gf_create_step -name gconfig_settings_frontend '
     # - ecsm_libraries - ECSM (Liberty) + AOCV/SOCV files used for precise delay calculation
     # - ccs_libraries - CCS (Liberty) + AOCV/SOCV files used for precise delay calculation
     # - lvf_libraries - LVF (Liberty) files used for most precise delay calculation
-    <PLACEHOLDER>
     gconfig::enable_switches nldm_libraries
     # gconfig::enable_switches ecsm_libraries
     # gconfig::enable_switches ccs_libraries
@@ -114,7 +113,6 @@ gf_create_step -name gconfig_settings_frontend '
     # ------------------------------------------------------------------------
     # - aocv_libraries - AOCV (advanced, SBOCV)
     # - socv_libraries - SOCV (statistical)
-    <PLACEHOLDER>
     # gconfig::enable_switches aocv_libraries
     # gconfig::enable_switches socv_libraries
    
@@ -125,7 +123,6 @@ gf_create_step -name gconfig_settings_frontend '
     # - no_derates - zero derates (optimistic for prototyping mode)
     # - user_derates - same as flat_derates, but user-specified values used (customize below)
     # - vt_derates - used with ESCM/CCS if additional Voltage/Temparature derates required (see standard cell documentation, customize IR-drop below)
-    <PLACEHOLDER>
     gconfig::enable_switches flat_derates
     # gconfig::enable_switches no_derates
     # gconfig::enable_switches vt_derates
@@ -135,8 +132,8 @@ gf_create_step -name gconfig_settings_frontend '
     # # It is recommended to set 40% of Static IR for setup and 80% for hold
     # gconfig::add_section {
     #     -when vt_derates {
-    #         -views {* * * * * s} {$voltage_drop <PLACEHOLDER:20>}
-    #         -views {* * * * * h} {$voltage_drop <PLACEHOLDER:40>}
+    #         -views {* * * * * s} {$voltage_drop <PLACEHOLDER>20}
+    #         -views {* * * * * h} {$voltage_drop <PLACEHOLDER>40}
     #     }
     # }
 
@@ -155,33 +152,32 @@ gf_create_step -name gconfig_settings_frontend '
     # Default uncertainty mode - reset all clocks uncertainty to recommended values:
     # ------------------------------------------------------------------------------
     # - default_uncertainty - use when SDC files do not contain set_clock_uncertainty commands
-    <PLACEHOLDER>
     # gconfig::enable_switches default_uncertainty
     #
     # # Set PLL jitter value in ps
     # gconfig::add_section {
     #     -when default_uncertainty {
-    #         $jitter <PLACEHOLDER:25>
+    #         $jitter <PLACEHOLDER>25
     #     }
     # }
     
     # # Optional: set user-specific clock uncertainty values for all clocks
     # gconfig::add_section {
     #     -when default_uncertainty {
-    #         -views {* ss 0p900v * * *} {$process_uncertainty 0 $setup_uncertainty <PLACEHOLDER:100> $hold_uncertainty <PLACEHOLDER:50>}
-    #         -views {* ff 1p100v * * *} {$process_uncertainty 0 $setup_uncertainty <PLACEHOLDER:100> $hold_uncertainty <PLACEHOLDER:50>}
+    #         -views {* ss 0p900v * * *} {$process_uncertainty 0 $setup_uncertainty <PLACEHOLDER>100 $hold_uncertainty <PLACEHOLDER>50}
+    #         -views {* ff 1p100v * * *} {$process_uncertainty 0 $setup_uncertainty <PLACEHOLDER>100 $hold_uncertainty <PLACEHOLDER>50}
     #     }
     # }
 '
 
 # Implementation settings
 gf_create_step -name gconfig_settings_backend '
+    <PLACEHOLDER> Review backend settings for implementation
    
     # ------------------------
     # List of named scenarios:
     # ------------------------
     # - each scenario is {<scenario_name> {{analysis_view_1} {analysis_view_2} ...}}
-    <PLACEHOLDER>
     set TIMING_SETS {
         minimal {
             {func ss 0p900v m40 cwt s}
@@ -202,7 +198,6 @@ gf_create_step -name gconfig_settings_backend '
     # - ecsm_libraries - ECSM (Liberty) + AOCV/SOCV files used for precise delay calculation
     # - ccs_libraries - CCS (Liberty) + AOCV/SOCV files used for precise delay calculation
     # - lvf_libraries - LVF (Liberty) files used for most precise delay calculation
-    <PLACEHOLDER>
     # gconfig::enable_switches nldm_libraries
     gconfig::enable_switches ecsm_libraries
     # gconfig::enable_switches ccs_libraries
@@ -213,7 +208,6 @@ gf_create_step -name gconfig_settings_backend '
     # ------------------------------------------------------------------------
     # - aocv_libraries - AOCV (advanced, SBOCV)
     # - socv_libraries - SOCV (statistical)
-    <PLACEHOLDER>
     gconfig::enable_switches aocv_libraries
     # gconfig::enable_switches socv_libraries
    
@@ -224,7 +218,6 @@ gf_create_step -name gconfig_settings_backend '
     # - no_derates - zero derates (optimistic for prototyping mode)
     # - user_derates - same as flat_derates, but user-specified values used (customize below)
     # - vt_derates - used with ESCM/CCS if additional Voltage/Temparature derates required (see standard cell documentation, customize IR-drop below)
-    <PLACEHOLDER>
     # gconfig::enable_switches flat_derates
     # gconfig::enable_switches no_derates
     gconfig::enable_switches vt_derates
@@ -234,8 +227,8 @@ gf_create_step -name gconfig_settings_backend '
     # It is recommended to set 40% of Static IR for setup and 80% for hold
     gconfig::add_section {
         -when vt_derates {
-            -views {* * * * * s} {$voltage_drop <PLACEHOLDER:20>}
-            -views {* * * * * h} {$voltage_drop <PLACEHOLDER:40>}
+            -views {* * * * * s} {$voltage_drop <PLACEHOLDER>20}
+            -views {* * * * * h} {$voltage_drop <PLACEHOLDER>40}
         }
     }
 
@@ -254,33 +247,32 @@ gf_create_step -name gconfig_settings_backend '
     # Default uncertainty mode - reset all clocks uncertainty to recommended values:
     # ------------------------------------------------------------------------------
     # - default_uncertainty - use when SDC files do not contain set_clock_uncertainty commands
-    <PLACEHOLDER>
     # gconfig::enable_switches default_uncertainty
     #
     # # Set PLL jitter value in ps
     # gconfig::add_section {
     #     -when default_uncertainty {
-    #         $jitter <PLACEHOLDER:25>
+    #         $jitter <PLACEHOLDER>25
     #     }
     # }
     
     # # Optional: set user-specific clock uncertainty values for all clocks
     # gconfig::add_section {
     #     -when default_uncertainty {
-    #         -views {* ss 0p900v * * *} {$process_uncertainty 0 $setup_uncertainty <PLACEHOLDER:100> $hold_uncertainty <PLACEHOLDER:50>}
-    #         -views {* ff 1p100v * * *} {$process_uncertainty 0 $setup_uncertainty <PLACEHOLDER:100> $hold_uncertainty <PLACEHOLDER:50>}
+    #         -views {* ss 0p900v * * *} {$process_uncertainty 0 $setup_uncertainty <PLACEHOLDER>100 $hold_uncertainty <PLACEHOLDER>50}
+    #         -views {* ff 1p100v * * *} {$process_uncertainty 0 $setup_uncertainty <PLACEHOLDER>100 $hold_uncertainty <PLACEHOLDER>50}
     #     }
     # }
 '
 
 # Signoff settings
 gf_create_step -name gconfig_settings_signoff '
+    <PLACEHOLDER> Review signoff settings for timing and power analysis
 
     # ------------------------
     # List of named scenarios:
     # ------------------------
     # - each scenario is {<scenario_name> {{analysis_view_1} {analysis_view_2} ...}}
-    <PLACEHOLDER>
     set TIMING_SETS {
         recommended {
             {func tt 1p000v 85 ct s}
@@ -331,17 +323,16 @@ gf_create_step -name gconfig_settings_signoff '
     # Power analysis scenarios:
     # -------------------------
     # - each scenario is {<scenario_name> {view_type {analysis_view} ...}}
-    # - PGV_SPEF_CORNER - PGV generation extraction corner
-    # - SIGNAL_SPEF_CORNER - Signal nets extraction corner
-    # - POWER_SPEF_CORNER - Power grid extraction corner
-    # - STATIC_POWER_VIEW - Static power analysis view
-    # - DINAMIC_POWER_VIEW - Dynamic power analysis view
-    # - STATIC_RAIL_VIEW - Static rail analysis view
-    # - DINAMIC_RAIL_VIEW - Dynamic rail analysis view
-    # - SIGNAL_EM_VIEW - Signal electromigration analysis view
-    <PLACEHOLDER>
+    #   - PGV_SPEF_CORNER - PGV generation extraction corner
+    #   - SIGNAL_SPEF_CORNER - Signal nets extraction corner
+    #   - POWER_SPEF_CORNER - Power grid extraction corner
+    #   - STATIC_POWER_VIEW - Static power analysis view
+    #   - DINAMIC_POWER_VIEW - Dynamic power analysis view
+    #   - STATIC_RAIL_VIEW - Static rail analysis view
+    #   - DINAMIC_RAIL_VIEW - Dynamic rail analysis view
+    #   - SIGNAL_EM_VIEW - Signal electromigration analysis view
     set POWER_SETS {
-        default {
+        basic {
             PGV_SPEF_CORNER {* * * 125 rcw *}
             SIGNAL_SPEF_CORNER {* * * m40 rcb *}
             POWER_SPEF_CORNER {* * * 125 cw *}
@@ -363,7 +354,6 @@ gf_create_step -name gconfig_settings_signoff '
     # - ecsm_libraries - ECSM (Liberty) + AOCV/SOCV files used for precise delay calculation
     # - ccs_libraries - CCS (Liberty) + AOCV/SOCV files used for precise delay calculation
     # - lvf_libraries - LVF (Liberty) files used for most precise delay calculation
-    <PLACEHOLDER>
     # gconfig::enable_switches nldm_libraries
     gconfig::enable_switches ecsm_libraries
     # gconfig::enable_switches ccs_libraries
@@ -374,7 +364,6 @@ gf_create_step -name gconfig_settings_signoff '
     # ------------------------------------------------------------------------
     # - aocv_libraries - AOCV (advanced, SBOCV)
     # - socv_libraries - SOCV (statistical)
-    <PLACEHOLDER>
     gconfig::enable_switches aocv_libraries
     # gconfig::enable_switches socv_libraries
    
@@ -385,7 +374,6 @@ gf_create_step -name gconfig_settings_signoff '
     # - no_derates - zero derates (optimistic for prototyping mode)
     # - user_derates - same as flat_derates, but user-specified values used (customize below)
     # - vt_derates - used with ESCM/CCS if additional Voltage/Temparature derates required (see standard cell documentation, customize IR-drop below)
-    <PLACEHOLDER>
     # gconfig::enable_switches flat_derates
     # gconfig::enable_switches no_derates
     gconfig::enable_switches vt_derates
@@ -395,8 +383,8 @@ gf_create_step -name gconfig_settings_signoff '
     # It is recommended to set 40% of Static IR for setup and 80% for hold
     gconfig::add_section {
         -when vt_derates {
-            -views {* * * * * s} {$voltage_drop <PLACEHOLDER:20>}
-            -views {* * * * * h} {$voltage_drop <PLACEHOLDER:40>}
+            -views {* * * * * s} {$voltage_drop <PLACEHOLDER>20}
+            -views {* * * * * h} {$voltage_drop <PLACEHOLDER>40}
         }
     }
 
@@ -415,21 +403,20 @@ gf_create_step -name gconfig_settings_signoff '
     # Default uncertainty mode - reset all clocks uncertainty to recommended values:
     # ------------------------------------------------------------------------------
     # - default_uncertainty - use when SDC files do not contain set_clock_uncertainty commands
-    <PLACEHOLDER>
     # gconfig::enable_switches default_uncertainty
     #
     # # Set PLL jitter value in ps
     # gconfig::add_section {
     #     -when default_uncertainty {
-    #         $jitter <PLACEHOLDER:25>
+    #         $jitter <PLACEHOLDER>25
     #     }
     # }
     
     # # Optional: set user-specific clock uncertainty values for all clocks
     # gconfig::add_section {
     #     -when default_uncertainty {
-    #         -views {* ss 0p900v * * *} {$process_uncertainty 0 $setup_uncertainty <PLACEHOLDER:100> $hold_uncertainty <PLACEHOLDER:50>}
-    #         -views {* ff 1p100v * * *} {$process_uncertainty 0 $setup_uncertainty <PLACEHOLDER:100> $hold_uncertainty <PLACEHOLDER:50>}
+    #         -views {* ss 0p900v * * *} {$process_uncertainty 0 $setup_uncertainty <PLACEHOLDER>100 $hold_uncertainty <PLACEHOLDER>50}
+    #         -views {* ff 1p100v * * *} {$process_uncertainty 0 $setup_uncertainty <PLACEHOLDER>100 $hold_uncertainty <PLACEHOLDER>50}
     #     }
     # }
 '

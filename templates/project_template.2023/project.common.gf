@@ -64,15 +64,15 @@ export SHELL=/bin/bash
 gf_create_step -name init_shell_environment '
 
     # Remove tool paths from path environment
-    export PATH="$(echo ":$PATH" | sed -e "s|:<PLACEHOLDER:/PATH_TO/SOFT/ROOT/>[^:]\+||g; s/^://;")"
+    export PATH="$(echo ":$PATH" | sed -e "s|:<PLACEHOLDER>/PATH_TO/SOFT/ROOT/[^:]\+||g; s/^://;")"
 
     # Bypass OpenAccess issues
     unset OA_HOME
 
     # License options
     # export CDS_LIC_ONLY=1
-    # export CDS_LIC_FILE=5280@<PLACEHOLDER:lic_server1>:5280@<PLACEHOLDER:lic_server2>
-    export LM_LICENSE_FILE=5280@<PLACEHOLDER:lic_server1>:5280@<PLACEHOLDER:lic_server2>
+    # export CDS_LIC_FILE=5280@<PLACEHOLDER>lic_server1:5280@<PLACEHOLDER>lic_server2
+    export LM_LICENSE_FILE=5280@<PLACEHOLDER>lic_server1:5280@<PLACEHOLDER>lic_server2
 
     # Startup options
     export CDS_AUTO_32BIT=NONE

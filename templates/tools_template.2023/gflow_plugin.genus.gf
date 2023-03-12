@@ -68,7 +68,11 @@ function gf_use_genus {
 
     # Multi-CPU mode
     if [ -n "$GF_TASK_CPU" ]; then
-        gf_add_tool_commands 'set_db / .max_cpus_per_server `$GF_TASK_CPU`'
+        gf_add_tool_commands '
+            set_db / .max_cpus_per_server `$GF_TASK_CPU`
+            set_db / .super_thread_servers localhost
+            set_db / .super_thread_debug_jobs true
+        '
     fi
 
     # Success marks
@@ -120,7 +124,11 @@ function gf_use_genus_batch {
 
     # Multi-CPU mode
     if [ -n "$GF_TASK_CPU" ]; then
-        gf_add_tool_commands 'set_db / .max_cpus_per_server `$GF_TASK_CPU`'
+        gf_add_tool_commands '
+            set_db / .max_cpus_per_server `$GF_TASK_CPU`
+            set_db / .super_thread_servers localhost
+            set_db / .super_thread_debug_jobs true
+        '
     fi
 
     # Success marks

@@ -20,6 +20,8 @@
 # Filename: templates/project_template.2023/blocks/block_template/block.genus.gf
 # Purpose:  Block-specific Genus configuration and flow steps
 ################################################################################
+# gf_source "../../project.modus.gf"
+# gf_source "./block.modus.gf"
 
 gf_info "Loading block-specific Genus steps ..."
 
@@ -27,13 +29,21 @@ gf_info "Loading block-specific Genus steps ..."
 # Flow options
 ################################################################################
 
-# Override tasks resources
+# # Override tasks resources
 # gf_set_task_options -cpu 8 -mem 15
-gf_set_task_options 'Debug*' -cpu 4 -mem 10
-gf_set_task_options 'Report*' -cpu 4 -mem 10 -parallel 1
+
+# # Override resources for interactive tasks
+# gf_set_task_options Floorplan -cpu 4 -mem 10
+# gf_set_task_options 'Debug*' -cpu 4 -mem 10
+
+# # Override resources for batch tasks
 # gf_set_task_options SynGen -cpu 8 -mem 15
 # gf_set_task_options SynMap -cpu 8 -mem 15
 # gf_set_task_options SynOpt -cpu 8 -mem 15
+gf_set_task_options 'Report*' -cpu 4 -mem 10
+
+# Limit simultaneous tasks count
+gf_set_task_options 'Report*' -parallel 1
 
 # # Disable not needed tasks
 # gf_set_task_options -disable ReportSynGen
@@ -48,20 +58,24 @@ gf_set_task_options 'Report*' -cpu 4 -mem 10 -parallel 1
 # FLOORPLAN_FILE=""
 
 # # Specific MMMC file
-# MMMC_FILE=/path/to/FrontendMMMC*.mmmc.tcl
+# MMMC_FILE=/path/to/ConfigFrontend*.timing.mmmc.tcl
 
 # Top cell name for elaboration
 ELAB_DESIGN_NAME="$DESIGN_NAME"
 
+# # Physical/logical synthesis
+# PHYSICAL_MODE=Y
+# PHYSICAL_MODE=N
+
 ################################################################################
-# Synthesis flow steps - ./genus.synth.gf, ./genus.ispatial.gf
+# Synthesis flow steps - ./genus.fe.gf, ./genus.ispatial.gf
 ################################################################################
 
 # Commands before reading libraries
 gf_create_step -name genus_pre_read_libs '
 
-    # Verbosity level
-    set_db information_level 9
+    # # Verbosity level
+    # set_db information_level 9
 
     # Limit some messages
     foreach message_id {CHNM-102 CWD-17 CWD-19 CWD-36} {
@@ -78,10 +92,13 @@ gf_create_step -name genus_pre_read_libs '
 gf_create_step -name genus_read_rtl '
 
     # Define directories containing HDL files
-    set_db init_hdl_search_path {
-        <PLACEHOLDER:../../../../../../data/hdl>
-        <PLACEHOLDER:../../../../data/hdl>
-    }
+    set_db init_hdl_search_path [join {`$RTL_SEARCH_PATHS -optional`}]
+
+    # RTL files defined in block.files.gf
+    set RTL_FILES {`$RTL_FILES -optional`}
+
+    # RTL files list defined in block.files.gf
+    set RTL_FILES_LIST {`$RTL_FILES_LIST -optional`}
 
     # Read HDL settings
     set_db hdl_track_filename_row_col true 
@@ -98,16 +115,22 @@ gf_create_step -name genus_read_rtl '
     # # Flop settings
     # set_db optimize_constant_0_flops false
     # set_db optimize_constant_1_flops false
-
-    # # RTL files
-    # set RTL_FILES {`$RTL_FILES`}
     
-    # # Read HDL files
-    # read_hdl -define {<PLACEHOLDER:DEFINE>} <PLACEHOLDER.v>
-    # read_hdl -language vhdl <PLACEHOLDER.hdl>
-    # read_hdl -language sv <PLACEHOLDER.sv>
-    # read_hdl -language sv <PLACEHOLDER.sv> -f <PLACEHOLDER.f>
-    # read_hdl -language sv [join $RTL_FILES]
+    # Read system verilog files
+    if {[llength $RTL_FILES] > 0} {
+        read_hdl -language sv [join $RTL_FILES]
+    }
+
+    # Read system verilog files list
+    if {[llength $RTL_FILES_LIST] > 0} {
+        read_hdl -language sv -f [join $RTL_FILES_LIST]
+    }
+    
+    # # Custom set of files
+    # read_hdl -define {<PLACEHOLDER>DEFINE} <PLACEHOLDER.v>
+    # read_hdl -language sv <PLACEHOLDER>top.sv
+    # read_hdl -language vhdl <PLACEHOLDER>top.hdl
+    # read_hdl -language sv <PLACEHOLDER>top.sv -f <PLACEHOLDER>file_list.f
 '
 
 # Commands after design elaborated
@@ -160,16 +183,16 @@ gf_create_step -name genus_post_init_design '
     set_db print_ports_nets_preserved_for_cb true
 
     # Routing options
-    set_db design_bottom_routing_layer <PLACEHOLDER:M1>
-    set_db design_top_routing_layer <PLACEHOLDER:M10>
-    set_db number_of_routing_layers <PLACEHOLDER:10>
+    # set_db design_bottom_routing_layer <PLACEHOLDER>M2
+    # set_db design_top_routing_layer <PLACEHOLDER>M8
+    set_db number_of_routing_layers <PLACEHOLDER>8
     
     # Create discrete clock-gating logic if no ICG cells defined in libraries
     set_db lp_insert_discrete_clock_gating_logic true
     
     # Clock gating
     set_db lp_insert_clock_gating true
-    set gf_clock_gating_cell [get_db base_cells {<PLACEHOLDER:CLOCK_GATING_CELL_NAME>}]
+    set gf_clock_gating_cell [get_db base_cells {<PLACEHOLDER>CLOCK_GATING_CELL_NAME}]
     set_db $gf_clock_gating_cell .dont_use false
     set_db current_design .lp_clock_gating_cell [get_db $gf_clock_gating_cell .name]
 
@@ -195,16 +218,17 @@ gf_create_step -name genus_post_init_design '
     # }]]
 
     # Dont use cells
-    set_dont_use <PLACEHOLDER:*> true
-    set_dont_use <PLACEHOLDER:*> false
+    set_dont_use <PLACEHOLDER>* true
+    set_dont_use <PLACEHOLDER>* false
 
     # # Clock and special cells
     # set_dont_use CK*BWP* true
     # set_dont_use DCCK*BWP* true
     # set_dont_use DEL*BWP* true
     # set_dont_use G*BWP* true
-    # set_dont_use <PLACEHOLDER:*OPT*BWP*> true
-    # set_dont_use <PLACEHOLDER:*BWP*ULVT*> true
+    # set_dont_use <PLACEHOLDER>*OPT*BWP* true
+    # set_dont_use <PLACEHOLDER>*BWP*LVT* true
+    # set_dont_use <PLACEHOLDER>*BWP*ULVT* true
 
     # # Weak/strong drivers
     # set_dont_use *D0BWP* true
@@ -226,17 +250,17 @@ gf_create_step -name genus_post_init_design '
     `@procs_stylus_db`
     
     # # Dont touch instances
-    # set_db [gf_get_insts <PLACEHOLDER:pattern>] .dont_touch map_size_ok
-    # set_db [gf_get_insts <PLACEHOLDER:pattern>] .dont_touch true
+    # set_db [gf_get_insts <PLACEHOLDER>pattern] .dont_touch map_size_ok
+    # set_db [gf_get_insts <PLACEHOLDER>pattern] .dont_touch true
 
     # # Dont touch modules
-    # set_db [gf_get_hinsts <PLACEHOLDER:pattern>] .dont_touch true
+    # set_db [gf_get_hinsts <PLACEHOLDER>pattern] .dont_touch true
     
     # # Excluded clock gating instances
-    # set_db [gf_get_insts <PLACEHOLDER:pattern>] .lp_clock_gating_exclude true
+    # set_db [gf_get_insts <PLACEHOLDER>pattern] .lp_clock_gating_exclude true
 
     # # Excluded clock gating modules
-    # set_db [gf_get_hinsts <PLACEHOLDER:pattern>] .lp_clock_gating_exclude true
+    # set_db [gf_get_hinsts <PLACEHOLDER>pattern] .lp_clock_gating_exclude true
 
     # Default verbose set_db command
     reset_db set_db_verbose
@@ -297,14 +321,14 @@ gf_create_step -name genus_post_syn_opt '
 '
 
 ################################################################################
-# Report flow steps - ./genus.synth.gf
+# Report flow steps - ./genus.fe.gf
 ################################################################################
 
 # Post-generic synthesis Genus reports
 gf_create_step -name genus_design_reports_post_syn_gen '
     report_dp > ./reports/$TASK_NAME.dp.rpt
     report_logic_levels_histogram -bars 10 -skip_buffer -skip_inverter -threshold 10 -detail > ./reports/$TASK_NAME.logic_levels.rpt
-    check_design $DESIGN_NAME > ./reports/$TASK_NAME.check_design.rpt
+    check_design [get_db current_design .name] > ./reports/$TASK_NAME.check_design.rpt
     check_floorplan -out_file ./reports/$TASK_NAME.check_floorplan.rpt
     check_timing_intent > ./reports/$TASK_NAME.check_timing_intent.rpt
     report_timing -max_paths 500 > ./reports/$TASK_NAME.tarpt

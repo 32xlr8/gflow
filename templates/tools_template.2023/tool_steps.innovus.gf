@@ -1037,6 +1037,35 @@ gf_create_step -name innovus_procs_write_data '
         }
         close $FH
     }
+    
+    # Write out current sources coordinates
+    proc gf_write_current_sources_locations {file_base_name} {
+        set via_counter 0
+        foreach net [concat [get_db init_power_nets] [get_db init_ground_nets]] {
+            set vias [get_db [get_db nets $net] .special_vias]
+            set layers [get_db $vias .via_def.top_layer -u]
+            set top_layer_name [get_db [lindex $layers 0] .name]
+            set top_layer_index [get_db [lindex $layers 0] .route_index]
+            foreach layer $layers {
+                if {[get_db $layer .route_index] > $top_layer_index} {
+                    set top_layer_name [get_db $layer .name]
+                    set top_layer_index [get_db $layer .route_index]
+                }
+            }
+            puts "\033\[44m \033\[0m Writing $file_base_name.$net.pp"
+            set FH [open "$file_base_name.$net.pp" w]
+            set extract_corner_names {}
+            set net_via_counter 0
+            foreach via [get_db $vias -if .via_def.top_layer.name==$top_layer_name] {
+                incr via_counter
+                incr net_via_counter
+                puts $FH "${top_layer_name}_${via_counter} [get_db $via .point.x] [get_db $via .point.y] $top_layer_name"
+            }
+            puts "  \033\[42m \033\[0m $net_via_counter locations"
+            close $FH
+        }
+        puts "\n\033\[42m \033\[0m Total $via_counter locations written"
+    }
 '
 
 ################################################################################

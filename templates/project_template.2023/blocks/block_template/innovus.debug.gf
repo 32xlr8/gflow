@@ -85,11 +85,14 @@ gf_add_tool_commands '
     `@innovus_procs_interactive_design`
     `@innovus_procs_eco_design`
 
-    # Load trace timing utility
+    # Trace timing utility
     if {$TIMING_MODE == "Y"} {
-        source ../../../../../../gflow/bin/trace_timing.tcl
-        proc gf_gui_trace_timing_highlight_selected {} {trace_timing -highlight -selected}
-        catch {gui_bind_key Shift+F8 -cmd "gf_gui_trace_timing_highlight_selected"}
+        catch {
+            source ../../../../../../gflow/bin/trace_timing.tcl
+            proc gf_gui_trace_timing_highlight_selected {} {trace_timing -highlight -selected}
+            gui_bind_key Shift+F8 -cmd "gf_gui_trace_timing_highlight_selected"
+            puts "Use \[Shift+F8\] to trace timing through selected instance"
+        }
     }
 
     set_layer_preference phyCell -color #555555

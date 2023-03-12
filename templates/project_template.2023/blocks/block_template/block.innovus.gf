@@ -30,17 +30,23 @@ gf_info "Loading block-specific Innovus steps ..."
 # Flow options
 ################################################################################
 
-# Override tasks resources
+# # Override tasks resources
 # gf_set_task_options -cpu 8 -mem 15
-gf_set_task_options 'Debug*' -cpu 4 -mem 10
-gf_set_task_options 'Report*' -cpu 4 -mem 10 -parallel 1
-gf_set_task_options Floorplan -cpu 4 -mem 15
+
+# # Override resources for interactive tasks
+# gf_set_task_options Floorplan -cpu 4 -mem 15
+# gf_set_task_options 'Debug*' -cpu 4 -mem 10
+
+# # Override resources for batch tasks
 # gf_set_task_options Place -cpu 8 -mem 15
 # gf_set_task_options Clock -cpu 8 -mem 15
-# gf_set_task_options Route -cpu 8 -mem 15
+# gf_set_task_options Route -cpu 16 -mem 15
+gf_set_task_options 'Report*' -cpu 4 -mem 10
+
+# Limit simultaneous tasks count
+gf_set_task_options 'Report*' -parallel 1
 
 # # Disable not needed tasks
-# gf_set_task_options -disable ReportNetlist
 # gf_set_task_options -disable ReportPlace
 # gf_set_task_options -disable ReportClock
 # gf_set_task_options -disable ReportRoute
@@ -50,19 +56,19 @@ gf_set_task_options Floorplan -cpu 4 -mem 15
 ################################################################################
 
 # # Specific MMMC file
-# MMMC_FILE=/path/to/BackendMMMC*.mmmc.tcl
+# MMMC_FILE=/path/to/ConfigBackend*.timing.mmmc.tcl
 
 # # Optional: cells to exclude from netlist for simulation
-# LOGICAL_NETLIST_EXCLUDE_CELLS='<PLACEHOLDER:PVDD* PVSS*>'
+# LOGICAL_NETLIST_EXCLUDE_CELLS='<PLACEHOLDER>PVDD* PVSS*'
 
 # # Optional: cells to exclude from netlist for LVS
-# PHYSICAL_NETLIST_EXCLUDE_CELLS='<PLACEHOLDER:*_DTCD_* *_ICOVL_* TAP* FILL* BOUNDARY* PRCUT* PFILLER* PCORNER* label `$DESIGN_NAME`_dummy_fill_inst>'
+# PHYSICAL_NETLIST_EXCLUDE_CELLS='<PLACEHOLDER>*_DTCD_* *_ICOVL_* TAP* FILL* BOUNDARY* PRCUT* PFILLER* PCORNER* label `$DESIGN_NAME`_dummy_fill_inst'
 
 # # Set to "Y" to save libraries in LDB format
 # LDB_MODE=Y
 
 ################################################################################
-# Implementation flow steps - ./innovus.impl.gf, ./innovus.ispatial.gf
+# Implementation flow steps - ./innovus.be.gf, ./innovus.ispatial.gf
 ################################################################################
 
 # Tool-specific procedures
@@ -101,6 +107,9 @@ gf_create_step -name innovus_pre_read_libs '
     
     # # Do not add unneeded assigns
     # set_db init_no_new_assigns true
+    
+    # Uniquify netlist on load
+    set_db init_design_uniquify true
 '
 
 # Global net connection step
@@ -108,20 +117,20 @@ gf_create_step -name innovus_connect_global_nets '
     delete_global_net_connections
     
     # Core power nets connections
-    connect_global_net <PLACEHOLDER:VDD> -type tie_hi -pin_base_name <PLACEHOLDER:VDD> -inst_base_name * 
-    connect_global_net <PLACEHOLDER:VDD> -type pg_pin -pin_base_name <PLACEHOLDER:VDD> -inst_base_name * 
-    # connect_global_net <PLACEHOLDER:VDD> -type pg_pin -pin_base_name <PLACEHOLDER:VPP> -inst_base_name * 
+    connect_global_net <PLACEHOLDER>VDD -type tie_hi -pin_base_name <PLACEHOLDER>VDD -inst_base_name * 
+    connect_global_net <PLACEHOLDER>VDD -type pg_pin -pin_base_name <PLACEHOLDER>VDD -inst_base_name * 
+    # connect_global_net <PLACEHOLDER>VDD -type pg_pin -pin_base_name <PLACEHOLDER>VPP -inst_base_name * 
 
     # Core ground nets connections
-    connect_global_net <PLACEHOLDER:VSS> -type tie_lo -pin_base_name <PLACEHOLDER:VSS> -inst_base_name * 
-    connect_global_net <PLACEHOLDER:VSS> -type pg_pin -pin_base_name <PLACEHOLDER:VSS> -inst_base_name *
-    # connect_global_net <PLACEHOLDER:VSS> -type pg_pin -pin_base_name <PLACEHOLDER:VBB> -inst_base_name *
+    connect_global_net <PLACEHOLDER>VSS -type tie_lo -pin_base_name <PLACEHOLDER>VSS -inst_base_name * 
+    connect_global_net <PLACEHOLDER>VSS -type pg_pin -pin_base_name <PLACEHOLDER>VSS -inst_base_name *
+    # connect_global_net <PLACEHOLDER>VSS -type pg_pin -pin_base_name <PLACEHOLDER>VBB -inst_base_name *
     
     # Global IO nets connections
-    # connect_global_net <PLACEHOLDER:VDDPST> -type pg_pin -pin_base_name <PLACEHOLDER:VDDPST> -inst_base_name * 
-    # connect_global_net <PLACEHOLDER:VSSPST> -type pg_pin -pin_base_name <PLACEHOLDER:VSSPST> -inst_base_name * 
-    # connect_global_net <PLACEHOLDER:POC> -type pg_pin -pin_base_name <PLACEHOLDER:POCCTRL> -inst_base_name * 
-    # connect_global_net <PLACEHOLDER:ESD> -type pg_pin -pin_base_name <PLACEHOLDER:ESD> -inst_base_name * 
+    # connect_global_net <PLACEHOLDER>VDDPST -type pg_pin -pin_base_name <PLACEHOLDER>VDDPST -inst_base_name * 
+    # connect_global_net <PLACEHOLDER>VSSPST -type pg_pin -pin_base_name <PLACEHOLDER>VSSPST -inst_base_name * 
+    # connect_global_net <PLACEHOLDER>POC -type pg_pin -pin_base_name <PLACEHOLDER>POCCTRL -inst_base_name * 
+    # connect_global_net <PLACEHOLDER>ESD -type pg_pin -pin_base_name <PLACEHOLDER>ESD -inst_base_name * 
     
     commit_global_net_rules
 
@@ -136,7 +145,7 @@ gf_create_step -name innovus_post_init_design_physical_mode '
     `@innovus_post_init_design_physical_mode_technology`
 
     # # Floorplan settings
-    # set_db floorplan_default_tech_site <PLACEHOLDER:core>
+    # set_db floorplan_default_tech_site <PLACEHOLDER>core
     # set_db floorplan_initial_all_compatible_core_site_rows true
     # set_db floorplan_row_site_width odd  
     # set_db floorplan_row_site_height even
@@ -161,19 +170,19 @@ gf_create_step -name innovus_post_init_design_physical_mode '
     # set_db add_fillers_with_drc false
     set_db add_fillers_preserve_user_order true
     set_db add_fillers_cells [list \
-        [get_db [get_db base_cells <PLACEHOLDER:DCAP*>] .name] \
-        [get_db [get_db base_cells <PLACEHOLDER:FILL*>] .name] \
+        [get_db [get_db base_cells <PLACEHOLDER>DCAP*] .name] \
+        [get_db [get_db base_cells <PLACEHOLDER>FILL*] .name] \
     ]
     set_db add_fillers_vertical_stack_exception_cell [concat \
-        [get_db [get_db base_cells <PLACEHOLDER:TAP*>] .name] \
-        [get_db [get_db base_cells <PLACEHOLDER:FILL1BWP*>] .name] \
-        [get_db [get_db base_cells <PLACEHOLDER:BOUNDARY*ROW*>] .name] \
-        [get_db [get_db base_cells <PLACEHOLDER:BOUNDARY_LEFT*>] .name] \
-        [get_db [get_db base_cells <PLACEHOLDER:BOUNDARY_RIGHT*>] .name] \
+        [get_db [get_db base_cells <PLACEHOLDER>TAP*] .name] \
+        [get_db [get_db base_cells <PLACEHOLDER>FILL1BWP*] .name] \
+        [get_db [get_db base_cells <PLACEHOLDER>BOUNDARY*ROW*] .name] \
+        [get_db [get_db base_cells <PLACEHOLDER>BOUNDARY_LEFT*] .name] \
+        [get_db [get_db base_cells <PLACEHOLDER>BOUNDARY_RIGHT*] .name] \
     ]
 
     # Precise filler options (see foundry recommendations)
-    # set_db add_fillers_vertical_stack_repair_cell [get_db base_cells .name <PLACEHOLDER:FILL1BWP*>]
+    # set_db add_fillers_vertical_stack_repair_cell [get_db base_cells .name <PLACEHOLDER>FILL1BWP*]
     # set_db add_fillers_vertical_stack_max_length 200
     # set_db add_fillers_avoid_abutment_patterns {1:1}
     # set_db add_fillers_swap_cell [join {
@@ -189,30 +198,30 @@ gf_create_step -name innovus_post_init_design_physical_mode '
     # }]
 
     # Boundary cells
-    set_db add_endcaps_left_edge   [get_db [get_db base_cells <PLACEHOLDER:"BOUNDARY_RIGHT*">] .name]
-    set_db add_endcaps_right_edge  [get_db [get_db base_cells <PLACEHOLDER:"BOUNDARY_LEFT*">] .name]
-    set_db add_endcaps_top_edge    [get_db [get_db base_cells <PLACEHOLDER:"BOUNDARY_PROW4* BOUNDARY_PROW3* BOUNDARY_PROW2* BOUNDARY_PROW1*">] .name]
-    set_db add_endcaps_bottom_edge [get_db [get_db base_cells <PLACEHOLDER:"BOUNDARY_NROW4* BOUNDARY_NROW3* BOUNDARY_NROW2* BOUNDARY_NROW1*">] .name]
+    set_db add_endcaps_left_edge   [get_db [get_db base_cells <PLACEHOLDER>"BOUNDARY_RIGHT*"] .name]
+    set_db add_endcaps_right_edge  [get_db [get_db base_cells <PLACEHOLDER>"BOUNDARY_LEFT*"] .name]
+    set_db add_endcaps_top_edge    [get_db [get_db base_cells <PLACEHOLDER>"BOUNDARY_PROW4* BOUNDARY_PROW3* BOUNDARY_PROW2* BOUNDARY_PROW1*"] .name]
+    set_db add_endcaps_bottom_edge [get_db [get_db base_cells <PLACEHOLDER>"BOUNDARY_NROW4* BOUNDARY_NROW3* BOUNDARY_NROW2* BOUNDARY_NROW1*"] .name]
 
-    set_db add_endcaps_left_top_corner_odd        [get_db [get_db base_cells <PLACEHOLDER:"BOUNDARY_NCORNER*">] .name]
-    set_db add_endcaps_right_top_corner_odd       [get_db [get_db base_cells <PLACEHOLDER:"BOUNDARY_NCORNER*">] .name]
-    set_db add_endcaps_left_bottom_corner_even    [get_db [get_db base_cells <PLACEHOLDER:"BOUNDARY_NCORNER*">] .name]
-    set_db add_endcaps_right_bottom_corner_even   [get_db [get_db base_cells <PLACEHOLDER:"BOUNDARY_NCORNER*">] .name]
+    set_db add_endcaps_left_top_corner_odd        [get_db [get_db base_cells <PLACEHOLDER>"BOUNDARY_NCORNER*"] .name]
+    set_db add_endcaps_right_top_corner_odd       [get_db [get_db base_cells <PLACEHOLDER>"BOUNDARY_NCORNER*"] .name]
+    set_db add_endcaps_left_bottom_corner_even    [get_db [get_db base_cells <PLACEHOLDER>"BOUNDARY_NCORNER*"] .name]
+    set_db add_endcaps_right_bottom_corner_even   [get_db [get_db base_cells <PLACEHOLDER>"BOUNDARY_NCORNER*"] .name]
     
-    set_db add_endcaps_left_top_corner_even       [get_db [get_db base_cells <PLACEHOLDER:"BOUNDARY_PCORNER*">] .name]
-    set_db add_endcaps_right_top_corner_even      [get_db [get_db base_cells <PLACEHOLDER:"BOUNDARY_PCORNER*">] .name]
-    set_db add_endcaps_left_bottom_corner_odd     [get_db [get_db base_cells <PLACEHOLDER:"BOUNDARY_PCORNER*">] .name]
-    set_db add_endcaps_right_bottom_corner_odd    [get_db [get_db base_cells <PLACEHOLDER:"BOUNDARY_PCORNER*">] .name]
+    set_db add_endcaps_left_top_corner_even       [get_db [get_db base_cells <PLACEHOLDER>"BOUNDARY_PCORNER*"] .name]
+    set_db add_endcaps_right_top_corner_even      [get_db [get_db base_cells <PLACEHOLDER>"BOUNDARY_PCORNER*"] .name]
+    set_db add_endcaps_left_bottom_corner_odd     [get_db [get_db base_cells <PLACEHOLDER>"BOUNDARY_PCORNER*"] .name]
+    set_db add_endcaps_right_bottom_corner_odd    [get_db [get_db base_cells <PLACEHOLDER>"BOUNDARY_PCORNER*"] .name]
 
-    set_db add_endcaps_left_top_edge_neighbor     [get_db [get_db base_cells <PLACEHOLDER:"BOUNDARY_NROWRGAP*">] .name]
-    set_db add_endcaps_left_bottom_edge_neighbor  [get_db [get_db base_cells <PLACEHOLDER:"BOUNDARYNROWRGAP*">] .name]
-    set_db add_endcaps_right_top_edge_neighbor    [get_db [get_db base_cells <PLACEHOLDER:"BOUNDARYNROWRGAP*">] .name]
-    set_db add_endcaps_right_bottom_edge_neighbor [get_db [get_db base_cells <PLACEHOLDER:"BOUNDARYNROWRGAP*">] .name]
+    set_db add_endcaps_left_top_edge_neighbor     [get_db [get_db base_cells <PLACEHOLDER>"BOUNDARY_NROWRGAP*"] .name]
+    set_db add_endcaps_left_bottom_edge_neighbor  [get_db [get_db base_cells <PLACEHOLDER>"BOUNDARYNROWRGAP*"] .name]
+    set_db add_endcaps_right_top_edge_neighbor    [get_db [get_db base_cells <PLACEHOLDER>"BOUNDARYNROWRGAP*"] .name]
+    set_db add_endcaps_right_bottom_edge_neighbor [get_db [get_db base_cells <PLACEHOLDER>"BOUNDARYNROWRGAP*"] .name]
 
-    set_db add_endcaps_left_top_edge              [get_db [get_db base_cells <PLACEHOLDER:"FILL3*">] .name]
-    set_db add_endcaps_right_top_edge             [get_db [get_db base_cells <PLACEHOLDER:"FILL3*">] .name]
-    set_db add_endcaps_left_bottom_edge           [get_db [get_db base_cells <PLACEHOLDER:"FILL3*">] .name]
-    set_db add_endcaps_right_bottom_edge          [get_db [get_db base_cells <PLACEHOLDER:"FILL3*">] .name]
+    set_db add_endcaps_left_top_edge              [get_db [get_db base_cells <PLACEHOLDER>"FILL3*"] .name]
+    set_db add_endcaps_right_top_edge             [get_db [get_db base_cells <PLACEHOLDER>"FILL3*"] .name]
+    set_db add_endcaps_left_bottom_edge           [get_db [get_db base_cells <PLACEHOLDER>"FILL3*"] .name]
+    set_db add_endcaps_right_bottom_edge          [get_db [get_db base_cells <PLACEHOLDER>"FILL3*"] .name]
 
     set_db add_endcaps_flip_y true
     set_db add_endcaps_boundary_tap true
@@ -223,19 +232,19 @@ gf_create_step -name innovus_post_init_design_physical_mode '
     # set_db add_endcaps_min_vertical_channel_width 70
 
     # Well tap cells
-    set_db add_well_taps_bottom_tap_cell [get_db [get_db base_cells <PLACEHOLDER:"BOUNDARY_NTAP*">] .name]
-    set_db add_well_taps_top_tap_cell    [get_db [get_db base_cells <PLACEHOLDER:"BOUNDARY_PTAP*">] .name]
-    set_db add_well_taps_cell            [get_db [get_db base_cells <PLACEHOLDER:"TAPCELL*">] .name]
-    set_db add_well_taps_rule <PLACEHOLDER:25>
+    set_db add_well_taps_bottom_tap_cell [get_db [get_db base_cells <PLACEHOLDER>"BOUNDARY_NTAP*"] .name]
+    set_db add_well_taps_top_tap_cell    [get_db [get_db base_cells <PLACEHOLDER>"BOUNDARY_PTAP*"] .name]
+    set_db add_well_taps_cell            [get_db [get_db base_cells <PLACEHOLDER>"TAPCELL*"] .name]
+    set_db add_well_taps_rule <PLACEHOLDER>25
 
     # Precise well tap cells (see foundry recommendations)
     # set_db add_well_taps_disable_check_zone_at_boundary vdd
     # set_db add_well_taps_insert_cells {{TAPCELLFIN6* rule 10.0} {TAPCELL* rule 20.0}}
 
     # Tie cells
-    set_db add_tieoffs_cells [get_db [get_db base_cells <PLACEHOLDER:"TIEL* TIEH*">] .name]
-    set_db add_tieoffs_max_fanout <PLACEHOLDER:5>
-    set_db add_tieoffs_max_distance <PLACEHOLDER:50>
+    set_db add_tieoffs_cells [get_db [get_db base_cells <PLACEHOLDER>"TIEL* TIEH*"] .name]
+    set_db add_tieoffs_max_fanout <PLACEHOLDER>5
+    set_db add_tieoffs_max_distance <PLACEHOLDER>50
 
     # Apply global net connections
     `@innovus_connect_global_nets`
@@ -305,7 +314,7 @@ gf_create_step -name innovus_post_init_design '
         # set_db delaycal_advanced_pin_cap_mode true
 
         # # AOCV libraries (see TSMCHOME/digital/Front_End/SBOCV/documents/GL_SBOCV_*.pdf)
-        <PLACEHOLDER: Choice 1 of 3>
+        <PLACEHOLDER> Choice 1 of 3
         # set_db timing_report_fields {cell arc delay incr_delay arrival required transition fanout load aocv_adj_stages aocv_derate user_derate annotation instance}
         # set_db timing_analysis_aocv true
         # set_db timing_extract_model_aocv_mode graph_based
@@ -315,7 +324,7 @@ gf_create_step -name innovus_post_init_design '
         # set_db timing_enable_aocv_slack_based true
 
         # # LVF/SOCV libraries (see TSMCHOME/digital/Front_End/LVF/documents/GL_LVF_*.pdf)
-        <PLACEHOLDER: Choice 2 of 3>
+        <PLACEHOLDER> Choice 2 of 3
         # set_db timing_report_fields {timing_point cell arc fanout load slew slew_mean slew_sigma pin_location delay_mean delay_sigma delay arrival_mean arrival_sigma arrival user_derate total_derate power_domain voltage phys_info}
         # # set_db ui_precision_timing 6
         # set_limited_access_feature socv 1
@@ -340,7 +349,7 @@ gf_create_step -name innovus_post_init_design '
         # set_socv_rc_variation_factor 0.1 -late
 
         # Flat STA settings
-        <PLACEHOLDER: Choice 3 of 3>
+        <PLACEHOLDER> Choice 3 of 3
         set_db timing_report_fields {cell arc delay incr_delay arrival required transition fanout load user_derate annotation instance}
 
         # # Spatial OCV settings (see TSMCHOME/digital/Front_End/timing_margin/SPM)
@@ -406,7 +415,7 @@ gf_create_step -name innovus_post_init_design '
         # set_db opt_useful_skew false
         # set_db opt_useful_skew_pre_cts false
         set_db opt_useful_skew_ccopt medium
-        set_db cts_target_skew <PLACEHOLDER:0.200>
+        set_db cts_target_skew <PLACEHOLDER>0.200
 
         # Disable clock tree latency update for top level
         <PLACEHOLDER> set_db cts_update_clock_latency false
@@ -417,14 +426,14 @@ gf_create_step -name innovus_post_init_design '
         <PLACEHOLDER>
         set_db cts_cell_halo_rows    2
         set_db cts_cell_halo_sites   4
-        # set_db cts_cell_halo_x <PLACEHOLDER:5.0>
-        # set_db cts_cell_halo_y <PLACEHOLDER:1.0>
+        # set_db cts_cell_halo_x <PLACEHOLDER>5.0
+        # set_db cts_cell_halo_y <PLACEHOLDER>1.0
 
         # Limit maximum clock tree cells fanout
-        set_db cts_max_fanout <PLACEHOLDER:32>
+        set_db cts_max_fanout <PLACEHOLDER>32
         
         # Technology-specific clock tree transition
-        set_db cts_target_max_transition_time <PLACEHOLDER:0.100>
+        set_db cts_target_max_transition_time <PLACEHOLDER>0.100
 
         # Create clock tree using inverters only
         set_db cts_use_inverters true
@@ -435,10 +444,10 @@ gf_create_step -name innovus_post_init_design '
     if {1} {
 
         # Layers
-        set_db design_bottom_routing_layer <PLACEHOLDER:M1>
-        set_db design_top_routing_layer <PLACEHOLDER:M10>
-        # set_db route_design_bottom_routing_layer <PLACEHOLDER:M1>
-        # set_db route_design_top_routing_layer <PLACEHOLDER:M10>
+        set_db design_bottom_routing_layer <PLACEHOLDER>M2
+        set_db design_top_routing_layer <PLACEHOLDER>M8
+        # set_db route_design_bottom_routing_layer <PLACEHOLDER>2
+        # set_db route_design_top_routing_layer <PLACEHOLDER>8
         
         # Routing settings
         # set_db add_route_vias_auto true
@@ -454,11 +463,11 @@ gf_create_step -name innovus_post_init_design '
         # set_db check_drc_check_routing_halo true
 
         # Technology-specific shrink factor
-        # set_db extract_rc_shrink_factor <PLACEHOLDER:0.9>
+        # set_db extract_rc_shrink_factor <PLACEHOLDER>0.9
         
         # # Metal stack-specific via priority
         # set_db route_design_via_weight [join {
-        #     <PLACEHOLDER:*VIA_A* -1, *VIA_B* 2, ...>
+        #     <PLACEHOLDER>*VIA_A* -1, *VIA_B* 2, ...
         # }]
     }
     
@@ -489,7 +498,7 @@ gf_create_step -name innovus_pre_place '
     # # Read in ILM
     # set_db ilm_keep_flatten true
     # set_ilm_type -model timing
-    # read_ilm -cell <PLACEHOLDER:cell> -directory ../../../../../<PLACEHOLDER:block>/work_*/<PLACEHOLDER:run>/out/$TASK_NAME.ilm
+    # read_ilm -cell <PLACEHOLDER>cell -directory ../../../../../<PLACEHOLDER>block/work_*/<PLACEHOLDER>run/out/$TASK_NAME.ilm
     # foreach constraint_mode [get_db constraint_modes] {
     #     update_constraint_mode -name [get_db $constraint_mode .name] -ilm_sdc_files [get_db $constraint_mode .sdc_files]
     # }
@@ -497,39 +506,39 @@ gf_create_step -name innovus_pre_place '
 
     # Clock tree cells
     set_db cts_buffer_cells [join {
-        <PLACEHOLDER:DCAP_CLOCK_BUFFER_CELL_NAME:DCCKB*>
+        <PLACEHOLDER>DCAP_CLOCK_BUFFER_CELL_NAME:DCCKB*LVT
     }]
     set_db cts_inverter_cells [join {
-        <PLACEHOLDER:DCAP_CLOCK_INVERTER_CELL_NAME:DCCKN*>
+        <PLACEHOLDER>DCAP_CLOCK_INVERTER_CELL_NAME:DCCKN*LVT
     }]
     set_db cts_clock_gating_cells [join {
-        <PLACEHOLDER:CLOCK_LATCH_HIGH_CELL_NAME:CKLHQ*>
-        <PLACEHOLDER:CLOCK_LATCH_LOW_CELL_NAME:CKLNQ*>
+        <PLACEHOLDER>CLOCK_LATCH_HIGH_CELL_NAME:CKLHQ*LVT
+        <PLACEHOLDER>CLOCK_LATCH_LOW_CELL_NAME:CKLNQ*LVT
     }]
     set_db cts_logic_cells [join {
-        <PLACEHOLDER:CLOCK_MUX_CELL_NAME:CKMUX2*>
-        <PLACEHOLDER:CLOCK_NAND_CELL_NAME:CKND2>
-        <PLACEHOLDER:CLOCK_NOR_CELL_NAME:CKNR2*>
-        <PLACEHOLDER:CLOCK_AND_CELL_NAME:CKAN2*>
-        <PLACEHOLDER:CLOCK_OR_CELL_NAME:CKOR2*>
-        <PLACEHOLDER:CLOCK_XOR_CELL_NAME:CKXOR2*>
-        <PLACEHOLDER:DCAP_CLOCK_INVERTER_CELL_NAME:DCCKN*>
+        <PLACEHOLDER>CLOCK_MUX_CELL_NAME:CKMUX2*LVT
+        <PLACEHOLDER>CLOCK_NAND_CELL_NAME:CKND2*LVT
+        <PLACEHOLDER>CLOCK_NOR_CELL_NAME:CKNR2*LVT
+        <PLACEHOLDER>CLOCK_AND_CELL_NAME:CKAN2*LVT
+        <PLACEHOLDER>CLOCK_OR_CELL_NAME:CKOR2*LVT
+        <PLACEHOLDER>CLOCK_XOR_CELL_NAME:CKXOR2*LVT
+        <PLACEHOLDER>DCAP_CLOCK_INVERTER_CELL_NAME:DCCKN*
     }]
 
     # Hold fixing cells
     set_db opt_fix_hold_lib_cells [join {
-        <PLACEHOLDER:DATA_DELAY_CELL_NAME:DEL*>
-        <PLACEHOLDER:DATA_BUFFER_CELL_NAME:BUFF*>
+        <PLACEHOLDER>DATA_DELAY_CELL_NAME:DEL*
+        <PLACEHOLDER>DATA_BUFFER_CELL_NAME:BUFF*
     }]
 
     # NDR for clock routing
-    create_route_rule -name CTS_LEAF -spacing_multiplier {<PLACEHOLDER:M4>:<PLACEHOLDER:M8> 2} -min_cut {<PLACEHOLDER:VIA1>:<PLACEHOLDER:VIA7> 2}
-    create_route_rule -name CTS_TRUNK -width_multiplier {<PLACEHOLDER:M4>:<PLACEHOLDER:M6> 2} -spacing_multiplier {<PLACEHOLDER:M4>:<PLACEHOLDER:M8> 2} -min_cut {<PLACEHOLDER:VIA1>:<PLACEHOLDER:VIA7> 2}
+    create_route_rule -name CTS_LEAF -spacing_multiplier {<PLACEHOLDER>M4:<PLACEHOLDER>M8 2} -min_cut {<PLACEHOLDER>VIA1:<PLACEHOLDER>VIA7 2}
+    create_route_rule -name CTS_TRUNK -width_multiplier {<PLACEHOLDER>M4:<PLACEHOLDER>M6 2} -spacing_multiplier {<PLACEHOLDER>M4:<PLACEHOLDER>M8 2} -min_cut {<PLACEHOLDER>VIA1:<PLACEHOLDER>VIA7 2}
 
     # Route types for clock routing
-    create_route_type -name leaf_rule  -bottom_preferred_layer <PLACEHOLDER:5> -top_preferred_layer <PLACEHOLDER:6> -route_rule CTS_LEAF
-    create_route_type -name trunk_rule -bottom_preferred_layer <PLACEHOLDER:7> -top_preferred_layer <PLACEHOLDER:8> -route_rule CTS_TRUNK -shield_net <PLACEHOLDER:VSS>
-    create_route_type -name top_rule   -bottom_preferred_layer <PLACEHOLDER:7> -top_preferred_layer <PLACEHOLDER:8> -route_rule CTS_TRUNK -shield_net <PLACEHOLDER:VSS>
+    create_route_type -name leaf_rule  -bottom_preferred_layer <PLACEHOLDER>5 -top_preferred_layer <PLACEHOLDER>6 -route_rule CTS_LEAF
+    create_route_type -name trunk_rule -bottom_preferred_layer <PLACEHOLDER>7 -top_preferred_layer <PLACEHOLDER>8 -route_rule CTS_TRUNK -shield_net <PLACEHOLDER>VSS
+    create_route_type -name top_rule   -bottom_preferred_layer <PLACEHOLDER>7 -top_preferred_layer <PLACEHOLDER>8 -route_rule CTS_TRUNK -shield_net <PLACEHOLDER>VSS
     
     # Use specified route rules for clock nets
     set_db cts_route_type_leaf   leaf_rule
@@ -537,8 +546,8 @@ gf_create_step -name innovus_pre_place '
     set_db cts_route_type_top    top_rule
 
     # Dont use cells
-    set_dont_use <PLACEHOLDER:*> true
-    set_dont_use <PLACEHOLDER:*> false
+    set_dont_use <PLACEHOLDER>* true
+    set_dont_use <PLACEHOLDER>* false
 
     # # Clock and special cells
     # set_dont_use CK*BWP* true
@@ -561,7 +570,6 @@ gf_create_step -name innovus_pre_place '
         # *OPT*BWP*
         # *BWP*ULVT*
         # # *BWP*LVT*
-        # *BWP*P140
         # *D10BWP*
         # *D11BWP*
         # *D12BWP*
@@ -583,17 +591,17 @@ gf_create_step -name innovus_pre_place '
     # set_db [get_db base_cells *] .left_padding 1
 
     # # Dont touch instances and modules
-    # set_db [gf_get_insts <PLACEHOLDER:pattern>] .dont_touch true
-    # set_db [gf_get_hinsts <PLACEHOLDER:pattern>] .dont_touch true
+    # set_db [gf_get_insts <PLACEHOLDER>pattern] .dont_touch true
+    # set_db [gf_get_hinsts <PLACEHOLDER>pattern] .dont_touch true
     
     # # Clock propagation exceptions
-    # set_db pin:<PLACEHOLDER:/inst/pin> .cts_sink_type stop
-    # set_db pin:<PLACEHOLDER:/inst/pin> .cts_sink_type ignore
-    # set_db pin:<PLACEHOLDER:/inst/pin> .cts_sink_type exclude
+    # set_db pin:<PLACEHOLDER>/inst/pin .cts_sink_type stop
+    # set_db pin:<PLACEHOLDER>/inst/pin .cts_sink_type ignore
+    # set_db pin:<PLACEHOLDER>/inst/pin .cts_sink_type exclude
 
     # # Skip routing attribute
     # set_db [get_db ports .net] .skip_routing true
-    # set_db net:<PLACEHOLDER:name> .skip_routing true
+    # set_db net:<PLACEHOLDER>name .skip_routing true
     
     # # Interactive constraints
     # set_interactive_constraint_mode [get_db [get_db constraint_modes -if {.is_setup||.is_hold}] .name]
@@ -613,11 +621,11 @@ gf_create_step -name innovus_pre_place '
     # if {1} {
     #     add_io_buffers \
     #         -suffix _GF_io_buffer \
-    #         -in_cells <PLACEHOLDER:cell_for_inputs>  \
-    #         -out_cells <PLACEHOLDER:cell_for_outputs> \
+    #         -in_cells <PLACEHOLDER>cell_for_inputs  \
+    #         -out_cells <PLACEHOLDER>cell_for_outputs \
     #         -port -exclude_clock_nets
     # } else {
-    #     gf_attach_io_buffers <PLACEHOLDER:cell_for_inputs> <PLACEHOLDER:cell_for_outputs>
+    #     gf_attach_io_buffers <PLACEHOLDER>cell_for_inputs <PLACEHOLDER>cell_for_outputs
     # }
     # set io_buffers [get_db insts *_GF_io_buffer]
     # create_inst_space_group -group_name GF_io_buffers -inst [get_db $io_buffers .name] -spacing_x 1.000 -spacing_y 1.000
@@ -640,7 +648,7 @@ gf_create_step -name innovus_pre_place '
     # }
 
     # # Add extra space to macro ports
-    # foreach pin [get_db pins <PLACEHOLDER:*MEM*/A?[*]>] {
+    # foreach pin [get_db pins <PLACEHOLDER>*MEM*/A?[*]] {
     #     set_db $pin .net.preferred_extra_space 1
     # }
 
@@ -648,14 +656,14 @@ gf_create_step -name innovus_pre_place '
     # set preplaced {}
     #
     # # Speed up RAM clock pins
-    # lappend preplaced [gf_bufferize_pins -buffer_cell <PLACEHOLDER:DCCKD4> -placed -pins [get_db pins */CLK]]
+    # lappend preplaced [gf_bufferize_pins -buffer_cell <PLACEHOLDER>DCCKD4 -placed -pins [get_db pins */CLK]]
     #
     # # Bufferize selected pins
-    # lappend preplaced [gf_bufferize_pins -buffer_cell <PLACEHOLDER:BUFFD6> -placed -pins $pins_to_bufferize]
+    # lappend preplaced [gf_bufferize_pins -buffer_cell <PLACEHOLDER>BUFFD6 -placed -pins $pins_to_bufferize]
     #
     # # Add and preplace buffers for critical pins to balance delay
-    # set pins_to_bufferize [get_db -if .net.name!=<PLACEHOLDER:FE*TIE*> -u \
-    #     [get_db [get_db ports "<PLACEHOLDER:PORTS*>"] .net.drivers "*/<PLACEHOLDER:PAD>"] \
+    # set pins_to_bufferize [get_db -if .net.name!=<PLACEHOLDER>FE*TIE* -u \
+    #     [get_db [get_db ports "<PLACEHOLDER>PORTS*"] .net.drivers "*/<PLACEHOLDER>PAD"] \
     # .inst.pins "*/I"]
     #
     # # Magnify instances to selected pins
@@ -676,24 +684,33 @@ gf_create_step -name innovus_pre_place '
     # # Reset ideal network and clock tree latencies 
     # `@innovus_reset_ideal_clock_constraints`
     
-    # Default path groups
-    reset_path_group -all
-    create_basic_path_groups -expanded
+    # # Default path groups
+    # reset_path_group -all
+    # create_basic_path_groups -expanded
 
     # # User-defined margins
     # set_path_adjust_group -name reg2reg -from [all_register] -to [all_register]
-    # set_path_adjust -0.400 -view <PLACEHOLDER:analysis_view_name> -path_adjust_group reg2reg -setup
+    # set_path_adjust -0.400 -view <PLACEHOLDER>analysis_view_name -path_adjust_group reg2reg -setup
     
     # # Write database between placement and optimization
     # set_db place_opt_post_place_tcl place_opt_post_place.tcl
     # puts "write_db ./out/$TASK_NAME.place_opt_post_place.innovus.db" > place_opt_post_place.tcl
+    
+    # # Assemble blocks to run in flat mode
+    # foreach partition_db {`$INNOVUS_PARTITION_DATABASES -optional`} {
+    #     assemble_design -block_dir $partition_db
+    # }
+    # 
+    # # Move to flat mode
+    # set_db [get_db [concat [get_db partitions .master] [get_db partitions .clones]] .boundary] .type guide
+    # delete_partitions -all
 '
 
 # Commands after design placement
 gf_create_step -name innovus_post_place '
 
     # # Write out ILM
-    # write_ilm -model_type timing -type_flex_ilm flexilm -opt_stage <PLACEHOLDER:prects> -overwrite -to_dir ./out/$TASK_NAME.ilm
+    # write_ilm -model_type timing -type_flex_ilm flexilm -opt_stage <PLACEHOLDER>prects -overwrite -to_dir ./out/$TASK_NAME.ilm
 
     # # Write out LEF
     # if {[catch {set top_layer [get_db route_design_top_routing_layer]}]} {set top_layer [get_db design_top_routing_layer]}
@@ -707,28 +724,28 @@ gf_create_step -name innovus_pre_clock '
     # # Read in ILM
     # set_db ilm_keep_flatten true
     # set_ilm_type -model timing
-    # read_ilm -cell <PLACEHOLDER:cell> -directory ../../../../../<PLACEHOLDER:block>/work_*/<PLACEHOLDER:run>/out/$TASK_NAME.ilm
+    # read_ilm -cell <PLACEHOLDER>cell -directory ../../../../../<PLACEHOLDER>block/work_*/<PLACEHOLDER>run/out/$TASK_NAME.ilm
     # foreach constraint_mode [get_db constraint_modes] {
     #     update_constraint_mode -name [get_db $constraint_mode .name] -ilm_sdc_files [get_db $constraint_mode .sdc_files]
     # }
     # flatten_ilm
 
     # # Sinks to balance and to ignore
-    # set gf_balance_pins [get_db -u [gf_get_fanin_pins -to [get_db ports <PLACEHOLDER:PORTS*>] -through <PLACEHOLDER:*/PAD */I */Z> -patterns <PLACEHOLDER:*/S> -verbose 1]]
+    # set gf_balance_pins [get_db -u [gf_get_fanin_pins -to [get_db ports <PLACEHOLDER>PORTS*] -through <PLACEHOLDER>*/PAD */I */Z -patterns <PLACEHOLDER>*/S -verbose 1]]
     # set_db $gf_balance_pins .cts_sink_type stop
-    # set gf_ignore_pins [get_db [get_db ports {<PLACEHOLDER:PORTS*>}] .net.drivers.inst.pins -if .base_name==<PLACEHOLDER:I> -u]
+    # set gf_ignore_pins [get_db [get_db ports {<PLACEHOLDER>PORTS*}] .net.drivers.inst.pins -if .base_name==<PLACEHOLDER>I -u]
     # set_db $gf_ignore_pins .cts_sink_type ignore
 
     # # Balance several skew groups
-    # create_skew_group -name balance_sg1_sg2 -balance_skew_groups {sg1 sg2} -target_skew <PLACEHOLDER:0.050>
+    # create_skew_group -name balance_sg1_sg2 -balance_skew_groups {sg1 sg2} -target_skew <PLACEHOLDER>0.050
 
     # # Create ccopt specification
     # create_clock_tree_spec
 
     # # Exclusive skew groups
     # foreach mode [get_db constraint_modes .name] {
-    #     create_skew_group -name <PLACEHOLDER:name>/$mode -target_skew <PLACEHOLDER:0.050> -exclusive_sinks [get_db $gf_balance_pins .name]
-    #     create_skew_group -name <PLACEHOLDER:name>/$mode -target_skew <PLACEHOLDER:skew> -exclusive_sinks <PLACEHOLDER:pins>
+    #     create_skew_group -name <PLACEHOLDER>name/$mode -target_skew <PLACEHOLDER>0.050 -exclusive_sinks [get_db $gf_balance_pins .name]
+    #     create_skew_group -name <PLACEHOLDER>name/$mode -target_skew <PLACEHOLDER>skew -exclusive_sinks <PLACEHOLDER>pins
     # }
 
     # Prevent routing over macros
@@ -745,7 +762,7 @@ gf_create_step -name innovus_pre_clock '
 gf_create_step -name innovus_post_clock '
 
     # # Write out ILM
-    # write_ilm -model_type timing -type_flex_ilm flexilm -opt_stage <PLACEHOLDER:prects> -overwrite -to_dir ./out/$TASK_NAME.ilm
+    # write_ilm -model_type timing -type_flex_ilm flexilm -opt_stage <PLACEHOLDER>prects -overwrite -to_dir ./out/$TASK_NAME.ilm
 
     # # Delete route blockages created for clock
     # catch {delete_route_blockages -name clock_no_routing}
@@ -754,8 +771,9 @@ gf_create_step -name innovus_post_clock '
 # Commands before post-clock hold fix
 gf_create_step -name innovus_pre_clock_opt_hold '
 
-    # Do not fix hold at interfaces
-    set_db opt_fix_hold_ignore_path_groups {in2reg in2out reg2out}
+    # # Do not fix hold at interfaces
+    # set_db opt_fix_hold_ignore_path_groups {in2reg in2out reg2out}
+    set_db opt_fix_hold_ignore_path_groups {default}
 
     # # Allow setup TNS degradation
     # set_db opt_fix_hold_allow_setup_tns_degradation true
@@ -778,7 +796,7 @@ gf_create_step -name innovus_pre_route '
     # # Read in ILM
     # set_db ilm_keep_flatten true
     # set_ilm_type -model timing
-    # read_ilm -cell <PLACEHOLDER:cell> -directory ../../../../../<PLACEHOLDER:block>/work_*/<PLACEHOLDER:run>/out/$TASK_NAME.ilm
+    # read_ilm -cell <PLACEHOLDER>cell -directory ../../../../../<PLACEHOLDER>block/work_*/<PLACEHOLDER>run/out/$TASK_NAME.ilm
     # foreach constraint_mode [get_db constraint_modes] {
     #     update_constraint_mode -name [get_db $constraint_mode .name] -ilm_sdc_files [get_db $constraint_mode .sdc_files]
     # }
@@ -799,7 +817,7 @@ gf_create_step -name innovus_pre_route '
 gf_create_step -name innovus_post_route '
 
     # # Write out ILM
-    # write_ilm -model_type timing -type_flex_ilm flexilm -opt_stage <PLACEHOLDER:prects> -overwrite -to_dir ./out/$TASK_NAME.ilm
+    # write_ilm -model_type timing -type_flex_ilm flexilm -opt_stage <PLACEHOLDER>prects -overwrite -to_dir ./out/$TASK_NAME.ilm
 
     # SI settings
     set_db delaycal_enable_si true
@@ -885,8 +903,8 @@ gf_create_step -name innovus_procs_interactive_design '
     
     # Initialize power grid in all layers
     proc gf_init_power_grid {} {
-        # set nets {<PLACEHOLDER:VDD VSS>}
-        # set macro_area_threshold <PLACEHOLDER:100>
+        # set nets {<PLACEHOLDER>VDD VSS}
+        # set macro_area_threshold <PLACEHOLDER>100
         
         # (!) Note:
         # This step contains a mix of commands for different metal stacks
@@ -1095,7 +1113,7 @@ gf_create_step -name innovus_procs_interactive_design '
 
         # # # M5 stripes over endcaps
         # # if {1} {
-        # #     gf_init_power_stripes_over_endcaps $nets <PLACEHOLDER:BOUNDARY_LEFT BOUNDARY_RIGHT> M5 M2 0.300 0.200 vertical
+        # #     gf_init_power_stripes_over_endcaps $nets <PLACEHOLDER>BOUNDARY_LEFT BOUNDARY_RIGHT M5 M2 0.300 0.200 vertical
         # #     get_db markers -if {.user_type==Endcap*} -foreach {
         # #         create_route_blockage -layers M5 -name block_route_over_endcaps -rects [get_db $object .bbox]
         # #     }
@@ -1108,7 +1126,7 @@ gf_create_step -name innovus_procs_interactive_design '
         # # set_db generate_special_via_rule_preference {VIA45_*}
         # # set_db add_stripes_skip_via_on_pin {pad cover}
         # # set_db add_stripes_route_over_rows_only true
-        # # foreach macro [get_db insts -if .base_cell.class==block&&.pg_pins.pg_base_pin.physical_pins.layer_shapes.layer.name==*<PLACEHOLDER:MACRO_TOP_LAYER:M4>*&&.base_cell.site.class!=pad] {
+        # # foreach macro [get_db insts -if .base_cell.class==block&&.pg_pins.pg_base_pin.physical_pins.layer_shapes.layer.name==*<PLACEHOLDER>MACRO_TOP_LAYER:M4*&&.base_cell.site.class!=pad] {
         # #     add_stripes \
         # #         -layer M5 \
         # #         -width 0.000 \
@@ -1300,9 +1318,10 @@ gf_create_step -name innovus_procs_interactive_design '
     
     # # Fill narrow channels with placement blockages
     # proc gf_fill_place_blockages {} {
-    #     deselect_obj -all
-    #     select_obj [get_db place_blockages finish*]
-    #     delete_selected_from_floorplan
+    #     # deselect_obj -all
+    #     # select_obj [get_db place_blockages finishfp_*]
+    #     # delete_selected_from_floorplan
+    #     delete_obj [get_db place_blockages finishfp_*]
     #     finish_floorplan -fill_place_blockage soft 30
     #     
     #     # # Delete blockages at the edges
@@ -1329,7 +1348,7 @@ gf_create_step -name innovus_procs_interactive_design '
     #             [expr "round([lindex $rect 2] / $xgrid) * $xgrid"] \
     #             [expr "round([lindex $rect 3] / $ygrid) * $ygrid"] \
     #         ]
-    #         create_route_blockage -layers {<PLACEHOLDER:M1 M2 M3 M4 M5 M6 M7 M8 M9>} -name blockage_for_dtcd -rects [list \
+    #         create_route_blockage -layers {<PLACEHOLDER>M1 M2 M3 M4 M5 M6 M7 M8 M9} -name blockage_for_dtcd -rects [list \
     #             [expr "round([lindex $rect 0] / $xgrid + 6) * $xgrid"] \
     #             [expr "round([lindex $rect 1] / $ygrid + 1) * $ygrid"] \
     #             [expr "round([lindex $rect 2] / $xgrid - 6) * $xgrid"] \
@@ -1374,8 +1393,8 @@ gf_create_step -name innovus_procs_interactive_design '
     #         source "*_tCIC_macro_usage_manager.tcl"
     #         source "*_tCIC_set_cip_variables.tcl"
     #     
-    #         tCIC_set_design_cell_type <PLACEHOLDER:H240P57CPD>
-    #         tCIC_set_max_DTCD_layer <PLACEHOLDER:11>
+    #         tCIC_set_design_cell_type <PLACEHOLDER>
+    #         tCIC_set_max_DTCD_layer <PLACEHOLDER>11
     #         tCIC_reset_macro_usage
     #         tCIC_specify_macro_usage -usage TSMC_SRAM -macro [get_db [get_db insts -if .base_cell.name==*] .name]
     #         
@@ -1444,7 +1463,7 @@ gf_create_step -name innovus_procs_interactive_design '
         delete_routes -net _BOUNDARY_*
         
         set_db finish_floorplan_active_objs die
-        # add_dummy_boundary_wires -layer {<PLACEHOLDER:M1 M2 M3 M4>} -space {<PLACEHOLDER:0.000 0.000 0.000 0.000>} 
+        # add_dummy_boundary_wires -layer {<PLACEHOLDER>M1 M2 M3 M4} -space {<PLACEHOLDER>0.000 0.000 0.000 0.000} 
         finish_floorplan -add_boundary_blockage
 
         set_layer_preference eol -is_visible 1
@@ -1469,23 +1488,23 @@ gf_create_step -name innovus_procs_interactive_design '
         
         # Place boundary cells
         add_endcaps -prefix ENDCAP
-        # gf_flip_left_endcaps <PLACEHOLDER:BOUNDARY_?CORNER*>
+        # gf_flip_left_endcaps <PLACEHOLDER>BOUNDARY_?CORNER*
 
         # Place well-tap cells
-        add_well_taps -prefix WELLTAP -checker_board -cell_interval <PLACEHOLDER:50>
+        add_well_taps -prefix WELLTAP -checker_board -cell_interval <PLACEHOLDER>50
 
         # Run checks
         check_endcaps
         check_well_taps
     }
 
-    # Design-specific ports initialization
+    # # Design-specific ports initialization
     # proc gf_init_ports {} {
         # edit_pin -snap track \
             # -edge 2 \
-            # -spread_direction clockwise 
+            # -spread_direction clockwise \
             # -spread_type center \
-            # -layer_vertical <PLACEHOLDER:M4> \
+            # -layer_vertical <PLACEHOLDER>M4 \
             # -offset_start 0.0 \
             # -spacing 8 -unit track \
             # -fixed_pin 1 -fix_overlap 1 \
@@ -1498,16 +1517,16 @@ gf_create_step -name innovus_procs_interactive_design '
         # delete_row -site corner
         
         # IO rows
-        # create_io_row -side N -begin_offset <PLACEHOLDER:20> -end_offset <PLACEHOLDER:20> -row_margin <PLACEHOLDER:20> -site <PLACEHOLDER:pad>
-        # create_io_row -side S -begin_offset <PLACEHOLDER:20> -end_offset <PLACEHOLDER:20> -row_margin <PLACEHOLDER:20> -site <PLACEHOLDER:pad>
-        # create_io_row -side E -begin_offset <PLACEHOLDER:20> -end_offset <PLACEHOLDER:20> -row_margin <PLACEHOLDER:20> -site <PLACEHOLDER:pad>
-        # create_io_row -side W -begin_offset <PLACEHOLDER:20> -end_offset <PLACEHOLDER:20> -row_margin <PLACEHOLDER:20> -site <PLACEHOLDER:pad>
+        # create_io_row -side N -begin_offset <PLACEHOLDER>20 -end_offset <PLACEHOLDER>20 -row_margin <PLACEHOLDER>20 -site <PLACEHOLDER>pad
+        # create_io_row -side S -begin_offset <PLACEHOLDER>20 -end_offset <PLACEHOLDER>20 -row_margin <PLACEHOLDER>20 -site <PLACEHOLDER>pad
+        # create_io_row -side E -begin_offset <PLACEHOLDER>20 -end_offset <PLACEHOLDER>20 -row_margin <PLACEHOLDER>20 -site <PLACEHOLDER>pad
+        # create_io_row -side W -begin_offset <PLACEHOLDER>20 -end_offset <PLACEHOLDER>20 -row_margin <PLACEHOLDER>20 -site <PLACEHOLDER>pad
         
         # Corner rows
-        # create_io_row -corner BL -x_offset <PLACEHOLDER:20> -y_offset <PLACEHOLDER:20> -site <PLACEHOLDER:corner>
-        # create_io_row -corner BR -x_offset <PLACEHOLDER:20> -y_offset <PLACEHOLDER:20> -site <PLACEHOLDER:corner>
-        # create_io_row -corner TL -x_offset <PLACEHOLDER:20> -y_offset <PLACEHOLDER:20> -site <PLACEHOLDER:corner>
-        # create_io_row -corner TR -x_offset <PLACEHOLDER:20> -y_offset <PLACEHOLDER:20> -site <PLACEHOLDER:corner>
+        # create_io_row -corner BL -x_offset <PLACEHOLDER>20 -y_offset <PLACEHOLDER>20 -site <PLACEHOLDER>corner
+        # create_io_row -corner BR -x_offset <PLACEHOLDER>20 -y_offset <PLACEHOLDER>20 -site <PLACEHOLDER>corner
+        # create_io_row -corner TL -x_offset <PLACEHOLDER>20 -y_offset <PLACEHOLDER>20 -site <PLACEHOLDER>corner
+        # create_io_row -corner TR -x_offset <PLACEHOLDER>20 -y_offset <PLACEHOLDER>20 -site <PLACEHOLDER>corner
     }
 
     # Insert IO fillers
@@ -1543,7 +1562,7 @@ gf_create_step -name innovus_concurrent_macro_placement '
     # gui_show
     # 
     # # Manual initial floorplan editing
-    # set_macro_place_constraint -min_space_to_core <PLACEHOLDER:0.000> -min_space_to_macro <PLACEHOLDER:0.000> -avoid_abut_macro_edge_with_pins true
+    # set_macro_place_constraint -min_space_to_core <PLACEHOLDER>0.000 -min_space_to_macro <PLACEHOLDER>0.000 -avoid_abut_macro_edge_with_pins true
     # 
     # # Concurrent macro placement
     # gui_hide
@@ -1557,9 +1576,9 @@ gf_create_step -name innovus_concurrent_macro_placement '
     # unplace_obj -insts
     # place_macro_detail
     # set_db [get_db insts -if .is_black_box] .place_status fixed
-    # delete_place_halo -all_macros; finish_floorplan -add_halo <PLACEHOLDER:0.000>
-    # finish_floorplan -fill_place_blockage hard <PLACEHOLDER:0.000>
-    # finish_floorplan -fill_place_blockage soft <PLACEHOLDER:0.000>
+    # delete_place_halo -all_macros; finish_floorplan -add_halo <PLACEHOLDER>0.000
+    # finish_floorplan -fill_place_blockage hard <PLACEHOLDER>0.000
+    # finish_floorplan -fill_place_blockage soft <PLACEHOLDER>0.000
     # gf_write_floorplan
     # 
     # # Check the result
@@ -1628,7 +1647,7 @@ gf_create_step -name innovus_pre_floorplan '
 '
 
 ################################################################################
-# Report flow steps - ./innovus.impl.gf
+# Report flow steps - ./innovus.be.gf
 ################################################################################
 
 # Pre-clock design stage reports
@@ -1664,9 +1683,9 @@ gf_create_step -name innovus_design_reports_post_route '
     
     # # Write out SDF and netlist for block level simulation
     # write_sdf ./out/$::TASK_NAME.sdf \
-    #     -min_view <PLACEHOLDER:analysis_view_name> \
-    #     -typical_view <PLACEHOLDER:analysis_view_name> \
-    #     -max_view <PLACEHOLDER:analysis_view_name> \
+    #     -min_view <PLACEHOLDER>analysis_view_name \
+    #     -typical_view <PLACEHOLDER>analysis_view_name \
+    #     -max_view <PLACEHOLDER>analysis_view_name \
     #     -edges noedge -interconnect all -no_derate \
     #     -version 3.0
     # write_netlist -top_module_first -top_module $::DESIGN_NAME \
@@ -1678,7 +1697,7 @@ gf_create_step -name innovus_design_reports_post_route '
 '
 
 ################################################################################
-# Data creation steps - ./innovus.output.gf
+# Data creation steps - ./innovus.out.gf
 ################################################################################
 
 # Commands to create block-specific data
@@ -1753,14 +1772,13 @@ gf_create_step -name innovus_data_out_physical_design '
     set_db write_stream_via_names true
 
     # # Remove DTCD to let them be inserted by fill utility
-    # get_db insts .name <PLACEHOLDER:*DTCD_?EOL*> -foreach {delete_inst -inst $object}
+    # get_db insts .name <PLACEHOLDER>*DTCD_?EOL* -foreach {delete_inst -inst $object}
 
     # # Add user cells like chip labels
-    # create_inst -physical -inst <PLACEHOLDER:label>_inst -cell <PLACEHOLDER:label> -location {<PLACEHOLDER:0 0>} -orient r0 -status fixed
+    # create_inst -physical -inst <PLACEHOLDER>label_inst -cell <PLACEHOLDER>label -location {<PLACEHOLDER>0.000 0.000} -orient r0 -status fixed
 
-    # # Add dummy fill cells
-    TODO: Merge fill with Physical signoff tool
-    # create_inst -physical -inst ${DESIGN_NAME}_dummy_fill_inst -cell ${DESIGN_NAME}_dummy_fill -location {0 0} -orient r0 -status fixed
+    # # Add dummy fill cells if Innovus used to merge GDS with metal fill
+    # create_inst -physical -inst ${DESIGN_NAME}_dummy_fill_inst -cell ${DESIGN_NAME}_dummy_fill -location {0.000 0.000} -orient r0 -status fixed
     
     # Write out GDS for LVS
     write_stream -mode ALL -output_macros -uniquify_cell_names -die_area_as_boundary \
@@ -1769,36 +1787,12 @@ gf_create_step -name innovus_data_out_physical_design '
         -merge [join {`$GDS_FILES`}] \
         ./out/$TASK_NAME/$DESIGN_NAME.gds.gz
     
-    # Write out hcell file and pin locations
+    # Write out hcell file and pin locations for LVS
     gf_write_hcell ./out/$TASK_NAME/$DESIGN_NAME.hcell
     gf_write_pin_locations ./out/$TASK_NAME/$DESIGN_NAME.pins
     
-    # Write current sources coordinates
-    TODO: Move to tools template
-    proc gf_write_current_sources_locations {} {
-        set via_counter 0
-        foreach net [concat [get_db init_power_nets] [get_db init_ground_nets]] {
-            set vias [get_db [get_db nets $net] .special_vias]
-            set layers [get_db $vias .via_def.top_layer -u]
-            set top_layer_name [get_db [lindex $layers 0] .name]
-            set top_layer_index [get_db [lindex $layers 0] .route_index]
-            foreach layer $layers {
-                if {[get_db $layer .route_index] > $top_layer_index} {
-                    set top_layer_name [get_db $layer .name]
-                    set top_layer_index [get_db $layer .route_index]
-                }
-            }
-            set FH [open "./out/$TASK_NAME/$DESIGN_NAME.$net.pp" w]
-            set extract_corner_names {}
-            foreach via [get_db $vias -if .via_def.top_layer.name==$top_layer_name] {
-                incr via_counter
-                puts $FH "${top_layer_name}_${via_counter} [get_db $via .point.x] [get_db $via .point.y] $top_layer_name"
-            }
-            close $FH
-        }
-    }
-    
-    gf_write_current_source_locations
+    # Write current sources coordinates for power grid analysis
+    gf_write_current_sources_locations ./out/$TASK_NAME/$DESIGN_NAME
 '
 
 # Empty cells LEF for StreamOut
@@ -1814,13 +1808,13 @@ gf_create_step -name innovus_data_out_empty_cells_lef '
          SIZE 10.000 BY 10.00 ;
          SYMMETRY X Y ;
         END '$DESIGN_NAME'_dummy_fill
-        MACRO <PLACEHOLDER:label>
+        MACRO <PLACEHOLDER>label
          CLASS COVER ;
-         FOREIGN <PLACEHOLDER:label> 0.000 0.000 ;
+         FOREIGN <PLACEHOLDER>label 0.000 0.000 ;
          ORIGIN 0.000 0.000 ;
          SIZE 10.000 BY 10.00 ;
          SYMMETRY X Y ;
-        END <PLACEHOLDER:label>
+        END <PLACEHOLDER>label
     END LIBRARY
 '
 

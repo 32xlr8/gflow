@@ -61,22 +61,22 @@ gf_choose_file_dir_task -variable DATABASE -prompt "Please select database or ac
 gf_info "Innovus database \e[32m$DATABASE\e[0m selected"
 
 # Select dummy fill to use when empty
-if [ -n "$DUMMY_TOP" -a -z "$DUMMY_GDS" ]; then
+if [ -n "$QUANTUS_DUMMY_TOP" -a -z "$QUANTUS_DUMMY_GDS" ]; then
     gf_spacer
     gf_choose -variable USE_DUMMY_GDS -keep -keys YN -time 30 -default Y -prompt "Do you want to use dummy fill GDS (Y/N)?"
 
     # Select dummy fill to use when required
     if [ "$USE_DUMMY_GDS" == "Y" ]; then
         gf_spacer
-        gf_choose_file_dir_task -variable DUMMY_GDS -keep -prompt "Please select dummy fill to use:" -files '
+        gf_choose_file_dir_task -variable QUANTUS_DUMMY_GDS -keep -prompt "Please select dummy fill to use:" -files '
             ../work_*/*/out/Fill*.gds
         ' -want -active -task_to_file '$RUN/out/$TASK.gds' -tasks '
             ../work_*/*/tasks/Fill*
         '
-        gf_info "Metal fill GDS \e[32m$DUMMY_GDS\e[0m selected"
+        gf_info "Metal fill GDS \e[32m$QUANTUS_DUMMY_GDS\e[0m selected"
     fi
 fi
-[[ "$USE_DUMMY_GDS" != "Y" ]] && DUMMY_GDS=""
+[[ "$USE_DUMMY_GDS" != "Y" ]] && QUANTUS_DUMMY_GDS=""
 
 # Check if input database exists
 gf_check_file "$DATABASE"
@@ -89,8 +89,8 @@ gf_add_tool_commands '
     set LEF_FILES {`$CADENCE_TLEF_FILES` `$LEF_FILES`}
     set GDS_FILES {`$GDS_FILES`}
     set NETLIST_EXCLUDE_CELLS {`$NETLIST_EXCLUDE_CELLS`}
-    set DUMMY_TOP {`$DUMMY_TOP`}
-    set DUMMY_GDS {`$DUMMY_GDS`}
+    set DUMMY_TOP {`$QUANTUS_DUMMY_TOP`}
+    set DUMMY_GDS {`$QUANTUS_DUMMY_GDS`}
 
     # Read input Innovus database
     read_db -no_timing $DATABASE
@@ -216,17 +216,24 @@ gf_submit_task
 # Tempus STA
 ########################################
 
-gf_create_task -name STA -mother Init
+gf_create_task -name STA
 gf_use_tempus
 
 # Want for extraction to complete
 gf_want_tasks Extraction -variable SPEF_TASKS
 
-# Choose MMMC file
-gf_choose_file_dir_task -variable MMMC_FILE -keep -prompt "Please select MMMC file:" -files '
-    ../data/*.timing.mmmc.tcl
-    ../data/*/*.timing.mmmc.tcl
-    ../work_*/*/out/ConfigSignoff*.timing.mmmc.tcl
+# Choose configuration file
+gf_choose_file_dir_task -variable TEMPUS_TIMING_CONFIG_FILE -keep -prompt "Please select timing configuration file:" -files '
+    ../data/*.timing.tcl
+    ../data/*/*.timing.tcl
+    ../work_*/*/out/ConfigSignoff*.timing.tcl
+'
+
+# Choose configuration file
+gf_choose_file_dir_task -variable DATA_OUT_CONFIG_FILE -keep -prompt "Please select design configuration file:" -files '
+    ../data/*.design.tcl
+    ../data/*/*.design.tcl
+    ../work_*/*/out/DataOutPhysical*.design.tcl
 '
 
 # TCL commands
@@ -238,17 +245,22 @@ gf_add_tool_commands '
     set GROUND_NETS {`$GROUND_NETS_CORE` `$GROUND_NETS_OTHER -optional`}
     set SPEF_TASKS {`$SPEF_TASKS`}
     set IGNORE_IO_TIMING {`$IGNORE_IO_TIMING`}
-    set MMMC_FILE {`$MMMC_FILE`}
-    set OCV_FILE "[regsub {\.mmmc\.tcl$} $MMMC_FILE {}].ocv.tcl"
+    set GCONFIG_FILE {`$GCONFIG_FILE}
+    set DATA_OUT_CONFIG_FILE {`$DATA_OUT_CONFIG_FILE}
+    set TIMING_CONFIG_FILE {`$TEMPUS_TIMING_CONFIG_FILE`}
+    
+    # Load configuration variables
+    source $TIMING_CONFIG_FILE
 
-    # Ignore IMPESI-3490
-    eval_legacy {setDelayCalMode -sgs2set abortCdbMmmcFlow:false}
-
+    # Load configuration files
+    source $GCONFIG_FILE
+    source $DATA_OUT_CONFIG_FILE
+    
     # Start metric collection
     `@collect_metrics`
 
-    # Get top level design name from Innovus database
-    source ./out/$MOTHER_TASK_NAME.init_tempus.tcl
+    # Pre-load settings
+    `@tempus_pre_read_libs`
     
     # Initialize power and ground nets
     set_db init_power_nets [join $POWER_NETS]
@@ -267,8 +279,10 @@ gf_add_tool_commands '
     init_design
     
     # Load OCV configuration
-    reset_timing_derate
-    source $OCV_FILE
+    redirect -tee ./reports/$TASK_NAME.ocv.rpt {
+        reset_timing_derate
+        source $OCV_FILE
+    }
     report_timing_derate > ./reports/$TASK_NAME.derate.rpt
     
     # Initialize tool environment
@@ -350,11 +364,11 @@ gf_use_tempus
 # Want for extraction to complete
 gf_want_tasks Extraction -variable SPEF_TASKS
 
-# Choose MMMC file
-gf_choose_file_dir_task -variable MMMC_FILE -keep -prompt "Please select MMMC file:" -files '
-    ../data/*.timing.mmmc.tcl
-    ../data/*/*.timing.mmmc.tcl
-    ../work_*/*/out/ConfigSignoff*.timing.mmmc.tcl
+# Choose configuration file
+gf_choose_file_dir_task -variable TEMPUS_TIMING_CONFIG_FILE -keep -prompt "Please select timing configuration file:" -files '
+    ../data/*.timing.tcl
+    ../data/*/*.timing.tcl
+    ../work_*/*/out/ConfigSignoff*.timing.tcl
 '
 
 # TCL commands

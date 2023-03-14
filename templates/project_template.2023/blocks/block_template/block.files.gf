@@ -48,13 +48,18 @@ LEF_FILES='
 #     <PLACEHOLDER>/PATH_TO_FEOL_TCD_FILE.gds
 #     <PLACEHOLDER>/PATH_TO_BEOL_TCD_FILE.gds
 # '
-#
-# # Cadence GDS map file and units in nm
-# CADENCE_GDS_LAYER_MAP_FILE='<PLACEHOLDER>/PATH_TO_INNOVUS_STREAM_OUT.map'
-# GDS_UNITS=1000
+
+# # Spice files (LVS) - ./calibre.phys.gf, ./pegasus.phys.gf, ./icv.phys.gf
+# CDL_FILES='
+#     <PLACEHOLDER>/PATH_TO_LVS_DIR/source.added
+#     <PLACEHOLDER>/PATH_TO_STANDARD_CELL_FILE.cdl
+#     <PLACEHOLDER>/PATH_TO_STANDARD_CELL_FILE.spi
+#     <PLACEHOLDER>/PATH_TO_MACRO_FILE.cdl
+#     <PLACEHOLDER>/PATH_TO_MACRO_FILE.spi
+# '
 
 ################################################################################
-# Timing analysis files - ./gconfig.gen.gf for many flows
+# Timing analysis files - ./config.out.gf
 ################################################################################
 
 # Cadence MMMC configuration (TCL flow step)
@@ -139,7 +144,7 @@ gf_create_step -name gconfig_cadence_mmmc_files '
 # RTL files - ./genus.fe.gf
 ################################################################################
 
-# # Paths to locate relative RTL files
+# # Paths to locate relative RTL files (only when RTL files used without full path)
 # RTL_SEARCH_PATHS='
 #     <PLACEHOLDER>../../../../../../data/hdl
 #     <PLACEHOLDER>../../../../data/hdl
@@ -153,83 +158,130 @@ gf_create_step -name gconfig_cadence_mmmc_files '
 # RTL_FILES_LIST='<PLACEHOLDER>/path/to/block_name.f'
 
 ################################################################################
-# Signoff files - physical and power signoff
+# Common design files - ./genus.fe.gf, ./innovus.be.gf
 ################################################################################
 
-# # Hierarchical cells file used for LVS (auto-generated when empty)
-# HCELL_FILE='<PLACEHOLDER>../../../../data/hcell'
+# # Scan chains definition DEF file (required if scan chains exist in the design)
+# SCANDEF_FILE='../../../../data/DESIGN_NAME.*.scandef'
 
-# Spice netlist files for LVS
-LVS_SPICE_FILES='
-    <PLACEHOLDER>/PATH_TO_LVS_DIR/source.added
-    <PLACEHOLDER>/PATH_TO_STANDARD_CELL_FILE.cdl
-    <PLACEHOLDER>/PATH_TO_STANDARD_CELL_FILE.spi
-    <PLACEHOLDER>/PATH_TO_MACRO_FILE.cdl
-    <PLACEHOLDER>/PATH_TO_MACRO_FILE.spi
-'
+# # Power intent file for low-power design (optional)
+# CPF_FILE='../../../../data/DESIGN_NAME.*.cpf'
+# UPF_FILE='../../../../data/DESIGN_NAME.*.upf'
 
-# # Physical verification rules for Calibre
+################################################################################
+# Genus input files - ./innovus.fp.gf, ./innovus.be.gf
+################################################################################
+
+# # Timing configuration
+# GENUS_TIMING_CONFIG_FILE='../../../config.gen.0000/out/ConfigBackend*.timing.tcl'
+
+# # DEF floorplan for physical synthesis
+# GENUS_FLOORPLAN_FILE='../../../../data/DESIGN_NAME.*.fp.def.gz'
+# GENUS_FLOORPLAN_FILE='../../../innovus.fp.0000/out/Floorplan.*.fp.def.gz'
+
+################################################################################
+# Innovus input files - ./innovus.fp.gf, ./innovus.be.gf, ./innovus.out.gf
+################################################################################
+
+# # Innovus GDS map file and units in nm (mandatory for ./innovus.out.gf)
+# INNOVUS_GDS_LAYER_MAP_FILE='<PLACEHOLDER>/PATH_TO_INNOVUS_STREAM_OUT.map'
+# INNOVUS_GDS_UNITS=1000
+
+# # Timing configuration (optional, will be asked if empty)
+# INNOVUS_TIMING_CONFIG_FILE='../../../config.gen.0000/out/ConfigBackend*.timing.tcl'
+
+# # Floorplan for implementation (optional, will be asked if empty)
+# INNOVUS_FLOORPLAN_FILE='../../../../data/DESIGN_NAME.*.fp'
+# INNOVUS_FLOORPLAN_FILE='../../../innovus.fp.0000/out/Floorplan.*.fp'
+
+# # Netlist for implementation (optional, will be asked if empty)
+# INNOVUS_NETLIST_FILES='../../../../data/DESIGN_NAME.*.v'
+# INNOVUS_NETLIST_FILES='../../../frontend.0000/out/SynMap.v'
+# INNOVUS_NETLIST_FILES='../../../frontend.0000/out/SynOpt.v'
+
+# # Foundry legacy scripts (optional, if used in ./block.innovus.gf)
+# INNOVUS_DFM_VIA_SWAP_SCRIPT='<PLACEHOLDER>/path/to/the_script.tcl'
+
+# # Partitions to assemble (hierarchical flow only)
+# INNOVUS_PARTITIONS='<PLACEHOLDER>block1_name block2_name ...'
+
+# # Top level database (hierarchical flow only, leave empty for interactive selection)
+# INNOVUS_TOP_DATABASE='<PLACEHOLDER>../../../../../DESIGN_NAME/work_*/innovus.be.0000/out/Route.innovus.db'
+
+# # Partition databases (hierarchical flow only, leave empty for interactive selection)
+# INNOVUS_PARTITION_DATABASES='
+#     <PLACEHOLDER>../../../../../block1_name/work_*/innovus.be.0000/out/Route.innovus.db
+#     <PLACEHOLDER>../../../../../block2_name/work_*/innovus.eco.0000/out/ECO.innovus.db
+#'
+
+################################################################################
+# Quantus input files - ./quantus.ext.gf
+################################################################################
+
+# # Quantus extraction files (optional, can be manually defined in ./block.quantus.gf)
+# QUANTUS_DEF_LAYER_MAP_FILE='/PATH_TO/PRTF_Innovus_*/PR_tech/Cadence/QrcMap/PRTF_Innovus_*.map'
+# QUANTUS_GDS_LAYER_MAP_FILE='/PATH_TO/PRTF_Innovus_*/PR_tech/Cadence/QrcDummyMap/PRTF_Innovus_*'
+
+# # Corners configuration (optional, will be asked if empty)
+# QUANTUS_CORNERS_CONFIG_FILE='/path/to/out/ConfigBackend*.timing.tcl'
+# QUANTUS_CORNERS_CONFIG_FILE='/path/to/out/ConfigBackend*.power.tcl'
+
+# # Design DEF (optional, will be asked if empty)
+# QUANTUS_DEF_FILE='../../../innovus.out.000/out/DataOutPhysical*.full.def.gz'
+
+# # Dummy fill top cell name (required to enable parasitics extraction flow with dummy fill)
+# QUANTUS_DUMMY_TOP="<PLACEHOLDER>${DESIGN_NAME}_dummy_fill"
+#
+# # Dummy fill GDS (optional, will be asked if empty)
+# QUANTUS_DUMMY_GDS='../../../calibre.phys.000/out/Dummy*.gds.gz'
+# QUANTUS_DUMMY_GDS='../../../pegasus.phys.000/out/Dummy*.gds.gz'
+# QUANTUS_DUMMY_GDS='../../../pvs.phys.000/out/Dummy*.gds.gz'
+# QUANTUS_DUMMY_GDS='../../../icv.phys.000/out/Dummy*.gds.gz'
+
+################################################################################
+# Tempus input files - ./tempus.sta.gf
+################################################################################
+
+# # Specific design configuration for STA (optional, will be asked if empty)
+# TEMPUS_STA_TIMING_CONFIG_FILE='../../../config.gen.0000/out/ConfigSignoff*.timing.tcl'
+
+# # Specific design configuration for TSO (optional, will be asked if empty)
+# TEMPUS_TSO_TIMING_CONFIG_FILE='../../../config.gen.0000/out/ConfigSignoff*.timing.tcl'
+
+################################################################################
+# Voltus files - ./voltus.pgv.gf, ./voltus.rail.gf
+################################################################################
+
+# # Spice models for PGV generation (mandatory for detailed PGV)
+# VOLTUS_PGV_SPICE_MODELS='<PLACEHOLDER>/PATH_TO/models/spectre/*.scs'
+# VOLTUS_PGV_SPICE_CORNERS='<PLACEHOLDER>ss'
+# VOLTUS_PGV_SPICE_SCALING=<PLACEHOLDER>0.9
+
+# Extracted spice files with coordinates for macro PGV generation (mandatory for detailed PGV)
+# VOLTUS_PGV_SPICE_FILES='
+#     <PLACEHOLDER>/PATH_TO_MACRO_FILE.spi
+# '
+
+# # Signal EM analysis rule file (mandatory for signal elecromigration analysis)
+# VOLTUS_ICT_EM_RULE='<PLACEHOLDER>/PATH_TO/VOLTUS_EM_RULE.ictem'
+
+# # PGV libraries for rail analysis (optional, will be asked if empty)
+# VOLTUS_PGV_LIBS="
+#     <PLACEHOLDER>../../../../../voltus.pgv.0000/out/TechPGV.cl
+#     <PLACEHOLDER>../../../../../voltus.pgv.0000/out/CellsPGV.cl
+#     <PLACEHOLDER>../../../../../voltus.pgv.0000/out/MacrosPGV.cl
+# "
+
+################################################################################
+# Calibre input files - ./calibre.phys.gf
+################################################################################
+
+# # Physical verification rules for Calibre (mandatory)
 # CALIBRE_DRC_RULES='<PLACEHOLDER>/PATH_TO_DRC_RULE_FILE'
 # CALIBRE_LVS_RULES='<PLACEHOLDER>/PATH_TO_LVS_RULE_FILE'
 # CALIBRE_FILL_RULES='<PLACEHOLDER>/PATH_TO_COMBINED_FEOL_BEOL_FILL_RULE_FILE'
 # CALIBRE_ANT_RULES='<PLACEHOLDER>/PATH_TO_ANTENNA_RULE_FILE'
 # CALIBRE_BUMP_RULES='<PLACEHOLDER>/PATH_TO_BUMP_RULE_FILE'
 
-# # Specify metal fill top cell name to enable in extraction flow
-# DUMMY_TOP="<PLACEHOLDER>${DESIGN_NAME}_dummy_fill"
-
-# # Optional Quantus extraction files - see ./block.quantus.gf
-# QUANTUS_DEF_LAYER_MAP_FILE='/PATH_TO/PRTF_Innovus_*/PR_tech/Cadence/QrcMap/PRTF_Innovus_*.map'
-# QUANTUS_GDS_LAYER_MAP_FILE='/PATH_TO/PRTF_Innovus_*/PR_tech/Cadence/QrcDummyMap/PRTF_Innovus_*'
-
-# # Spice models for PGV generation 
-# VOLTUS_PGV_SPICE_MODELS='<PLACEHOLDER>/PATH_TO/models/spectre/*.scs'
-# VOLTUS_PGV_SPICE_CORNERS='<PLACEHOLDER>ss'
-# VOLTUS_PGV_SPICE_SCALING=<PLACEHOLDER>0.9
-
-# Extracted spice files with coordinates for macro PGV generation
-# VOLTUS_PGV_SPICE_FILES='
-#     <PLACEHOLDER>/PATH_TO_MACRO_FILE.spi
-# '
-
-# # Signal EM analysis rule file
-# VOLTUS_ICT_EM_RULE='<PLACEHOLDER>/PATH_TO/VOLTUS_EM_RULE.ictem'
-
-# # Foundry legacy scripts
-# DFM_VIA_SWAP_SCRIPT=<PLACEHOLDER>/path/to/the_script.tcl
-
-################################################################################
-# Optional flow files
-################################################################################
-
-# # Scan chains definition DEF file
-# SCANDEF_FILE='../../../../data/DESIGN_NAME.*.scandef'
-
-# # Power intent file for low-power design
-# CPF_FILE='../../../../data/DESIGN_NAME.*.cpf'
-# UPF_FILE='../../../../data/DESIGN_NAME.*.upf'
-
-# # Pre-selected floorplan for synthesis and implementation
-# FLOORPLAN_FILE='../../../../data/DESIGN_NAME.*.fp'
-# FLOORPLAN_FILE='../../../innovus.fp.0000/out/Floorplan.*.fp'
-
-# # Pre-selected netlist for implementation
-# NETLIST_FILES='../../../../data/DESIGN_NAME.*.v'
-# NETLIST_FILES='../../../frontend.0000/out/SynMap.v'
-# NETLIST_FILES='../../../frontend.0000/out/SynOpt.v'
-
-################################################################################
-# Optional hierarchical flow files
-################################################################################
-
-# # Hierarchical flow: partitions to assemble
-# INNOVUS_PARTITIONS='<PLACEHOLDER>block1_name block2_name ...'
-
-# # Hierarchical flow: top level database (leave empty for interactive selection)
-# INNOVUS_TOP_DATABASE='<PLACEHOLDER>../../../../../DESIGN_NAME/work_*/innovus.be.0000/out/Route.innovus.db'
-
-# # Hierarchical flow: partition databases (leave empty for interactive selection)
-# INNOVUS_PARTITION_DATABASES='
-#     <PLACEHOLDER>../../../../../block1_name/work_*/innovus.be.0000/out/Route.innovus.db
-#     <PLACEHOLDER>../../../../../block2_name/work_*/innovus.eco.0000/out/ECO.innovus.db
-#'
+# # Hierarchical cells file used for LVS (optional, auto-generated when empty)
+# HCELL_FILE='<PLACEHOLDER>../../../../data/hcell'

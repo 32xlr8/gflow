@@ -45,6 +45,9 @@ function gf_use_innovus {
         `@init_quantus_environment -optional`
         `@init_genus_environment -optional`
         
+        # Dump environment variables
+        env > ./reports/`$TASK_NAME`.env
+
         # Run the tool
         innovus -stylus -files ./scripts/`$TASK_NAME`.tcl
     '
@@ -112,6 +115,9 @@ function gf_use_innovus_legacy {
         `@init_quantus_environment -optional`
         `@init_genus_environment -optional`
         
+        # Dump environment variables
+        env > ./reports/`$TASK_NAME`.env
+
         # Run the tool
         innovus -files ./scripts/`$TASK_NAME`.tcl
     '
@@ -166,6 +172,9 @@ function gf_use_innovus_batch {
         `@init_quantus_environment -optional`
         `@init_genus_environment -optional`
         
+        # Dump environment variables
+        env > ./reports/`$TASK_NAME`.env
+
         # Run the tool
         innovus -stylus -batch -no_gui -files ./scripts/`$TASK_NAME`.tcl
     '

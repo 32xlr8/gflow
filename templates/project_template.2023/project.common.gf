@@ -79,15 +79,18 @@ gf_create_step -name init_shell_environment '
     export CDS_AUTO_64BIT=ALL
     export CDS_STYLUS_SOURCE_VERBOSE=0
 
-    # # Temporary directory
+    # # Fast temporary directory in RAM (use if total memory is more than 512Gb)
+    # if [ -d "$XDG_RUNTIME_DIR" ]; then
+    #     export TMPDIR="$XDG_RUNTIME_DIR/tmp"
+    #     mkdir -p "$TMPDIR"
+    # fi
+
+    # # Slow temporary directory in project area
     # export TMPDIR="."
     # # mkdir -p "$TMPDIR"
 
     # Remove command line stack limit
     ulimit -s unlimited
-    
-    # Dump environment variables
-    env > ./reports/`$TASK_NAME`.env
 '
 
 ################################################################################

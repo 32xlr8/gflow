@@ -29,11 +29,10 @@ gf_info "Loading block-specific Genus steps ..."
 # Flow options
 ################################################################################
 
-# # Override tasks resources
+# # Override all tasks resources
 # gf_set_task_options -cpu 8 -mem 15
 
 # # Override resources for interactive tasks
-# gf_set_task_options Floorplan -cpu 4 -mem 10
 # gf_set_task_options 'Debug*' -cpu 4 -mem 10
 
 # # Override resources for batch tasks
@@ -46,6 +45,9 @@ gf_set_task_options 'Report*' -cpu 4 -mem 10
 gf_set_task_options 'Report*' -parallel 1
 
 # # Disable not needed tasks
+# gf_set_task_options -disable SynGen
+# gf_set_task_options -disable SynMap
+# gf_set_task_options -disable SynOpt
 # gf_set_task_options -disable ReportSynGen
 # gf_set_task_options -disable ReportSynMap
 # gf_set_task_options -disable ReportSynOpt
@@ -53,12 +55,6 @@ gf_set_task_options 'Report*' -parallel 1
 ################################################################################
 # Flow variables
 ################################################################################
-
-# # Specific floorplan used for physical synthesis
-# FLOORPLAN_FILE=""
-
-# # Specific MMMC file
-# MMMC_FILE=/path/to/ConfigFrontend*.timing.mmmc.tcl
 
 # Top cell name for elaboration
 ELAB_DESIGN_NAME="$DESIGN_NAME"
@@ -74,15 +70,21 @@ ELAB_DESIGN_NAME="$DESIGN_NAME"
 # Commands before reading libraries
 gf_create_step -name genus_pre_read_libs '
 
-    # # Verbosity level
-    # set_db information_level 9
+    # Verbosity level (1 - default, 3 - common, 11 - max)
+    set_db information_level 3
 
-    # Limit some messages
+    # Limit specific messages
     foreach message_id {CHNM-102 CWD-17 CWD-19 CWD-36} {
         set_db message:$message_id .max_print 20
         set_db message:$message_id .screen_max_print 20
     }
-
+    
+    # Limit all info and warning messages on the screen
+    set_db set_db_verbose false
+    set_db [get_db messages -if .severity==Info] .screen_max_print 0
+    set_db [get_db messages -if .severity==Warning] .screen_max_print 20
+    reset_db set_db_verbose
+    
     # # Timing settings
     # set_db timing_library_hold_sigma_multiplier 0.0
     # set_db timing_library_hold_constraint_corner_sigma_multiplier 0.0
@@ -217,20 +219,18 @@ gf_create_step -name genus_post_init_design '
     #     CKXOR2*
     # }]]
 
-    # Dont use cells
-    set_dont_use <PLACEHOLDER>* true
-    set_dont_use <PLACEHOLDER>* false
-
     # # Clock and special cells
+    <PLACEHOLDER>
     # set_dont_use CK*BWP* true
     # set_dont_use DCCK*BWP* true
     # set_dont_use DEL*BWP* true
     # set_dont_use G*BWP* true
-    # set_dont_use <PLACEHOLDER>*OPT*BWP* true
-    # set_dont_use <PLACEHOLDER>*BWP*LVT* true
-    # set_dont_use <PLACEHOLDER>*BWP*ULVT* true
+    # set_dont_use *OPT*BWP* true
+    # set_dont_use *BWP*LVT* true
+    # set_dont_use *BWP*ULVT* true
 
     # # Weak/strong drivers
+    <PLACEHOLDER>
     # set_dont_use *D0BWP* true
     # set_dont_use *D0P*BWP* true
     # set_dont_use *D16BWP* true
@@ -326,29 +326,43 @@ gf_create_step -name genus_post_syn_opt '
 
 # Post-generic synthesis Genus reports
 gf_create_step -name genus_design_reports_post_syn_gen '
-    report_dp > ./reports/$TASK_NAME.dp.rpt
-    report_logic_levels_histogram -bars 10 -skip_buffer -skip_inverter -threshold 10 -detail > ./reports/$TASK_NAME.logic_levels.rpt
-    check_design [get_db current_design .name] > ./reports/$TASK_NAME.check_design.rpt
-    check_floorplan -out_file ./reports/$TASK_NAME.check_floorplan.rpt
-    check_timing_intent > ./reports/$TASK_NAME.check_timing_intent.rpt
-    report_timing -max_paths 500 > ./reports/$TASK_NAME.tarpt
-    report_timing -lint -verbose > ./reports/$TASK_NAME.lint
-    # report_summary -directory ./reports/$TASK_NAME
+    write_reports -directory ./reports/$TASK_NAME -tag summary
+    
+    redirect ./reports/$TASK_NAME/datapath.rpt {report_dp}
+    redirect ./reports/$TASK_NAME/logic_levels_histogram.rpt {report_logic_levels_histogram -bars 10 -skip_buffer -skip_inverter -threshold 10 -detail}
+    
+    redirect ./reports/$TASK_NAME/check_floorplan.rpt {check_floorplan -detailed}
+    redirect ./reports/$TASK_NAME/check_timing_intent.rpt {check_timing_intent -verbose}
+    redirect ./reports/$TASK_NAME/check_design.rpt {check_design -all [get_db current_design .name]}
+    
+    redirect ./reports/$TASK_NAME/timing.500.tarpt {report_timing -fields {+ timing_point arc cell delay transition fanout load} -max_paths 500}
+    redirect ./reports/$TASK_NAME/timing.end.tarpt {report_timing -path_type endpoint -max_paths 1000}
+    redirect ./reports/$TASK_NAME/timing.lint.tarpt {report_timing -lint -verbose}
 '
 
 # Post-mapping Genus reports
 gf_create_step -name genus_design_reports_post_syn_map '
-    report_clock_gating > ./reports/$TASK_NAME.clock_gating.tarpt
-    report_power -depth 0 > ./reports/$TASK_NAME.power.tarpt
-    report_gates -power > ./reports/$TASK_NAME.power_gates.tarpt
-    report_logic_levels_histogram -bars 10 -skip_buffer -skip_inverter -threshold 10 -detail > ./reports/$TASK_NAME.logic_levels.rpt
-    report_timing -max_paths 500 > ./reports/$TASK_NAME.tarpt
-    report_timing -lint -verbose > ./reports/$TASK_NAME.lint
-    # report_summary -directory ./reports/$TASK_NAME
+    write_reports -directory ./reports/$TASK_NAME -tag summary
+    
+    redirect ./reports/$TASK_NAME/datapath.rpt {report_dp}
+    redirect ./reports/$TASK_NAME/logic_levels_histogram.rpt {report_logic_levels_histogram -bars 10 -skip_buffer -skip_inverter -threshold 10 -detail}
+    
+    redirect ./reports/$TASK_NAME/check_floorplan.rpt {check_floorplan -detailed}
+    redirect ./reports/$TASK_NAME/check_timing_intent.rpt {check_timing_intent -verbose}
+    redirect ./reports/$TASK_NAME/check_design.rpt {check_design -all [get_db current_design .name]}
+    
+    redirect ./reports/$TASK_NAME/timing.500.tarpt {report_timing -fields {+ timing_point arc cell delay transition fanout load} -max_paths 500}
+    redirect ./reports/$TASK_NAME/timing.end.tarpt {report_timing -path_type endpoint -max_paths 1000}
+    redirect ./reports/$TASK_NAME/timing.lint.tarpt {report_timing -lint -verbose}
+
+    redirect ./reports/$TASK_NAME/clock_gating.tarpt {report_clock_gating}
+
+    redirect ./reports/$TASK_NAME/power.modules.tarpt {report_power -levels 1}
+    redirect ./reports/$TASK_NAME/power.gates.tarpt {report_gates -power}
 
     # Write out SDF and SDC
     foreach view [get_db [get_db analysis_views -if .is_setup] .name] {
-        # write_sdf -view $view -edges check_edge -interconn interconnect -nonegchecks > ./out/$TASK_NAME.$view.sdf
         write_sdc -view $view > ./out/$TASK_NAME.$view.sdc
+        write_sdf -view $view -edges check_edge -interconn interconnect -nonegchecks > ./out/$TASK_NAME.$view.sdf
     }
 '

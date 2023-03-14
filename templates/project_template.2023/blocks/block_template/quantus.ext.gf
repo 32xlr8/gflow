@@ -19,7 +19,7 @@
 # limitations under the License.
 #
 ################################################################################
-# Filename: templates/project_template.2023/blocks/block_template/quantus.timing.gf
+# Filename: templates/project_template.2023/blocks/block_template/quantus.ext.gf
 # Purpose:  Batch signoff parasitics extraction flow for timing analysis
 ################################################################################
 
@@ -41,38 +41,42 @@ gf_source "./block.quantus.gf"
 gf_create_task -name Extraction
 gf_use_quantus_batch
 
-# Choose MMMC file
-gf_choose_file_dir_task -variable CONFIG_FILE -keep -prompt "Please select configuration file:" -files '
+# Choose gconfig file
+gf_choose_file_dir_task -variable QUANTUS_CORNERS_CONFIG_FILE -keep -prompt "Please select corners configuration file:" -files '
     ../data/*.timing.tcl
+    ../data/*.power.tcl
     ../data/*/*.timing.tcl
-    ../work_*/*/out/ConfigBackend*.timing.tcl
+    ../data/*/*.power.tcl
+    ../work_*/*/out/ConfigSignoff*.timing.tcl
+    ../work_*/*/out/ConfigSignoff*.power.tcl
 '
 
 # Choose DEF file
-gf_choose_file_dir_task -variable DEF_FILE -keep -prompt "Please select DEF file for extraction:" -files '
-    ../data/**.full.def.gz
+gf_choose_file_dir_task -variable QUANTUS_DEF_FILE -keep -prompt "Please select design DEF file:" -files '
+    ../data/*.full.def.gz
     ../data/*/*.full.def.gz
     ../work_*/*/out/*/*.full.def.gz
+' -want -active -task_to_file '$RUN/out/$TASK/'$DESIGN_NAME'.full.def.gz' -tasks '
+    ../work_*/*/tasks/DataOutPhysical*
 '
 
 # Select dummy fill to use when empty
-if [ -n "$DUMMY_TOP" -a -z "$DUMMY_GDS" ]; then
+if [ -n "$QUANTUS_DUMMY_TOP" -a -z "$QUANTUS_DUMMY_GDS" ]; then
     gf_spacer
     gf_choose -variable USE_DUMMY_GDS -keep -keys YN -time 30 -default Y -prompt "Do you want to use dummy fill GDS (Y/N)?"
 
     # Select dummy fill to use when required
     if [ "$USE_DUMMY_GDS" == "Y" ]; then
         gf_spacer
-        gf_choose_file_dir_task -variable DUMMY_GDS -keep -prompt "Please select dummy fill to use:" -files '
-            ../work_*/*/out/Fill*.gds
-        ' -want -active -task_to_file '$RUN/out/$TASK.gds' -tasks '
-            ../work_*/*/tasks/Fill*
+        gf_choose_file_dir_task -variable QUANTUS_DUMMY_GDS -keep -prompt "Please select dummy fill to use:" -files '
+            ../work_*/*/out/Dummy*.gds.gz
+        ' -want -active -task_to_file '$RUN/out/$TASK.gds.gz' -tasks '
+            ../work_*/*/tasks/Dummy*
         '
-        gf_info "Metal fill GDS \e[32m$DUMMY_GDS\e[0m selected"
+        gf_info "Metal fill GDS \e[32m$QUANTUS_DUMMY_GDS\e[0m selected"
     fi
 fi
-[[ "$USE_DUMMY_GDS" != "Y" ]] && DUMMY_GDS=""
-
+[[ "$USE_DUMMY_GDS" != "Y" ]] && QUANTUS_DUMMY_GDS=""
 
 # Shell commands to initialize environment
 gf_add_shell_commands -init "tclsh ./scripts/$TASK_NAME.config.tcl"
@@ -96,16 +100,17 @@ gf_add_tool_commands '
 gf_add_tool_commands -comment '#' -file "./scripts/$TASK_NAME.config.tcl" '
     
     # Current design variables
-    set LEF_FILES {`$LEF_FILES`}
+    set LEF_FILES {`$CADENCE_TLEF_FILES` `$LEF_FILES`}
     set GDS_FILES {`$GDS_FILES`}
-    set DEF_FILE {`$DEF_FILE`}
-    set DUMMY_TOP {`$DUMMY_TOP -optional`}
-    set DUMMY_GDS {`$DUMMY_GDS -optional`}
+    set DEF_FILE {`$QUANTUS_DEF_FILE`}
+    set DUMMY_TOP {`$QUANTUS_DUMMY_TOP -optional`}
+    set DUMMY_GDS {`$QUANTUS_DUMMY_GDS -optional`}
     set POWER_NETS {`$POWER_NETS_CORE` `$POWER_NETS_OTHER -optional`}
     set GROUND_NETS {`$GROUND_NETS_CORE` `$GROUND_NETS_OTHER -optional`}
+    set CORNERS_CONFIG_FILE {`$QUANTUS_CORNERS_CONFIG_FILE`}
 
     # Load configuration
-    source {`$CONFIG_FILE`}
+    source $CORNERS_CONFIG_FILE
     
     # Remove files created before
     exec rm -f ./corner.defs ./lib.defs ./inputs.ccl

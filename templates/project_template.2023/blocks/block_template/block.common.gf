@@ -40,8 +40,9 @@ gf_set_task_options 'Config*' -cpu 1 -mem 1 -local
 # Flow variables
 ################################################################################
 
-# Top cell name in netlist
-DESIGN_NAME='<PLACEHOLDER>block_name'
+# Top cell name in netlist (default is current block directory name)
+DESIGN_NAME="$(basename $PWD)"
+# DESIGN_NAME='<PLACEHOLDER>block_name'
 
 # Global core nets
 POWER_NETS_CORE='VDD'

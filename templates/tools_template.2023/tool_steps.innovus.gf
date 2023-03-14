@@ -1081,7 +1081,7 @@ gf_create_step -name innovus_check_missing_cells '
         puts "\033\[44m \033\[0m Set variable below in ../block.search.gf and run ./files.search.gf to look for required files on disk.\n"
         puts "GF_SEARCH_CELLS='"'"'\n    [join $missing_cells "\n    "]\n'"'"'\n"
         puts "\033\[41m \033\[0m Total [llength $missing_cells] missing cells found.\n"
-        sleep 10
+        sleep 5
     }
 '
 

@@ -27,16 +27,22 @@ gf_info "Loading block-specific Tempus steps ..."
 gf_disable_task Data
 
 ################################################################################
+# Flow options
+################################################################################
+
+# # Override all tasks resources
+# gf_set_task_options -cpu 8 -mem 15
+
+# # Override resources for batch tasks
+# gf_set_task_options STA -cpu 8 -mem 15
+# gf_set_task_options TSO -cpu 8 -mem 15
+
+################################################################################
 # Flow variables
 ################################################################################
 
-# # Specific MMMC file
-# MMMC_FILE_STA=/path/to/ConfigSignoff*.timing.mmmc.tcl
-# MMMC_FILE_ECO=/path/to/ConfigSignoff*.timing.mmmc.tcl
-
-# # Innovus database to analyze (keep empty to select interactively)
-# DATABASE="../../../innovus.be.0000/out/Route.innovus.db"
-# DATABASE="../../../tempus.sta.0000/out/ECO.innovus.db"
+# Set to "Y" to ignore IO timing
+IGNORE_IO_TIMING=Y
 
 # User-defined Tempus ECO scenarios
 ECO_SCENARIOS='
@@ -53,15 +59,31 @@ ECO_SCENARIOS='
     Full: drv setup hold
 '
 
-# Set to "Y" to ignore IO timing
-IGNORE_IO_TIMING=Y
-
 # # Scenario to run (keep empty to select interactively)
 # ECO_SCENARIO='<PLACEHOLDER>'
 
 ################################################################################
 # Flow steps
 ################################################################################
+
+# Commands before reading design data
+gf_create_step -name tempus_pre_read_libs '
+
+    # # Tech LEF line end extension optimizm removal
+    # set_db extract_rc_pre_route_force_lee_optimism_fix true
+
+    # # SOCV settings before loading libraries
+    # set_db timing_library_hold_sigma_multiplier 3.0
+    # # set_db timing_library_hold_sigma_multiplier 0.0
+    # set_db timing_library_hold_constraint_corner_sigma_multiplier 0.0
+    # # set_db timing_library_gen_hold_constraint_table_using_sigma_values sigma
+
+    # # Spatial OCV settings before loading libraries
+    # set_db timing_derate_spatial_distance_unit 1nm
+
+    # Ignore IMPESI-3490
+    eval_legacy {setDelayCalMode -sgs2set abortCdbMmmcFlow:false}
+'
 
 # Block-specific Tempus settings
 gf_create_step -name tempus_post_init_design '
@@ -191,7 +213,7 @@ gf_create_step -name reports_sta_tempus '
     gf_report_timing_early_pba 150
     gf_report_constraint_late
     gf_report_constraint_early
-    gf_report_glitch
+    gf_report_noise
     # gf_report_timing_summary
 
     # Write ECO timing DB

@@ -43,6 +43,9 @@ function gf_use_voltus {
         `@init_shell_environment`
         `@init_voltus_environment`
         
+        # Dump environment variables
+        env > ./reports/`$TASK_NAME`.env
+
         # Run the tool
         voltus -stylus -files ./scripts/`$TASK_NAME`.tcl
     '
@@ -97,6 +100,9 @@ function gf_use_voltus_batch {
         `@init_shell_environment`
         `@init_voltus_environment`
         
+        # Dump environment variables
+        env > ./reports/`$TASK_NAME`.env
+
         # Run the tool
         voltus -stylus -batch -no_gui -files ./scripts/`$TASK_NAME`.tcl
     '

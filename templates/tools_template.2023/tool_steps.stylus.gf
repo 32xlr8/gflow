@@ -35,7 +35,7 @@ gf_create_step -name collect_metrics '
 # Finish new metric section
 gf_create_step -name report_metrics '
     catch {
-        set_metric -name flow.step.tcl -value [exec cat [info script]]
+        set_metric -name flow.step.tcl -value [info script]
         pop_snapshot_stack
         create_snapshot -name $TASK_NAME
         report_metric -format html -file ./reports/$TASK_NAME.metric.html

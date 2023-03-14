@@ -44,7 +44,7 @@ gf_use_calibre_drc_batch
 # Select Innovus database to analyze from latest available if $DATABASE is empty
 gf_spacer
 gf_choose_file_dir_task -variable DATA_OUT_TASK -keep -prompt "Please select data out task:" -want -tasks '
-    ../work_*/*/tasks/DataOut*
+    ../work_*/*/tasks/DataOutPhysical*
 ' 
 
 gf_info "Data out \e[32m$DATA_OUT_TASK\e[0m task selected"
@@ -173,7 +173,7 @@ gf_add_tool_commands -ext runset "
     *lvsIncludeFiles: ./out/$TASK_NAME.pins ./scripts/$TASK_NAME.user.pins
     *lvsLayoutPaths: $DATA_OUT_TASK/out/$(basename "$DATA_OUT_TASK").gds.gz
     *lvsLayoutPrimary: $DESIGN_NAME
-    *lvsSourcePath: `$LVS_SPICE_FILES` ./scripts/$TASK_NAME.empty.sp ./out/$TASK_NAME.sp) 
+    *lvsSourcePath: `$CDL_FILES` ./scripts/$TASK_NAME.empty.sp ./out/$TASK_NAME.sp) 
     *lvsSourcePrimary: $DESIGN_NAME
     *lvsUseHCells: 1
     *lvsHCellsFile: $HCELL_FILE

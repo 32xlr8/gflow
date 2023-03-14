@@ -45,7 +45,7 @@ gf_create_task -name Floorplan
 gf_use_innovus
 
 # Choose netlist if not chosen
-gf_choose_file_dir_task -variable NETLIST_FILES -keep -prompt "Please select netlist:" -files '
+gf_choose_file_dir_task -variable INNOVUS_NETLIST_FILES -keep -prompt "Please select netlist:" -files '
     ../data/*.v.gz
     ../data/*.v
     ../data/*/*.v.gz
@@ -55,7 +55,7 @@ gf_choose_file_dir_task -variable NETLIST_FILES -keep -prompt "Please select net
 '
 
 # Choose floorplan if not chosen
-gf_choose_file_dir_task -variable FLOORPLAN_FILE -keep -prompt "Please select floorplan (optional):" -files '
+gf_choose_file_dir_task -variable INNOVUS_FLOORPLAN_FILE -keep -prompt "Please select floorplan (optional):" -files '
     ../data/*.fp
     ../data/*.fp.gz
     ../data/*/*.fp
@@ -68,36 +68,38 @@ gf_spacer
 gf_choose -variable TIMING_MODE -keys YN -time 30 -default N -prompt "Do you want to initialize timing information (Y/N)?"
 gf_spacer
 
-# Choose MMMC file
+# Choose configuration file
 if [ "$TIMING_MODE" == "Y" ]; then
-    gf_choose_file_dir_task -variable MMMC_FILE -keep -prompt "Please select MMMC file:" -files '
-        ../data/*.timing.mmmc.tcl
-        ../data/*/*.timing.mmmc.tcl
-        ../work_*/*/out/ConfigBackend*.timing.mmmc.tcl
+    gf_choose_file_dir_task -variable INNOVUS_TIMING_CONFIG_FILE -keep -prompt "Please select timing configuration file:" -files '
+        ../data/*.timing.tcl
+        ../data/*/*.timing.tcl
+        ../work_*/*/out/ConfigBackend*.timing.tcl
     '
 else
-    MMMC_FILE=""
+    INNOVUS_TIMING_CONFIG_FILE=""
 fi
 
 # Create floorplan files copy in the run directory
-[[ -n "$FLOORPLAN_FILE" ]] && gf_save_files -copy $(dirname $FLOORPLAN_FILE)/$(basename $FLOORPLAN_FILE .gz)*
+[[ -n "$INNOVUS_FLOORPLAN_FILE" ]] && gf_save_files -copy $(dirname $INNOVUS_FLOORPLAN_FILE)/$(basename $INNOVUS_FLOORPLAN_FILE .gz)*
 
 # Innovus TCL commands as is (commands in SINGLE quotes will not substitute GF shell variables)
 gf_add_tool_commands '
 
     # Current design variables
     set LEF_FILES {`$CADENCE_TLEF_FILES` `$LEF_FILES`}
-    set NETLIST_FILES {`$NETLIST_FILES`}
+    set NETLIST_FILES {`$INNOVUS_NETLIST_FILES`}
     set SCANDEF_FILE {`$SCANDEF_FILE -optional`}
     set CPF_FILE {`$CPF_FILE -optional`}
     set UPF_FILE {`$UPF_FILE -optional`}
-    set FLOORPLAN_FILE {`$FLOORPLAN_FILE`}
+    set FLOORPLAN_FILE {`$INNOVUS_FLOORPLAN_FILE`}
     set DESIGN_NAME {`$DESIGN_NAME`}
     set POWER_NETS {`$POWER_NETS_CORE` `$POWER_NETS_OTHER -optional`}
     set GROUND_NETS {`$GROUND_NETS_CORE` `$GROUND_NETS_OTHER -optional`}
     set TIMING_MODE {`$TIMING_MODE`}
-    set MMMC_FILE {`$MMMC_FILE -optional`}
-    set OCV_FILE "[regsub {\.mmmc\.tcl$} $MMMC_FILE {}].ocv.tcl"
+    set TIMING_CONFIG_FILE {`$INNOVUS_TIMING_CONFIG_FILE`}
+    
+    # Load configuration variables
+    source $TIMING_CONFIG_FILE
 
     # Pre-load settings
     `@innovus_pre_read_libs`
@@ -197,8 +199,10 @@ gf_add_tool_commands '
         `@innovus_post_init_design`
 
         # Load OCV configuration
-        reset_timing_derate
-        source $OCV_FILE
+        redirect -tee ./reports/$TASK_NAME.ocv.rpt {
+            reset_timing_derate
+            source $OCV_FILE
+        }
         
     # Physical only mode
     } else {

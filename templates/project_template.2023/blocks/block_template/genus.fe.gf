@@ -46,7 +46,7 @@ gf_choose -keep -variable PHYSICAL_MODE -keys YN -time 30 -default Y -prompt "Do
 
 # Choose floorplan for physical mode if not chosen
 if [ "$PHYSICAL_MODE" == "Y" ]; then
-    gf_choose_file_dir_task -variable FLOORPLAN_FILE -keep -prompt "Please select floorplan:" -files '
+    gf_choose_file_dir_task -variable GENUS_FLOORPLAN_FILE -keep -prompt "Please select floorplan:" -files '
         ../data/*.fp.def
         ../data/*.fp.def.gz
         ../data/*/*.fp.def
@@ -56,14 +56,14 @@ if [ "$PHYSICAL_MODE" == "Y" ]; then
     '
     
     # Create floorplan files copy in the run directory
-    [[ -n "$FLOORPLAN_FILE" ]] && gf_save_files -copy $(dirname $FLOORPLAN_FILE)/$(basename $FLOORPLAN_FILE .gz)*
+    [[ -n "$GENUS_FLOORPLAN_FILE" ]] && gf_save_files -copy $(dirname $GENUS_FLOORPLAN_FILE)/$(basename $GENUS_FLOORPLAN_FILE .gz)*
 fi
 
-# Choose MMMC file
-gf_choose_file_dir_task -variable MMMC_FILE -keep -prompt "Please select MMMC file:" -files '
-    ../data/*.timing.mmmc.tcl
-    ../data/*/*.timing.mmmc.tcl
-    ../work_*/*/out/ConfigFrontend*.timing.mmmc.tcl
+# Choose configuration file
+gf_choose_file_dir_task -variable GENUS_TIMING_CONFIG_FILE -keep -prompt "Please select timing configuration file:" -files '
+    ../data/*.timing.tcl
+    ../data/*/*.timing.tcl
+    ../work_*/*/out/ConfigFrontend*.timing.tcl
 '
 
 # TCL commands
@@ -76,9 +76,11 @@ gf_add_tool_commands '
     set ELAB_DESIGN_NAME {`$ELAB_DESIGN_NAME`}
     set POWER_NETS {`$POWER_NETS_CORE` `$POWER_NETS_OTHER -optional`}
     set GROUND_NETS {`$GROUND_NETS_CORE` `$GROUND_NETS_OTHER -optional`}
-    set FLOORPLAN_FILE {`$FLOORPLAN_FILE -optional`}
-    set MMMC_FILE {`$MMMC_FILE`}
-    set OCV_FILE "[regsub {\.mmmc\.tcl$} $MMMC_FILE {}].ocv.tcl"
+    set FLOORPLAN_FILE {`$GENUS_FLOORPLAN_FILE -optional`}
+    set TIMING_CONFIG_FILE {`$GENUS_TIMING_CONFIG_FILE`}
+    
+    # Load configuration variables
+    source $TIMING_CONFIG_FILE
 
     # Start metric collection
     `@collect_metrics`
@@ -129,8 +131,10 @@ gf_add_tool_commands '
     }
     
     # # Load OCV configuration
-    # reset_timing_derate
-    # source $OCV_FILE
+    # redirect -tee ./reports/$TASK_NAME.ocv.rpt {
+    #     reset_timing_derate
+    #     source $OCV_FILE
+    # }
     
     # Write Genus database
     write_db ./out/$TASK_NAME.intermediate.genus.db

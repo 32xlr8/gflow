@@ -43,6 +43,9 @@ function gf_use_quantus_batch {
         `@init_shell_environment`
         `@init_quantus_environment`
         
+        # Dump environment variables
+        env > ./reports/`$TASK_NAME`.env
+
         # Run the tool
         quantus -cmd ./scripts/`$TASK_NAME`.ccl
     '

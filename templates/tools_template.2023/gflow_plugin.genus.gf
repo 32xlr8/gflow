@@ -45,6 +45,9 @@ function gf_use_genus {
         `@init_modus_environment -optional`
         `@init_innovus_environment -optional`
         
+        # Dump environment variables
+        env > ./reports/`$TASK_NAME`.env
+
         # Run the tool
         genus -files ./scripts/`$TASK_NAME`.tcl
     '
@@ -70,8 +73,6 @@ function gf_use_genus {
     if [ -n "$GF_TASK_CPU" ]; then
         gf_add_tool_commands '
             set_db / .max_cpus_per_server `$GF_TASK_CPU`
-            set_db / .super_thread_servers localhost
-            set_db / .super_thread_debug_jobs true
         '
     fi
 
@@ -101,6 +102,9 @@ function gf_use_genus_batch {
         `@init_modus_environment -optional`
         `@init_innovus_environment -optional`
         
+        # Dump environment variables
+        env > ./reports/`$TASK_NAME`.env
+
         # Run the tool
         genus -batch -no_gui -files ./scripts/`$TASK_NAME`.tcl
     '
@@ -126,8 +130,6 @@ function gf_use_genus_batch {
     if [ -n "$GF_TASK_CPU" ]; then
         gf_add_tool_commands '
             set_db / .max_cpus_per_server `$GF_TASK_CPU`
-            set_db / .super_thread_servers localhost
-            set_db / .super_thread_debug_jobs true
         '
     fi
 

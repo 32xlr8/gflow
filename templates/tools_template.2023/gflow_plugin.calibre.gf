@@ -40,6 +40,9 @@ function gf_use_calibre_drc_batch {
         `@init_shell_environment`
         `@init_calibre_environment`
         
+        # Dump environment variables
+        env > ./reports/`$TASK_NAME`.env
+
         # Run the tool
         calibre -gui -batch -drc ./scripts/`$TASK_NAME`.runset
     '
@@ -80,6 +83,9 @@ function gf_use_calibre_lvs {
         `@init_shell_environment`
         `@init_calibre_environment`
         
+        # Dump environment variables
+        env > ./reports/`$TASK_NAME`.env
+
         # Run the tool
         calibre -gui $@ -lvs ./scripts/`$TASK_NAME`.runset
     '

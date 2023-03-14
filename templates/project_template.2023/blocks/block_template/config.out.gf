@@ -19,7 +19,7 @@
 # limitations under the License.
 #
 ################################################################################
-# Filename: templates/project_template.2023/blocks/block_template/gconfig.gen.gf
+# Filename: templates/project_template.2023/blocks/block_template/config.out.gf
 # Purpose:  Check input data flow
 ################################################################################
 
@@ -52,7 +52,7 @@ gf_create_step -name gconfig_procs_generate_files '
             # Add qrc corner once
             if {[lsearch -exact $index $name] == -1} {
                 lappend index $name
-                puts $FH  "    {$name} {[gconfig::get_files qrc -view [list * * * * $name *]]}"
+                puts $FH "    {$name} {[gconfig::get_files qrc -view [list * * * * $name *]]}"
             }
         }
         puts $FH "}\n"
@@ -67,7 +67,7 @@ gf_create_step -name gconfig_procs_generate_files '
             # Add extraction corner once
             if {[lsearch -exact $index $name] == -1} {
                 lappend index $name
-                puts $FH  "    {[gconfig::get extract_corner_name -view $view]} {[lindex $view 4]} {[gconfig::get temperature -view $view]}"
+                puts $FH "    {[gconfig::get extract_corner_name -view $view]} {[lindex $view 4]} {[gconfig::get temperature -view $view]}"
             }
         }
         puts $FH "}\n"
@@ -84,9 +84,10 @@ gf_create_step -name gconfig_procs_generate_files '
                 gconfig::get_mmmc_commands -views $analysis_views -dump_to_file ./out/$TASK_NAME.$tag.timing.mmmc.tcl
 
                 set FH [open "./out/$TASK_NAME.$tag.timing.tcl" w]
+                puts $FH "set CONFIG_DIR \"\[file dirname \[info script\]\]\""
 
-                puts $FH  "set MMMC_FILE {./out/$TASK_NAME.$tag.timing.mmmc.tcl}"
-                puts $FH  "set OCV_FILE {./out/$TASK_NAME.$tag.timing.ocv.tcl}"
+                puts $FH "set MMMC_FILE \"\$CONFIG_DIR/$TASK_NAME.$tag.timing.mmmc.tcl\""
+                puts $FH "set OCV_FILE \"\$CONFIG_DIR/$TASK_NAME.$tag.timing.ocv.tcl\""
 
                 puts $FH ""
                 gf_write_corners_config $FH $analysis_views
@@ -112,6 +113,7 @@ gf_create_step -name gconfig_procs_generate_files '
         try {
             foreach {tag power_set} $power_sets {
                 set FH [open "./out/$TASK_NAME.$tag.power.tcl" w]
+                puts $FH "set CONFIG_DIR \"\[file dirname \[info script\]\]\""
 
                 # Analysis views
                 set analysis_views_index {}
@@ -121,16 +123,21 @@ gf_create_step -name gconfig_procs_generate_files '
                         
                         # Extraction corners
                         if {[lsearch -exact {PGV_SPEF_CORNER SIGNAL_SPEF_CORNER POWER_SPEF_CORNER} $var] >= 0} {
-                            puts $FH  "set $var {[gconfig::get_files qrc -view $view]}"
+                            puts $FH "set ${var}_QRC_FILE {[gconfig::get_files qrc -view $view]}"
+                            puts $FH "set ${var}_TEMPERATURE {[gconfig::get temperature -view $view]}"
 
                         # MMMC views
                         } elseif {[lsearch -exact {STATIC_POWER_VIEW DINAMIC_POWER_VIEW STATIC_RAIL_VIEW DINAMIC_RAIL_VIEW SIGNAL_EM_VIEW} $var] >= 0} {
                             set name [gconfig::get analysis_view_name -view $view]
-                            puts $FH  "set $var {$TASK_NAME.$tag.$name.power.tcl}"
+                            puts $FH "set ${var}_QRC_FILE {[gconfig::get_files qrc -view $view]}"
+                            puts $FH "set ${var}_TEMPERATURE {[gconfig::get temperature -view $view]}"
+                            puts $FH "set ${var}_MMMC_FILE \"\$CONFIG_DIR/$TASK_NAME.$tag.power.mmmc.$name.tcl\""
+                            puts $FH "set ${var}_OCV_FILE \"\$CONFIG_DIR/$TASK_NAME.$tag.power.ocv.$name.tcl\""
                             
                             if {[lsearch -exact $analysis_views_index $name] < 0} {
                                 lappend analysis_views_index $name
-                                gconfig::get_mmmc_commands -views [list $view] -dump_to_file ./out/$TASK_NAME.$tag.$name.power.tcl
+                                gconfig::get_ocv_commands -views [list $view] -dump_to_file ./out/$TASK_NAME.$tag.power.ocv.$name.tcl
+                                gconfig::get_mmmc_commands -views [list $view] -dump_to_file ./out/$TASK_NAME.$tag.power.mmmc.$name.tcl
                             }
                             
                         # Unknown type

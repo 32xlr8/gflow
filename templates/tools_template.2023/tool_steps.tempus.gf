@@ -99,6 +99,8 @@ gf_create_step -name procs_tempus_reports '
         check_netlist -out_file ./reports/$::TASK_NAME/check.netlist.rpt
         check_timing -verbose > ./reports/$::TASK_NAME/check.timing.rpt
         report_analysis_coverage > ./reports/$::TASK_NAME/check.coverage.rpt
+        report_analysis_coverage -verbose violated > ./reports/$::TASK_NAME/check.coverage.violated.rpt
+        report_analysis_coverage -verbose untested > ./reports/$::TASK_NAME/check.coverage.untested.rpt
         report_annotated_parasitics > ./reports/$::TASK_NAME/check.annotation.rpt
 
         # Reports that describe constraints
@@ -108,7 +110,9 @@ gf_create_step -name procs_tempus_reports '
     }
 
     # Reports that describe noise health
-    proc gf_report_glitch {} {
+    proc gf_report_noise {} {
+        check_noise -all -verbose > ./reports/$::TASK_NAME/check.noise.rpt
+        report_noise -out_file ./reports/$::TASK_NAME/noise.rpt
         report_noise -sort_by noise -failure > ./reports/$::TASK_NAME/noise.glitch.rpt
         puts "Glitch summary: [gf_print_report_glitch_summary ./reports/$::TASK_NAME/noise.glitch.rpt]"
 

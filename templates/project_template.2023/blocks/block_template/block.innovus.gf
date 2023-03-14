@@ -30,7 +30,7 @@ gf_info "Loading block-specific Innovus steps ..."
 # Flow options
 ################################################################################
 
-# # Override tasks resources
+# # Override all tasks resources
 # gf_set_task_options -cpu 8 -mem 15
 
 # # Override resources for interactive tasks
@@ -47,16 +47,18 @@ gf_set_task_options 'Report*' -cpu 4 -mem 10
 gf_set_task_options 'Report*' -parallel 1
 
 # # Disable not needed tasks
+# gf_set_task_options -disable Place
+# gf_set_task_options -disable Clock
+# gf_set_task_options -disable Route
 # gf_set_task_options -disable ReportPlace
 # gf_set_task_options -disable ReportClock
 # gf_set_task_options -disable ReportRoute
+# gf_set_task_options -disable DataOutPhysical
+gf_set_task_options -disable DataOutTiming
 
 ################################################################################
 # Flow variables
 ################################################################################
-
-# # Specific MMMC file
-# MMMC_FILE=/path/to/ConfigBackend*.timing.mmmc.tcl
 
 # # Optional: cells to exclude from netlist for simulation
 # LOGICAL_NETLIST_EXCLUDE_CELLS='<PLACEHOLDER>PVDD* PVSS*'
@@ -186,15 +188,15 @@ gf_create_step -name innovus_post_init_design_physical_mode '
     # set_db add_fillers_vertical_stack_max_length 200
     # set_db add_fillers_avoid_abutment_patterns {1:1}
     # set_db add_fillers_swap_cell [join {
-        # {{FILL1BWP*EHVT FILL1NOBCMBWP*EHVT}}
-        # {{FILL1BWP*UHVT FILL1NOBCMBWP*UHVT}}
-        # {{FILL1BWP*HVT FILL1NOBCMBWP*HVT}}
-        # {{FILL1BWP*SVT FILL1NOBCMBWP*SVT}}
-        # {{FILL1BWP*LVTLL FILL1NOBCMBWP*LVTLL}}
-        # {{FILL1BWP*LVT FILL1NOBCMBWP*LVT}}
-        # {{FILL1BWP*ULVTLL FILL1NOBCMBWP*ULVTLL}}
-        # {{FILL1BWP*ULVT FILL1NOBCMBWP*ULVT}}
-        # {{FILL1BWP*ELVT FILL1NOBCMBWP*ELVT}}
+    #     {{FILL1BWP*EHVT FILL1NOBCMBWP*EHVT}}
+    #     {{FILL1BWP*UHVT FILL1NOBCMBWP*UHVT}}
+    #     {{FILL1BWP*HVT FILL1NOBCMBWP*HVT}}
+    #     {{FILL1BWP*SVT FILL1NOBCMBWP*SVT}}
+    #     {{FILL1BWP*LVTLL FILL1NOBCMBWP*LVTLL}}
+    #     {{FILL1BWP*LVT FILL1NOBCMBWP*LVT}}
+    #     {{FILL1BWP*ULVTLL FILL1NOBCMBWP*ULVTLL}}
+    #     {{FILL1BWP*ULVT FILL1NOBCMBWP*ULVT}}
+    #     {{FILL1BWP*ELVT FILL1NOBCMBWP*ELVT}}
     # }]
 
     # Boundary cells
@@ -545,17 +547,15 @@ gf_create_step -name innovus_pre_place '
     set_db cts_route_type_trunk  trunk_rule
     set_db cts_route_type_top    top_rule
 
-    # Dont use cells
-    set_dont_use <PLACEHOLDER>* true
-    set_dont_use <PLACEHOLDER>* false
-
     # # Clock and special cells
+    <PLACEHOLDER>
     # set_dont_use CK*BWP* true
     # set_dont_use DCCK*BWP* true
     # set_dont_use DEL*BWP* true
     # set_dont_use G*BWP* true
 
     # # Weak/strong drivers
+    <PLACEHOLDER>
     # set_dont_use *D0BWP* true
     # set_dont_use *D0P*BWP* true
     # set_dont_use *D16BWP* true
@@ -567,18 +567,18 @@ gf_create_step -name innovus_pre_place '
 
     # # High effort optimization exceptions
     # set gf_high_effort_patterns {
-        # *OPT*BWP*
-        # *BWP*ULVT*
-        # # *BWP*LVT*
-        # *D10BWP*
-        # *D11BWP*
-        # *D12BWP*
-        # *D13BWP*
-        # *D14BWP*
-        # *D15BWP*
-        # *D16BWP*
+    #     *OPT*BWP*
+    #     *BWP*ULVT*
+    #     # *BWP*LVT*
+    #     *D10BWP*
+    #     *D11BWP*
+    #     *D12BWP*
+    #     *D13BWP*
+    #     *D14BWP*
+    #     *D15BWP*
+    #     *D16BWP*
     # }
-    
+    #
     # # Set high effort optimization cells and mark them dont use
     # set_db opt_high_effort_lib_cells [get_db [get_db base_cells [join $gf_high_effort_patterns] -if !.dont_use] .name]
     # foreach pattern $gf_high_effort_patterns {set_dont_use $pattern true}
@@ -826,7 +826,6 @@ gf_create_step -name innovus_post_route '
     # set_db si_delay_enable_report true
     # set_db si_use_infinite_timing_window true
 
-    
     # Advanced SI analysis settings (see foundry recommendations)
     # set_db si_analysis_type aae 
     # set_db si_delay_separate_on_data true
@@ -869,7 +868,7 @@ gf_create_step -name innovus_post_route_opt_setup_hold '
 
     # # DFM via replacement
     # eval_legacy [subst {
-        # source {`$DFM_VIA_SWAP_SCRIPT`}
+        # source {`$INNOVUS_DFM_VIA_SWAP_SCRIPT`}
     # }]
 '
 
@@ -906,9 +905,9 @@ gf_create_step -name innovus_procs_interactive_design '
         # set nets {<PLACEHOLDER>VDD VSS}
         # set macro_area_threshold <PLACEHOLDER>100
         
-        # (!) Note:
-        # This step contains a mix of commands for different metal stacks
-        # It can be required to delete unnecessary code
+        # (!) Notes: 
+        # This proc contains a mix of commands for different metal stacks
+        # Please remove unnecessary code manually
         
         # # Macros detection
         # set macros [get_db insts -if .area>$macro_area_threshold]
@@ -1046,8 +1045,23 @@ gf_create_step -name innovus_procs_interactive_design '
         #     -snap_wire_center_to_grid none \
         #     -nets [lindex $nets 1]
         
+        # # M2 stripes (regular)
+        # set_db add_stripes_stacked_via_bottom_layer M1
+        # set_db add_stripes_stacked_via_top_layer M2
+        # set_db generate_special_via_rule_preference {VIA12_*}
+        # set_db add_stripes_skip_via_on_pin {pad cover}
+        # set_db add_stripes_route_over_rows_only true
+        # add_stripes \
+        #     -layer M2 \
+        #     -direction horizontal \
+        #     -width 0.000 \
+        #     -spacing [expr 1*0.000] \
+        #     -set_to_set_distance [expr 2*0.000] \
+        #     -start_offset -0.000 \
+        #     -snap_wire_center_to_grid grid \
+        #     -nets $nets
         
-        # # M3 stripes (VHV stacks with M0 layer)
+        # # M3 stripes (regular)
         # set_db add_stripes_stacked_via_bottom_layer M2
         # set_db add_stripes_stacked_via_top_layer M3
         # set_db generate_special_via_rule_preference {VIA23_*}
@@ -1062,6 +1076,24 @@ gf_create_step -name innovus_procs_interactive_design '
         #     -start_offset -0.000 \
         #     -snap_wire_center_to_grid grid \
         #     -nets $nets
+        #
+        # # M2 stripes (stapling)
+        # set_db add_stripes_stacked_via_bottom_layer M1
+        # set_db add_stripes_stacked_via_top_layer M3
+        # set_db generate_special_via_rule_preference {VIA12_* VIA23_*}
+        # set_db add_stripes_skip_via_on_pin {pad cover}
+        # set_db add_stripes_route_over_rows_only true
+        # foreach net $nets {
+        #     add_stripes \
+        #         -layer M2 \
+        #         -direction vertical \
+        #         -width 0.000 \
+        #         -stapling {0.000 M3} \
+        #         -set_to_set_distance [expr 2*0.000] \
+        #         -start_offset -0.000 \
+        #         -snap_wire_center_to_grid grid \
+        #         -nets $nets
+        # }
 
         # # M6 stripes over macros (orthogonal pins)
         # if {1} {
@@ -1100,7 +1132,7 @@ gf_create_step -name innovus_procs_interactive_design '
         #     -start_offset [expr 0.000+0*0.000*30] \
         #     -snap_wire_center_to_grid none \
         #     -nets $nets
-        
+
         # # Delete blockages over macros
         # catch {delete_route_blockage -name add_stripe_blockage}
         
@@ -1701,7 +1733,7 @@ gf_create_step -name innovus_design_reports_post_route '
 ################################################################################
 
 # Commands to create block-specific data
-gf_create_step -name innovus_data_out_physical_design '
+gf_create_step -name innovus_physical_out_design '
 
     ##################################################
     # Netlist manipulations
@@ -1782,8 +1814,8 @@ gf_create_step -name innovus_data_out_physical_design '
     
     # Write out GDS for LVS
     write_stream -mode ALL -output_macros -uniquify_cell_names -die_area_as_boundary \
-        -unit {`$GDS_UNITS`} \
-        -map_file [join {`$CADENCE_GDS_LAYER_MAP_FILE`}] \
+        -unit {`$INNOVUS_GDS_UNITS`} \
+        -map_file [join {`$INNOVUS_GDS_LAYER_MAP_FILE`}] \
         -merge [join {`$GDS_FILES`}] \
         ./out/$TASK_NAME/$DESIGN_NAME.gds.gz
     
@@ -1793,6 +1825,117 @@ gf_create_step -name innovus_data_out_physical_design '
     
     # Write current sources coordinates for power grid analysis
     gf_write_current_sources_locations ./out/$TASK_NAME/$DESIGN_NAME
+
+    # Output configuration file
+    set FH [open "./out/$TASK_NAME.design.tcl" w]
+    
+        puts $FH "# Configuration"
+        puts $FH ""
+        puts $FH "set CONFIG_DIR \"\[file dirname \[info script\]\]\""
+        puts $FH "set CONFIG_TASK_NAME {$TASK_NAME}"
+        puts $FH ""
+        puts $FH "# Design"
+        puts $FH ""
+        puts $FH "set DESIGN_NAME {$DESIGN_NAME}"
+        puts $FH ""
+        puts $FH "set NETLIST_FILE \"\$CONFIG_DIR/$TASK_NAME/$DESIGN_NAME.v.gz\""
+        puts $FH "set NETLIST_LVS_FILE \"\$CONFIG_DIR/$TASK_NAME/$DESIGN_NAME.physical.v.gz\""
+        puts $FH "set NETLIST_STA_FILE \"\$CONFIG_DIR/$TASK_NAME/$DESIGN_NAME.logical.v.gz\""
+        puts $FH ""
+        puts $FH "set LEF_FILE \"\$CONFIG_DIR/$TASK_NAME/$DESIGN_NAME.lef\""
+        puts $FH "set LEF_TOP_LAYER {$top_layer}\n"
+        puts $FH ""
+        puts $FH "set DEF_FILE \"\$CONFIG_DIR/$TASK_NAME/$DESIGN_NAME.full.def.gz\""
+        puts $FH "set DEF_STA_FILE \"\$CONFIG_DIR/$TASK_NAME/$DESIGN_NAME.lite.def.gz\""
+        puts $FH ""
+        puts $FH "set HCELL_FILE \"\$CONFIG_DIR/$TASK_NAME/$DESIGN_NAME.hcell\""
+        puts $FH "set PINS_FILE \"\$CONFIG_DIR/$TASK_NAME/$DESIGN_NAME.pins\""
+        puts $FH "set TAPS_FILE_BASE \"\$CONFIG_DIR/$TASK_NAME/$DESIGN_NAME\""
+        
+    close $FH
+'
+
+# Commands to create block-specific timing files
+gf_create_step -name innovus_timing_out_design '
+    mkdir -p ./reports/$TASK_NAME
+
+    # Simultaneous setup/hold mode
+    set_db timing_enable_simultaneous_setup_hold_mode true
+
+    # QoR reports
+    report_qor -format html -file ./reports/$TASK_NAME/qor.html
+    report_gate_count -level 5 > ./reports/$TASK_NAME/gate_count.rpt
+
+    # Timing checks
+    check_timing -verbose > ./reports/$TASK_NAME/checkюtiming.rpt
+    report_analysis_coverage > ./reports/$TASK_NAME/analysis_coverage.rpt
+    report_analysis_coverage -verbose violated > ./reports/$TASK_NAME/analysis_coverage.violated.rpt
+    report_analysis_coverage -verbose untested > ./reports/$TASK_NAME/analysis_coverage.untested.rpt
+    report_constraint -all_violators > ./reports/$TASK_NAME/constraint.all_violators.rpt
+
+    # Clock, power, noise
+    report_clocks > ./reports/$TASK_NAME/clocks.rpt
+    report_power > ./reports/$TASK_NAME/power.rpt
+    check_noise -all -verbose > ./reports/$TASK_NAME/check.noise.rpt
+    report_noise -out_file ./reports/$TASK_NAME/noise.rpt
+    
+    # Late timing
+    report_timing -late -max_paths 1000 > ./reports/$TASK_NAME/.timing.late.rpt
+    report_path_exceptions -late > ./reports/$TASK_NAME/.path_exceptions.late.rpt
+    report_path_exceptions -late -ignored > ./reports/$TASK_NAME/path_exceptions.late.ignored.rpt
+
+    # Early timing
+    report_timing -early -max_paths 1000 > ./reports/$TASK_NAME/timing.early.rpt
+    report_path_exceptions -early > ./reports/$TASK_NAME/path_exceptions.early.rpt
+    report_path_exceptions -early -ignored > ./reports/$TASK_NAME/path_exceptions.early.ignored.rpt
+
+    # SPEF
+    foreach rc_corner [get_db rc_corners .name] {
+        write_parasitics -spef_file ./out/$TASK_NAME.$rc_corner.spef.gz -rc_corner $rc_corner
+    }
+
+    # Detect unique views
+    set setup_views [get_db [get_db analysis_views -if .is_setup] .name]
+    set hold_views [get_db [get_db analysis_views -if .is_hold] .name]
+    set merged_views {}
+    foreach view [concat $setup_views $hold_views] {
+        if {[lsearch -exact $merged_views $view] == -1} {
+            lappend merged_views $view
+        }
+    }
+    
+    # Activate all views
+    set_analysis_view -setup $merged_views -hold $merged_views
+
+    # Write liberty models
+    foreach view $merged_views {
+        puts "Writing ./out/$TASK_NAME/$DESIGN_NAME.$view.lib ..."
+        write_timing_model \
+            -include_power_ground \
+            -input_transitions {<PLACEHOLDER>0.002, 0.010, 0.025, 0.050, 0.100, 0.200, 0.500} \
+            -output_loads {<PLACEHOLDER>0.000, 0.010, 0.025, 0.050, 0.100, 0.200, 0.500} \
+            -view $view ./out/$TASK_NAME/$DESIGN_NAME.$view.lib
+    }
+
+    # Output configuration file
+    set FH [open "./out/$TASK_NAME.design.tcl" w]
+    
+        puts $FH "# Configuration"
+        puts $FH ""
+        puts $FH "set CONFIG_DIR \"\[file dirname \[info script\]\]\""
+        puts $FH "set CONFIG_TASK_NAME {$TASK_NAME}"
+        puts $FH ""
+        puts $FH "# Design"
+        puts $FH ""
+        puts $FH "set DESIGN_NAME {$DESIGN_NAME}"
+        puts $FH ""
+        puts $FH "set LIB_FILES {"
+        foreach view $merged_views {
+            puts $FH "    $TASK_NAME/$DESIGN_NAME.$view.lib"
+        }
+        puts $FH "}"
+        
+    close $FH
 '
 
 # Empty cells LEF for StreamOut

@@ -62,11 +62,11 @@ gf_choose -keep -variable ECO_SCENARIO -message "Which ECO scenario to run?" -va
 # Want for STA
 gf_want_tasks STA
 
-# Choose MMMC file
-gf_choose_file_dir_task -variable MMMC_FILE -keep -prompt "Please select MMMC file:" -files '
-    ../data/*.timing.mmmc.tcl
-    ../data/*/*.timing.mmmc.tcl
-    ../work_*/*/out/ConfigSignoff*.timing.mmmc.tcl
+# Choose configuration file
+gf_choose_file_dir_task -variable TEMPUS_TIMING_CONFIG_FILE -keep -prompt "Please select timing configuration file:" -files '
+    ../data/*.timing.tcl
+    ../data/*/*.timing.tcl
+    ../work_*/*/out/ConfigSignoff*.timing.tcl
 '
 
 # TCL commands

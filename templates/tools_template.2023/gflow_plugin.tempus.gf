@@ -43,6 +43,9 @@ function gf_use_tempus {
         `@init_shell_environment`
         `@init_tempus_environment`
         
+        # Dump environment variables
+        env > ./reports/`$TASK_NAME`.env
+
         # Run the tool
         tempus -stylus -files ./scripts/`$TASK_NAME`.tcl
     '
@@ -108,6 +111,9 @@ function gf_use_tempus_batch {
         `@init_shell_environment`
         `@init_tempus_environment`
         
+        # Dump environment variables
+        env > ./reports/`$TASK_NAME`.env
+
         # Run the tool
         tempus -stylus -batch -no_gui -files ./scripts/`$TASK_NAME`.tcl
     '

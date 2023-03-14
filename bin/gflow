@@ -2800,7 +2800,7 @@ function gf_create_run_script {
                 trap "" SIGINT
                 trap "" SIGHUP
                 gf_pids=$(echo $(jobs -p)); [[ -n "$gf_pids" ]] && kill -SIGTSTP $gf_pids 2> /dev/null
-                echo -ne "\n'${GFH7}'Ctrl+C'${GFC0}' pressed ...
+                echo -ne "'${GFH7}'Ctrl+C'${GFC0}' pressed ...
                   '${GFH6}'[W]'${GFC0}' Show session warnings and continue
                   '${GFH2}'[C]'${GFC0}' Show task statuses and continue
                   '${GFH3}'[I]'${GFC0}' Interrupt not started tasks and continue
@@ -9463,7 +9463,7 @@ function gf_init_xterm_resources {
 
     # Terminal size in symbols
     if [ -n "$GF_HELP_MODE" ]; then
-        GF_XTERM_SIZE=165x50
+        GF_XTERM_SIZE=180x50
     else
         GF_XTERM_SIZE=120x20
     fi

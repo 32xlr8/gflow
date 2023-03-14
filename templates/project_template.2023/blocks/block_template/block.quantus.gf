@@ -27,7 +27,7 @@ gf_info "Loading block-specific Quantus steps ..."
 # Flow options
 ################################################################################
 
-# # Override tasks resources
+# # Override all tasks resources
 # gf_set_task_options -cpu 8 -mem 15
 
 # # Override resources for batch tasks
@@ -37,8 +37,9 @@ gf_info "Loading block-specific Quantus steps ..."
 # Flow variables
 ################################################################################
 
-# # Specific configuration file
-# CONFIG_FILE='/path/to/ConfigBackend*.timing.tcl'
+# # Physical/logical synthesis
+# USE_DUMMY_GDS=Y
+# USE_DUMMY_GDS=N
 
 ################################################################################
 # Flow steps

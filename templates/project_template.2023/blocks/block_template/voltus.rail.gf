@@ -310,8 +310,8 @@ gf_add_tool_commands '
     set ANALYSIS_VIEW [lindex {`$STATIC_POWER_VIEW`} 0]
 
     set DESIGN_NAME {`$DESIGN_NAME`} 
-    set POWER_NETS {`$POWER_NETS_VOLTUS`}
-    set GROUND_NETS {`$GROUND_NETS_VOLTUS`}
+    set POWER_NETS {`$VOLTUS_POWER_NETS`}
+    set GROUND_NETS {`$VOLTUS_GROUND_NETS`}
 
     set VOLTUS_ICT_EM_RULE {`$VOLTUS_ICT_EM_RULE`}
     
@@ -343,12 +343,8 @@ gf_add_tool_commands '
     # Read parasitics    
     read_spef ./out/$SPEF_TASK.[gconfig::get extract_corner_name -view $SPEF_VIEW].spef.gz
     
-    # Initialize tool environment
-    `@voltus_pre_report_power_static`   
-
-    # Generate power database
-    set_power_output_dir ./out/$TASK_NAME.power
-    report_power
+    # Run analysis
+    `@voltus_run_report_power_static`
 
     # Close interactive session
     exit
@@ -396,8 +392,8 @@ gf_add_tool_commands '
     set ANALYSIS_VIEW [lindex {`$DINAMIC_POWER_VIEW`} 0]
 
     set DESIGN_NAME {`$DESIGN_NAME`} 
-    set POWER_NETS {`$POWER_NETS_VOLTUS`}
-    set GROUND_NETS {`$GROUND_NETS_VOLTUS`}
+    set POWER_NETS {`$VOLTUS_POWER_NETS`}
+    set GROUND_NETS {`$VOLTUS_GROUND_NETS`}
 
     set VOLTUS_ICT_EM_RULE {`$VOLTUS_ICT_EM_RULE`}
     
@@ -429,12 +425,8 @@ gf_add_tool_commands '
     # Read parasitics    
     read_spef ./out/$SPEF_TASK.[gconfig::get extract_corner_name -view $SPEF_VIEW].spef.gz
     
-    # Task-specific options
-    `@voltus_pre_report_power_dynamic`   
-
-    # Generate power database
-    set_power_output_dir ./out/$TASK_NAME.power
-    report_power
+    # Run analysis
+    `@voltus_run_report_power_dynamic`
 
     # Close interactive session
     exit
@@ -468,10 +460,10 @@ gf_use_voltus
 gf_want_tasks StaticPower -variable STATIC_POWER_TASK
 
 # Select PGV to analyze if empty
-gf_choose_file_dir_task -variable PGV_LIBS -keep -prompt "Please select PGV libraries:" -dirs '
+gf_choose_file_dir_task -variable VOLTUS_PGV_LIBS -keep -prompt "Please select PGV libraries:" -dirs '
     ../work_*/*/out/Tech*.cl
 '
-gf_info "Selected PGV libraries: \e[32m$PGV_LIBS\e[0m selected"
+gf_info "Selected PGV libraries: \e[32m$VOLTUS_PGV_LIBS\e[0m selected"
 
 # TCL commands
 gf_add_tool_commands '
@@ -485,10 +477,10 @@ gf_add_tool_commands '
     set SPEF_VIEW [lindex {`$STATIC_RAIL_VIEW`} 0]
 
     set DESIGN_NAME {`$DESIGN_NAME`} 
-    set POWER_NETS {`$POWER_NETS_VOLTUS`}
-    set GROUND_NETS {`$GROUND_NETS_VOLTUS`}
+    set POWER_NETS {`$VOLTUS_POWER_NETS`}
+    set GROUND_NETS {`$VOLTUS_GROUND_NETS`}
 
-    set PGV_LIBS [eval glob [join {'"$(for dir in $PGV_LIBS; do echo $dir/*.cl; done)"'}]]
+    set VOLTUS_PGV_LIBS [eval glob [join {'"$(for dir in $VOLTUS_PGV_LIBS; do echo $dir/*.cl; done)"'}]]
     set VOLTUS_ICT_EM_RULE {`$VOLTUS_ICT_EM_RULE`}
 
     # Initialize Generic Config environment
@@ -517,23 +509,9 @@ gf_add_tool_commands '
     # Internal variables
     set QRC_TECH_FILE [gconfig::get_files qrc -view $SPEF_VIEW]
 
-    # Initialize tool environment
-    `@init_static_rail_voltus`
+    # Run analysis
+    `@voltus_run_report_rail_static`
    
-    # Power data
-    set power_files {}
-    foreach net [list $POWER_NETS $GROUND_NETS] {
-        lappend power_files ./out/$POWER_TASK.power/static_${net}.ptiavg
-    }
-    set_power_data -format current -scale 1 $power_files
-
-    # Analyze IR-drop
-    set_rail_analysis_domain -domain_name PDCore -power_nets $POWER_NETS -ground_nets $GROUND_NETS
-    report_rail -type domain -output_dir ./out/$TASK_NAME.rail PDCore
-    
-    # Open latest directory
-    ::read_power_rail_results -rail_directory [exec sed -ne {s|^.*Run directory\s*:\s*./out/|./out/|p} [get_db log_file]] -instance_voltage_window {timing whole} -instance_voltage_method {worst best avg worstavg}
-
     # Leave session open for debug
     gui_show
     gui_set_power_rail_display -plot ivdd
@@ -566,10 +544,10 @@ gf_use_voltus
 gf_want_tasks DynamicPower -variable DYNAMIC_POWER_TASK
 
 # Select PGV to analyze from latest available if empty
-gf_choose_file_dir_task -variable PGV_LIBS -keep -prompt "Please select PGV libraries:" -dirs '
+gf_choose_file_dir_task -variable VOLTUS_PGV_LIBS -keep -prompt "Please select PGV libraries:" -dirs '
     ../work_*/*/out/Tech*.cl
 '
-gf_info "PGV libraries \e[32m$PGV_LIBS\e[0m selected"
+gf_info "PGV libraries \e[32m$VOLTUS_PGV_LIBS\e[0m selected"
 
 # TCL commands
 gf_add_tool_commands '
@@ -583,10 +561,10 @@ gf_add_tool_commands '
     set SPEF_VIEW [lindex {`$DINAMIC_RAIL_VIEW`} 0]
 
     set DESIGN_NAME {`$DESIGN_NAME`} 
-    set POWER_NETS {`$POWER_NETS_VOLTUS`}
-    set GROUND_NETS {`$GROUND_NETS_VOLTUS`}
+    set POWER_NETS {`$VOLTUS_POWER_NETS`}
+    set GROUND_NETS {`$VOLTUS_GROUND_NETS`}
 
-    set PGV_LIBS [eval glob [join {'"$(for dir in $PGV_LIBS; do echo $dir/*.cl; done)"'}]]
+    set VOLTUS_PGV_LIBS [eval glob [join {'"$(for dir in $VOLTUS_PGV_LIBS; do echo $dir/*.cl; done)"'}]]
 
     # Initialize Generic Config environment
     source ./scripts/$TASK_NAME.gconfig.tcl
@@ -614,22 +592,8 @@ gf_add_tool_commands '
     # Internal variables
     set QRC_TECH_FILE [gconfig::get_files qrc -view $SPEF_VIEW]
 
-    # Initialize tool environment
-    `@init_dynamic_rail_voltus`
-
-    # Power data
-    set power_files {}
-    foreach net [list $POWER_NETS $GROUND_NETS] {
-        lappend power_files ./out/$POWER_TASK.power/dynamic_${net}.ptiavg
-    }
-    set_power_data -format current -scale 1 $power_files
-
-    # Analyze IR-drop
-    set_rail_analysis_domain -domain_name PDCore -power_nets $POWER_NETS -ground_nets $GROUND_NETS
-    report_rail -type domain -output_dir ./out/$TASK_NAME.rail PDCore
-    
-    # Open latest directory
-    ::read_power_rail_results -rail_directory [exec sed -ne {s|^.*Run directory\s*:\s*./out/|./out/|p} [get_db log_file]] -instance_voltage_window {timing whole} -instance_voltage_method {worst best avg worstavg}
+    # Run analysis
+    `@voltus_run_report_rail_dynamic`
 
     # Leave session open for debug
     gui_show
@@ -705,7 +669,7 @@ gf_add_tool_commands '
     read_spef ./out/$SPEF_TASK.[gconfig::get extract_corner_name -view $SPEF_VIEW].spef.gz
     
     # Check EM violations
-    `@run_signal_em_voltus`
+    `@voltus_run_signal_em`
 
     # Leave session open for debug
     gui_show

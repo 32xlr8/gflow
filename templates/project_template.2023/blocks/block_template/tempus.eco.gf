@@ -49,7 +49,7 @@ gf_source "./tempus.sta.gf"
 # Tempus ECO
 ########################################
 
-gf_create_task -name TSO -mother Init
+gf_create_task -name TSO
 gf_use_tempus
 gf_add_tool_arguments -eco
 
@@ -166,7 +166,7 @@ gf_submit_task
 # Innovus ECO
 ########################################
 
-gf_create_task -name ECO -mother Init
+gf_create_task -name ECO
 gf_use_innovus
 
 # Wait for TSO task

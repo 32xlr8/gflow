@@ -19,8 +19,8 @@
 # limitations under the License.
 #
 ################################################################################
-# Filename: templates/project_template.2023/blocks/block_template/genus.debug.gf
-# Purpose:  Interactive synthesis debug flow
+# Filename: templates/project_template.2023/blocks/block_template/calibre.gui.gf
+# Purpose:  Interactive physical verification debug flow
 ################################################################################
 
 ########################################
@@ -29,52 +29,53 @@
 
 # Project and block initialization scripts
 gf_source "../../project.common.gf"
-gf_source "../../project.genus.gf"
+gf_source "../../project.calibre.gf"
 gf_source "./block.common.gf"
 gf_source "./block.files.gf"
-gf_source "./block.genus.gf"
+gf_source "./block.calibre.gf"
 
 # General flow script options
-gf_set_flow_options -hide -auto_close
+gf_set_flow_options -continue -restart -auto_close -hide
 
 ########################################
-# Automatical database selection
+# Automatical GDS selection
 ########################################
 
-# Choose available Genus database
-gf_choose_file_dir_task -variable DATABASE -keep -prompt "Please select database to load:" -files '
-    ../work_*/*/out/*.genus.db
+# Choose available GDS
+gf_choose_file_dir_task -variable GDS -keep -prompt "Please select GDS to load:" -files '
+    ../work_*/*/out/*.gds.gz
 '
 gf_spacer
 
+gf_info "File \e[32m$GDS\e[0m selected to load"
+
 ########################################
-# Genus interactive task
+# Calibre workbench interactive task
 ########################################
 
-gf_create_task -name DebugGenus
-gf_use_genus
+gf_create_task -name DebugCalibre
 
-# Load database
-gf_add_tool_commands '
-    
-    # Read latest available database
-    set DATABASE {`$DATABASE`}
-    read_db $DATABASE
+# Ask user if need to open DRC/LVS results
+gf_spacer
+gf_choose -variable START_RVE -keys YN -time 30 -default N -prompt "Do you want to start RVE (Y/N)?"
+gf_spacer
 
-    # Top level design name
-    set DESIGN_NAME [get_db current_design .name]
-    
-    # Trace timing utility
-    catch {
-        source ../../../../../../gflow/bin/trace_timing.tcl
-        proc gf_gui_trace_timing_highlight_selected {} {trace_timing -highlight -selected}
-        gui_bind_key Shift+F8 -cmd "gf_gui_trace_timing_highlight_selected"
-        puts "Use \[Shift+F8\] to trace timing through selected instance"
-    }
+# Load GDS
+if [ "$START_RVE" == "Y" ]; then
+    RVE_OPTIONS=""
 
+    for file in $(ls -1trd $(dirname "$GDS")/../*/*.svdb/ 2> /dev/null || :); do
+        RVE_OPTIONS="$RVE_OPTIONS -rve -lvs '$file' '$DESIGN_NAME'"
+    done
 
-    gui_show
-'
+    for file in $(ls -1trd $(dirname "$GDS")/../*/{,*/}*.results 2> /dev/null || :); do
+        RVE_OPTIONS="$RVE_OPTIONS -rve -drc '$file'"
+    done
+
+    gf_set_task_command "calibrewb '$GDS' $RVE_OPTIONS"
+else
+    gf_set_task_command "calibrewb '$GDS'"
+fi
 
 # Run task
-gf_submit_task
+gf_submit_task -silent

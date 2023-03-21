@@ -181,14 +181,14 @@ gf_add_tool_commands '
     # Create initial metrics
     create_snapshot -name Init
     
-    # Write Innovus database
-    write_db ./out/$TASK_NAME.intermediate.innovus.db
-    
     # Start metric collection
     `@collect_metrics`
     
     # Stage-specific options    
     `@innovus_pre_place`
+    
+    # Write Innovus database
+    write_db ./out/$TASK_NAME.intermediate.innovus.db
     
     # Run placement
     set_db opt_new_inst_prefix Place
@@ -215,7 +215,7 @@ gf_add_tool_commands '
 # Display status
 gf_add_status_marks -from 'Final .*Summary' -to 'Density:' WNS TNS max_tran -3 +3
 gf_add_status_marks -from '\|.*max hotspot.*\|' -expr '[\|\+]' -to '^[^\|\+]*$' -1
-gf_add_status_marks 'Could not legalize .* instances in the design'
+gf_add_status_marks 'Could not legalize .* instances in the design' 'Violation at original loc'
 
 # Failed if some files not found
 gf_add_failed_marks 'ERROR:.\+No files'
@@ -325,14 +325,23 @@ gf_add_tool_commands '
     route_design -track_opt
     reset_db opt_new_inst_prefix
 
+    # Stage-specific Innovus options    
+    `@innovus_post_route`
+    
     # Write Innovus database
     write_db ./out/$TASK_NAME.intermediate.innovus.db
     
-    # Perform post-route setup and hold optimization
+    # Stage-specific Innovus options    
+    `@innovus_pre_route_opt_setup_hold`
+
+    # # Re-insert fillers by priority (    # Perform post-route setup and hold optimization
     set_db opt_new_inst_prefix RouteOptSetupHold
     opt_design -post_route -setup -hold -report_dir ./reports/$TASK_NAME -report_prefix opt_design \
         -hold_violation_report ./reports/$TASK_NAME/opt_design.hold_violations
     reset_db opt_new_inst_prefix
+
+    # Stage-specific Innovus options    
+    `@innovus_post_route_opt_setup_hold`
 
     # Report collected metrics
     `@report_metrics`

@@ -41,18 +41,28 @@ gf_source "./block.voltus.gf"
 gf_create_task -name TechPGV
 gf_use_voltus
 
+# Choose configuration file
+gf_choose_file_dir_task -variable VOLTUS_POWER_CONFIG_FILE -keep -prompt "Please select timing configuration file:" -files '
+    ../data/*.timing.tcl
+    ../data/*/*.timing.tcl
+    ../work_*/*/out/ConfigSignoff*.power.tcl
+'
+
 # TCL commands
 gf_add_tool_commands '
 
     # Current design variables
     set LEF_FILES {`$CADENCE_TLEF_FILES` `$LEF_FILES`}
-    set POWER_VIEW [lindex {`$PGV_SPEF_CORNER`} 0]
+    set POWER_CONFIG_FILE {`$VOLTUS_POWER_CONFIG_FILE`}
 
-    # Initialize Generic Config environment
-    source ./scripts/$TASK_NAME.gconfig.tcl
-    
+    # Load configuration variables
+    source $POWER_CONFIG_FILE
+
     # Read physical data
     read_physical -lefs $LEF_FILES
+
+    # Design variables
+    `@voltus_post_init_variables`
 
     # Stage-specific options    
     `@voltus_pre_write_pgv_tech_only`
@@ -64,20 +74,13 @@ gf_add_tool_commands '
     exit
 '
 
-# Separate Generic Config initialization script
-gf_add_tool_commands -comment '#' -file ./scripts/$TASK_NAME.gconfig.tcl '
-    `@init_gconfig`
-
-    `@gconfig_technology_settings`
-    `@gconfig_settings_common`
-
-    `@gconfig_cadence_mmmc_files`
-'
-
 # Layer map file
-gf_add_tool_commands -comment '' -ext lef.map '`@lef_def_map_file`'
+gf_add_tool_commands -comment '' -file ./in/$TASK_NAME.lef.map '`@voltus_pgv_lef_def_map_file`'
+gf_add_tool_commands -comment '#' -file ./in/$TASK_NAME.libgen.cmd '`@voltus_pgv_command_file`'
+gf_add_tool_commands -comment '#' -file ./in/$TASK_NAME.extract.cmd '`@voltus_pgv_extraction_command_file`'
 
 # Run task
+gf_add_failed_marks 'Library generation failed'
 gf_add_success_marks 'Finished PGV Library Generator'
 gf_submit_task
 
@@ -88,20 +91,28 @@ gf_submit_task
 gf_create_task -name CellsPGV
 gf_use_voltus
 
+# Choose configuration file
+gf_choose_file_dir_task -variable VOLTUS_POWER_CONFIG_FILE -keep -prompt "Please select timing configuration file:" -files '
+    ../data/*.timing.tcl
+    ../data/*/*.timing.tcl
+    ../work_*/*/out/ConfigSignoff*.power.tcl
+'
+
 # TCL commands
 gf_add_tool_commands '
 
     # Current design variables
     set LEF_FILES {`$CADENCE_TLEF_FILES` `$LEF_FILES`}
-    set POWER_VIEW [lindex {`$POWER_VIEWS`} 0]
-    set VOLTUS_PGV_FILLER_CELLS {`$VOLTUS_PGV_FILLER_CELLS`}
-    set VOLTUS_PGV_DECAP_CELLS {`$VOLTUS_PGV_DECAP_CELLS`}
+    set POWER_CONFIG_FILE {`$VOLTUS_POWER_CONFIG_FILE`}
 
-    # Initialize Generic Config environment
-    source ./scripts/$TASK_NAME.gconfig.tcl
-    
+    # Load configuration variables
+    source $POWER_CONFIG_FILE
+
     # Read physical data
     read_physical -lefs [join $LEF_FILES]
+
+    # Design variables
+    `@voltus_post_init_variables`
 
     # Stage-specific options    
     `@voltus_pre_write_pgv_standard_cells`
@@ -113,21 +124,13 @@ gf_add_tool_commands '
     exit
 '
 
-# Separate Generic Config initialization script
-gf_add_tool_commands -comment '#' -file ./scripts/$TASK_NAME.gconfig.tcl '
-    `@init_gconfig`
-
-    `@gconfig_technology_settings`
-    `@gconfig_settings_common`
-
-    `@gconfig_cadence_mmmc_files`
-'
-
-# Cell list and DCAP cells files
-gf_add_tool_commands -comment '' -ext cells '`@pgv_standard_cell_list_file`'
-gf_add_tool_commands -comment '' -ext dcap '`@pgv_standard_cell_decap_file`'
+# Additional files
+gf_add_tool_commands -comment '' -file ./in/$TASK_NAME.lef.map '`@voltus_pgv_lef_def_map_file`'
+gf_add_tool_commands -comment '#' -file ./in/$TASK_NAME.libgen.cmd '`@voltus_pgv_command_file`'
+gf_add_tool_commands -comment '#' -file ./in/$TASK_NAME.extract.cmd '`@voltus_pgv_extraction_command_file`'
 
 # Run task
+gf_add_failed_marks 'Library generation failed'
 gf_add_success_marks 'Finished PGV Library Generator'
 gf_submit_task
 
@@ -138,23 +141,33 @@ gf_submit_task
 gf_create_task -name MacrosPGV
 gf_use_voltus
 
+# Choose configuration file
+gf_choose_file_dir_task -variable VOLTUS_POWER_CONFIG_FILE -keep -prompt "Please select timing configuration file:" -files '
+    ../data/*.timing.tcl
+    ../data/*/*.timing.tcl
+    ../work_*/*/out/ConfigSignoff*.power.tcl
+'
+
 # TCL commands
 gf_add_tool_commands '
 
     # Current design variables
     set LEF_FILES {`$CADENCE_TLEF_FILES` `$LEF_FILES`}
     set GDS_FILES {`$GDS_FILES`}
-    set POWER_VIEWS {`$POWER_VIEWS`}
     set SPICE_MODELS {`$VOLTUS_PGV_SPICE_MODELS`}
     set SPICE_CORNERS {`$VOLTUS_PGV_SPICE_CORNERS`}
     set SPICE_SCALING {`$VOLTUS_PGV_SPICE_SCALING`}
     set SPICE_FILES {`$VOLTUS_PGV_SPICE_FILES`}
+    set POWER_CONFIG_FILE {`$VOLTUS_POWER_CONFIG_FILE`}
 
-    # Initialize Generic Config environment
-    source ./scripts/$TASK_NAME.gconfig.tcl
-    
+    # Load configuration variables
+    source $POWER_CONFIG_FILE
+
     # Read physical data
     read_physical -lefs [join $LEF_FILES]
+
+    # Design variables
+    `@voltus_post_init_variables`
 
     # Stage-specific options    
     `@voltus_pre_write_pgv_macros`
@@ -169,21 +182,13 @@ gf_add_tool_commands '
     exit
 '
 
-# Separate Generic Config initialization script
-gf_add_tool_commands -comment '#' -file ./scripts/$TASK_NAME.gconfig.tcl '
-    `@init_gconfig`
-
-    `@gconfig_technology_settings`
-    `@gconfig_settings_common`
-
-    `@gconfig_cadence_mmmc_files`
-'
-
-# Cell list file
-gf_add_tool_commands -comment '' -ext cells '`@pgv_macro_list_file`'
-gf_add_tool_commands -comment '' -ext connect.map '`@pgv_layer_connect_file`'
-
+# Additional files
+gf_add_tool_commands -comment '' -file ./in/$TASK_NAME.lef.map '`@voltus_pgv_lef_def_map_file`'
+gf_add_tool_commands -comment '#' -file ./in/$TASK_NAME.libgen.cmd '`@voltus_pgv_command_file`'
+gf_add_tool_commands -comment '#' -file ./in/$TASK_NAME.extract.cmd '`@voltus_pgv_extraction_command_file`'
+gf_add_tool_commands -comment '' -file ./in/$TASK_NAME.connect.map '`@voltus_pgv_layer_connect_file`'
 
 # Run task
+gf_add_failed_marks 'Library generation failed'
 gf_add_success_marks 'Finished PGV Library Generator'
 gf_submit_task

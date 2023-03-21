@@ -49,7 +49,7 @@ MAP_PORT_NAMES_SED_SCRIPT='
 
 # Additional port labels for LVS
 gf_create_step -name lvs_user_port_labels '
-    # LAYOUT TEXT "POC" 0.0 0.0 M5 '$DESIGN_NAME'
-    # LAYOUT TEXT "ESD" 0.0 0.0 M5 '$DESIGN_NAME'
-    # LAYOUT TEXT "RTE" 0.0 0.0 M5 '$DESIGN_NAME'
+    # LAYOUT TEXT "POC" 0.0 0.0 M5 `$DESIGN_NAME`
+    # LAYOUT TEXT "ESD" 0.0 0.0 M5 `$DESIGN_NAME`
+    # LAYOUT TEXT "RTE" 0.0 0.0 M5 `$DESIGN_NAME`
 '

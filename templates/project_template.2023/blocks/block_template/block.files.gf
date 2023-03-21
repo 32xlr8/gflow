@@ -272,6 +272,9 @@ gf_create_step -name gconfig_cadence_mmmc_files '
 #     <PLACEHOLDER>../../../../../voltus.pgv.0000/out/MacrosPGV.cl
 # "
 
+# # Specific design configuration for power analysis (optional, will be asked if empty)
+# VOLTUS_POWER_CONFIG_FILE='../../../config.gen.0000/out/ConfigSignoff*.power.tcl'
+
 ################################################################################
 # Calibre input files - ./calibre.phys.gf
 ################################################################################

@@ -74,7 +74,7 @@ gf_add_tool_commands '
     exec ln -nsf $DATABASE ./out/$TASK_NAME/$DESIGN_NAME.innovus.db
 
     # Add empty cell macros to add to GDS
-    read_physical -add_lefs ./scripts/$TASK_NAME.empty_cells.lef
+    read_physical -add_lefs ./in/$TASK_NAME.empty_cells.lef
 
     # Write out design files
     `@innovus_procs_write_data`
@@ -85,7 +85,7 @@ gf_add_tool_commands '
 '
 
 # Create LEF for empty cells to be added to GDS
-gf_add_tool_commands -ext empty_cells.lef '`@innovus_data_out_empty_cells_lef`'
+gf_add_tool_commands -file ./in/$TASK_NAME.empty_cells.lef '`@innovus_data_out_empty_cells_lef`'
 
 # Shell commands to update MD5 sum
 gf_add_shell_commands -post "
@@ -146,9 +146,6 @@ gf_add_tool_commands '
     # Exit interactive session
     exit
 '
-
-# Create LEF for empty cells to be added to GDS
-gf_add_tool_commands -ext empty_cells.lef '`@innovus_data_out_empty_cells_lef`'
 
 # Shell commands to update MD5 sum
 gf_add_shell_commands -post "

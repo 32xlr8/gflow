@@ -114,7 +114,6 @@ gf_create_step -name voltus_post_init '
 
         # # AOCV libraries (see TSMCHOME/digital/Front_End/SBOCV/documents/GL_SBOCV_*.pdf)
         <PLACEHOLDER> Choice 1 of 3
-        # set_db timing_report_fields {cell arc delay incr_delay arrival required transition fanout load aocv_adj_stages aocv_derate user_derate annotation instance}
         # set_db timing_analysis_aocv true
         # set_db timing_extract_model_aocv_mode graph_based
         # set_db timing_aocv_analysis_mode combine_launch_capture
@@ -124,9 +123,7 @@ gf_create_step -name voltus_post_init '
 
         # # LVF/SOCV libraries (see TSMCHOME/digital/Front_End/LVF/documents/GL_LVF_*.pdf)
         <PLACEHOLDER> Choice 2 of 3
-        # set_db timing_report_fields {timing_point cell arc fanout load slew slew_mean slew_sigma pin_location delay_mean delay_sigma delay arrival_mean arrival_sigma arrival user_derate total_derate power_domain voltage phys_info}
-        # # set_db ui_precision_timing 6
-        # set_limited_access_feature socv 1
+        # # set_limited_access_feature socv 1
         # set_db timing_analysis_socv true
         # set_db delaycal_socv_accuracy_mode ultra
         # set_db delaycal_socv_machine_learning_level 1
@@ -134,22 +131,18 @@ gf_create_step -name voltus_post_init '
         # # set_db timing_disable_retime_clock_path_slew_propagation false
         # set_db timing_socv_statistical_min_max_mode mean_and_three_sigma_bounded
         # set_db timing_report_enable_verbose_ssta_mode true
-        # set_socv_reporting_nsigma_multiplier -setup 3 -hold 3
         # set_db delaycal_accuracy_level 3
         # set_db timing_cppr_threshold_ps 3
         # set_db delaycal_socv_lvf_mode moments
         # set_db delaycal_socv_use_lvf_tables {delay slew constraint}
         # set_timing_derate 0 -sigma -cell_check -early [get_lib_cells *BWP*]
-        # set_db timing_report_max_transition_check_using_nsigma_slew false
         # set_db timing_ssta_enable_nsigma_enumeration true
-        # set_db timing_ssta_generate_sta_timing_report_format true
         # set_db timing_socv_rc_variation_mode true
         # set_socv_rc_variation_factor 0.1 -early
         # set_socv_rc_variation_factor 0.1 -late
 
         # Flat STA settings
         <PLACEHOLDER> Choice 3 of 3
-        set_db timing_report_fields {cell arc delay incr_delay arrival required transition fanout load user_derate annotation instance}
 
         # # Spatial OCV settings (see TSMCHOME/digital/Front_End/timing_margin/SPM)
         # set_db timing_enable_spatial_derate_mode true
@@ -169,7 +162,6 @@ gf_create_step -name voltus_post_init '
 
     # SI settings
     set_db delaycal_enable_si true
-    set_db route_design_with_si_driven true
     # set_db si_use_infinite_timing_window true
 '
 
@@ -221,7 +213,7 @@ gf_create_step -name voltus_pre_write_pgv_tech_only '
         -filler_cells $PGV_FILLER_CELLS \
         -decap_cells $PGV_DECAP_CELLS \
         -default_area_cap 0.01fF \
-        -lef_layer_map ./scripts/$TASK_NAME.lef.map \
+        -lef_layer_map ./in/$TASK_NAME.lef.map \
         -extraction_tech_file $PGV_SPEF_CORNER_QRC_FILE \
         -temperature $PGV_SPEF_CORNER_TEMPERATURE \
         -current_distribution propagation \
@@ -229,8 +221,8 @@ gf_create_step -name voltus_pre_write_pgv_tech_only '
 
     # PGV generation advanced options
     set_advanced_pg_library_mode \
-        -pg_library_generation_command_file ./scripts/$TASK_NAME.libgen.cmd \
-        -extraction_command_file ./scripts/$TASK_NAME.extract.cmd \
+        -pg_library_generation_command_file ./in/$TASK_NAME.libgen.cmd \
+        -extraction_command_file ./in/$TASK_NAME.extract.cmd \
         -verbosity true
 '
 
@@ -247,7 +239,7 @@ gf_create_step -name voltus_pre_write_pgv_standard_cells '
         -power_pins $PGV_POWER_PINS_PAIRS \
         -ground_pins $PGV_GROUND_PINS_PAIRS \
         -cells_file ./in/$TASK_NAME.cells \
-        -lef_layer_map ./scripts/$TASK_NAME.lef.map \
+        -lef_layer_map ./in/$TASK_NAME.lef.map \
         -current_distribution propagation \
         -cell_type stdcells
     
@@ -263,15 +255,17 @@ gf_create_step -name voltus_pre_write_pgv_standard_cells '
     # # Optional power gate settings
     #     -powergate_parameters {{RING_SWITCH TVDD VDD {} {} {}}} \
 
-    # Cells list
+    # Standard cells list
     redirect ./in/$TASK_NAME.cells {
-        get_db [get_db base_cells -if .area>5.0] .name -foreach {puts $object}
+
+        # Auto-generate the list based on cell area
+        get_db [get_db base_cells -if .area<100.0] .name -foreach {puts $object}
     }
 
     # PGV generation advanced options
     set_advanced_pg_library_mode \
-        -pg_library_generation_command_file ./scripts/$TASK_NAME.libgen.cmd \
-        -extraction_command_file ./scripts/$TASK_NAME.extract.cmd \
+        -pg_library_generation_command_file ./in/$TASK_NAME.libgen.cmd \
+        -extraction_command_file ./in/$TASK_NAME.extract.cmd \
         -verbosity true
 '
 
@@ -290,17 +284,27 @@ gf_create_step -name voltus_pre_write_pgv_macros '
         -power_pins $PGV_POWER_PINS_PAIRS \
         -ground_pins $PGV_GROUND_PINS_PAIRS \
         -cells_file ./in/$TASK_NAME.cells \
-        -lef_layer_map ./scripts/$TASK_NAME.lef.map \
+        -lef_layer_map ./in/$TASK_NAME.lef.map \
         -stream_layer_map ./scripts/$TASK_NAME.connect.map \
         -cell_type macros
 
-    # Additional files
-    get_db [get_db base_cells -if .area>5.0] .name -foreach {puts $object} > ./in/$TASK_NAME.cells
+    # Macro cells list
+    redirect ./in/$TASK_NAME.cells {
+        
+        # Auto-generate the list based on cell area
+        get_db [get_db base_cells -if .area>100.0] .name -foreach {puts $object}
+        
+        # # User-defined macro list
+        # foreach macro {
+        #     MACRO1
+        #     MACRO2
+        # } {puts $macro}
+    }
 
     # PGV generation advanced options
     set_advanced_pg_library_mode \
-        -pg_library_generation_command_file ./scripts/$TASK_NAME.libgen.cmd \
-        -extraction_command_file ./scripts/$TASK_NAME.extract.cmd \
+        -pg_library_generation_command_file ./in/$TASK_NAME.libgen.cmd \
+        -extraction_command_file ./in/$TASK_NAME.extract.cmd \
         -verbosity true
 '
 
@@ -471,41 +475,4 @@ gf_create_step -name voltus_run_signal_em '
     check_ac_limits \
         -ict_em_models [join {`$VOLTUS_ICT_EM_RULE`}] \
         -method peak 
-'
-
-################################################################################
-# Additional files content
-################################################################################
-
-# LEF to DEF layer map file
-gf_create_step -name lef_def_map_file '
-    metal  M1    lefdef   M1
-    via    VIA1  lefdef   VIA1
-    # <PLACEHOLDER>layer_type LEF_layer_name lefdef DEF_layer_name
-    via    RV    lefdef   RV
-    metal  AP    lefdef   AP
-'
-
-# GDS layer mapping for PGV connectivity
-gf_create_step -name pgv_layer_connect_file '
-    <PLACEHOLDER>via LEF_layer_name GDS_layer_num GDS_data_type \
-    <PLACEHOLDER>metal LEF_layer_name GDS_layer_num GDS_data_type \
-    via          RV      gds  85  0  
-    metal        AP      gds  74  0  
-'
-
-# Standard cells PGV generation cell list file
-gf_create_step -name pgv_standard_cell_list_file '
-    <PLACEHOLDER>INVX1
-    <PLACEHOLDER>ANDX1
-'
-
-# Standard cells PGV generation decap file
-gf_create_step -name pgv_standard_cell_decap_file '
-    <PLACEHOLDER>DCAP 10pF 
-'
-
-# Macro PGV generation cell list file
-gf_create_step -name pgv_macro_list_file '
-    <PLACEHOLDER>RAM1
 '

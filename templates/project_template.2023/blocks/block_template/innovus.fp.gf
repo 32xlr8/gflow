@@ -96,10 +96,12 @@ gf_add_tool_commands '
     set POWER_NETS {`$POWER_NETS_CORE` `$POWER_NETS_OTHER -optional`}
     set GROUND_NETS {`$GROUND_NETS_CORE` `$GROUND_NETS_OTHER -optional`}
     set TIMING_MODE {`$TIMING_MODE`}
-    set TIMING_CONFIG_FILE {`$INNOVUS_TIMING_CONFIG_FILE`}
+    set TIMING_CONFIG_FILE {`$INNOVUS_TIMING_CONFIG_FILE -optional`}
     
     # Load configuration variables
-    source $TIMING_CONFIG_FILE
+    if {$TIMING_MODE == "Y"} {
+        source $TIMING_CONFIG_FILE
+    }
 
     # Pre-load settings
     `@innovus_pre_read_libs`

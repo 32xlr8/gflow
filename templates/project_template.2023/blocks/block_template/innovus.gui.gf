@@ -19,7 +19,7 @@
 # limitations under the License.
 #
 ################################################################################
-# Filename: templates/project_template.2023/blocks/block_template/innovus.debug.gf
+# Filename: templates/project_template.2023/blocks/block_template/innovus.gui.gf
 # Purpose:  Interactive implementation debug flow
 ################################################################################
 
@@ -95,7 +95,9 @@ gf_add_tool_commands '
         }
     }
 
-    set_layer_preference phyCell -color #555555
+    # GUI commands
+    `@innovus_pre_gui -optional`
+    
     gui_show
 '
 

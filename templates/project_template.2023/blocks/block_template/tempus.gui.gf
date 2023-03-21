@@ -19,7 +19,7 @@
 # limitations under the License.
 #
 ################################################################################
-# Filename: templates/project_template.2023/blocks/block_template/tempus.debug.gf
+# Filename: templates/project_template.2023/blocks/block_template/tempus.gui.gf
 # Purpose:  Interactive Tempus debug flow
 ################################################################################
 

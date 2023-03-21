@@ -42,6 +42,8 @@ gf_info "Loading block-specific Innovus steps ..."
 # gf_set_task_options Clock -cpu 8 -mem 15
 # gf_set_task_options Route -cpu 16 -mem 15
 gf_set_task_options 'Report*' -cpu 4 -mem 10
+gf_set_task_options DataOutPhysical -cpu 1 -mem 10
+gf_set_task_options DataOutTiming -cpu 4 -mem 10
 
 # Limit simultaneous tasks count
 gf_set_task_options 'Report*' -parallel 1
@@ -147,7 +149,6 @@ gf_create_step -name innovus_post_init_design_physical_mode '
     `@innovus_post_init_design_physical_mode_technology`
 
     # # Floorplan settings
-    # set_db floorplan_default_tech_site <PLACEHOLDER>core
     # set_db floorplan_initial_all_compatible_core_site_rows true
     # set_db floorplan_row_site_width odd  
     # set_db floorplan_row_site_height even
@@ -157,7 +158,17 @@ gf_create_step -name innovus_post_init_design_physical_mode '
     # # set_db floorplan_snap_die_grid user_define
     # # set_db floorplan_user_define_grid {0.000 0.000 0.000 0.000}
     # set_db floorplan_check_types {basic color odd_even_site_row}
+    # set_db floorplan_default_tech_site <PLACEHOLDER>core
     
+    # # Turbo cells support
+    # update_inbound_cell_site \
+    #     -p_filler <PLACEHOLDER>hpcore \
+    #     -n_filler <PLACEHOLDER>hncore \
+    #     -new <PLACEHOLDER>core \
+    #     -original <PLACEHOLDER>ibcore \
+    #     -vertical
+    # set_db floorplan_default_tech_site <PLACEHOLDER>hpcore
+
     # # Precise floorplan settings (see foundry documentation)
     # set_db floorplan_row_height_multiple 2
     # set_db floorplan_row_height_increment_corner_to_corner 4
@@ -198,7 +209,7 @@ gf_create_step -name innovus_post_init_design_physical_mode '
     #     {{FILL1BWP*ULVT FILL1NOBCMBWP*ULVT}}
     #     {{FILL1BWP*ELVT FILL1NOBCMBWP*ELVT}}
     # }]
-
+    
     # Boundary cells
     set_db add_endcaps_left_edge   [get_db [get_db base_cells <PLACEHOLDER>"BOUNDARY_RIGHT*"] .name]
     set_db add_endcaps_right_edge  [get_db [get_db base_cells <PLACEHOLDER>"BOUNDARY_LEFT*"] .name]
@@ -431,6 +442,11 @@ gf_create_step -name innovus_post_init_design '
         # set_db cts_cell_halo_x <PLACEHOLDER>5.0
         # set_db cts_cell_halo_y <PLACEHOLDER>1.0
 
+        # # Limit maximum net length
+        # set_db cts_max_source_to_sink_net_length_top <PLACEHOLDER>100.0
+        # set_db cts_max_source_to_sink_net_length_trunk <PLACEHOLDER>100.0
+        # set_db cts_max_source_to_sink_net_length_leaf <PLACEHOLDER>100.0
+        
         # Limit maximum clock tree cells fanout
         set_db cts_max_fanout <PLACEHOLDER>32
         
@@ -713,7 +729,7 @@ gf_create_step -name innovus_post_place '
     # write_ilm -model_type timing -type_flex_ilm flexilm -opt_stage <PLACEHOLDER>prects -overwrite -to_dir ./out/$TASK_NAME.ilm
 
     # # Write out LEF
-    # if {[catch {set top_layer [get_db route_design_top_routing_layer]}]} {set top_layer [get_db design_top_routing_layer]}
+    # if {[catch {set top_layer [get_db design_top_routing_layer]}]} {set top_layer [get_db route_design_top_routing_layer]}
     # write_lef_abstract ./out/$TASK_NAME.pg.lef -no_cut_obs -top_layer $top_layer -stripe_pins -pg_pin_layers $top_layer
     # write_lef_abstract ./out/$TASK_NAME.lef -no_cut_obs -top_layer $top_layer
 '
@@ -778,6 +794,9 @@ gf_create_step -name innovus_pre_clock_opt_hold '
     # # Allow setup TNS degradation
     # set_db opt_fix_hold_allow_setup_tns_degradation true
 
+    # # Do not fix huge hold violations
+    # set_db opt_fix_hold_slack_threshold -0.250
+
     # # Do not over-fix hold
     # set_db opt_hold_target_slack -0.025
 '
@@ -787,6 +806,7 @@ gf_create_step -name innovus_post_clock_opt_hold '
 
     # Reset used earlier options
     reset_db opt_fix_hold_allow_setup_tns_degradation
+    reset_db opt_fix_hold_slack_threshold
     reset_db opt_hold_target_slack
 '
 
@@ -811,6 +831,9 @@ gf_create_step -name innovus_pre_route '
     check_filler
     # add_fillers -fix_vertical_max_length_violation 
     # check_filler -vertical_stack_max_length
+    
+    # # Limit number of routing iterations for debug
+    # set_db route_design_detail_end_iteration 3
 '
 
 # Commands after routing
@@ -835,14 +858,19 @@ gf_create_step -name innovus_post_route '
     # set_db si_glitch_input_voltage_high_threshold 0.2
     # set_db si_glitch_input_voltage_low_threshold 0.2
     set_db si_aggressor_alignment timing_aware_edge
-'
-
-# Commands before post-route setup and hold optimization
-gf_create_step -name innovus_pre_route_opt_setup_hold '
 
     # Update route engine options
     set_db extract_rc_engine post_route
 
+    # Reset number of routing iterations
+    if {[llength [get_db markers]] < 10000} {
+        reset_db route_design_detail_end_iteration
+    }
+'
+
+# Commands before post-route setup and hold optimization
+gf_create_step -name innovus_pre_route_opt_setup_hold '
+    
     # # Reset previous settings
     # reset_db opt_hold_target_slack
 
@@ -868,8 +896,24 @@ gf_create_step -name innovus_post_route_opt_setup_hold '
 
     # # DFM via replacement
     # eval_legacy [subst {
-        # source {`$INNOVUS_DFM_VIA_SWAP_SCRIPT`}
+        # source {`$INNOVUS_DFM_VIA_SWAP_SCRIPT -optional`}
     # }]
+'
+
+# Commands before open GUI for debug
+gf_create_step -name innovus_pre_gui '
+
+    # Dim physical cells
+    set_layer_preference phyCell -color #555555
+
+    # # Highlight cells modified at different design stages
+    # gui_highlight -color "#30BB30" -pattern none [get_db insts -if .base_name==Place*]
+    # gui_highlight -color "#60DD60" -pattern none [get_db insts -if .base_name==Clock*]
+    # gui_highlight -color "#90FF90" -pattern none [get_db insts -if .base_name==Route*]
+
+    # Highlight hold fixing cells
+    gui_highlight -color "#6060DD" [get_db insts *PHC*]
+    gui_highlight -color "#8080FF" [get_db insts -if .base_name==Route*PHC*]
 '
 
 ################################################################################
@@ -900,6 +944,155 @@ gf_create_step -name innovus_procs_interactive_design '
     #     }]
     # }
     
+    # Add physical cells after floorplan modifications
+    proc gf_init_rows {} {
+        #set_layer_preference power -is_visible 0
+        
+        # Initialize core rows
+        delete_row -all
+        # create_row -site core -area [get_db current_design .core_bbox]
+        # create_row -site bcoreExt -area [get_db current_design .core_bbox]
+        init_core_rows
+        split_row
+        
+    }
+
+    # # Fill narrow channels with placement blockages
+    # proc gf_init_place_blockages {} {
+    #     delete_obj [get_db place_blockages finishfp_*]
+    #
+    #     finish_floorplan -fill_place_blockage hard 5
+    #     finish_floorplan -fill_place_blockage soft 30
+    #     
+    #     # # Delete blockages at the edges
+    #     # deselect_obj -all
+    #     # select_obj [get_db place_blockages finish* -if .rects.ll.x>=[expr [get_db current_design .core_bbox.ur.x]-30.0]]
+    #     # select_obj [get_db place_blockages finish* -if .rects.ur.x<=[expr [get_db current_design .core_bbox.ll.x]+30.0]]
+    #     # delete_selected_from_floorplan
+    # }   
+    
+    # Flip left corner endcaps
+    proc gf_flip_left_endcaps {cell_pattern} {
+        set results {}
+        get_db insts -if .base_cell.name==$cell_pattern -foreach {
+            if {[get_db [get_obj_in_area -obj_type row -areas [list \
+                [expr [get_db $object .bbox.ll.x] - [get_db $object .base_cell.site.size.x] / 2] \
+                [expr [get_db $object .bbox.ll.y] + [get_db $object .base_cell.site.size.y] / 2] \
+                [expr [get_db $object .bbox.ll.x] - [get_db $object .base_cell.site.size.x] / 2] \
+                [expr [get_db $object .bbox.ll.y] + [get_db $object .base_cell.site.size.y] / 2] \
+            ]] -if ".site==[get_db $object .base_cell.site]"] == {}} {
+                lappend results $object
+            }
+        }
+        get_db $results .name -u -foreach {flip_or_rotate_obj -flip my -objs $object}
+        return $results
+    }
+
+    # Delete physical cells before floorplan modifications
+    proc gf_reset_boundary_cells {} {
+        delete_filler -prefix FILLER
+        delete_filler -prefix ENDCAP
+        delete_filler -prefix WELLTAP
+    }
+
+    # Add physical cells after floorplan modifications
+    proc gf_init_boundary_cells {} {
+
+        # Delete physical cells
+        gf_reset_boundary_cells
+        
+        # Place boundary cells
+        add_endcaps -prefix ENDCAP
+        # gf_flip_left_endcaps <PLACEHOLDER>BOUNDARY_?CORNER*
+
+        # Place well-tap cells
+        add_well_taps -prefix WELLTAP -checker_board -cell_interval <PLACEHOLDER>50
+
+        # Run checks
+        check_endcaps
+        check_well_taps
+    }
+
+    # Init boundary nets
+    proc gf_init_boundary_wires {} {
+        delete_routes -net _BOUNDARY_*
+        
+        set_db finish_floorplan_active_objs die
+        # add_dummy_boundary_wires -layer {<PLACEHOLDER>M1 M2 M3 M4} -space {<PLACEHOLDER>0.000 0.000 0.000 0.000} 
+        finish_floorplan -add_boundary_blockage
+
+        set_layer_preference eol -is_visible 1
+        set_db finish_floorplan_active_objs row
+        finish_floorplan -add_boundary_end_of_line_blockage
+
+        check_floorplan
+    }
+
+    # Design-specific ports initialization
+    proc gf_init_ports {} {
+    
+        # Unplace all ports
+        set_partition_pin_status -status unplaced -quiet \
+            -partition [get_db current_design .name] \
+            -pins [get_db ports .name]
+    
+        # Batch mode on
+        set_db assign_pins_edit_in_batch true
+    
+        # # Group ports by name
+        # foreach ports [list \
+        #     [get_db ports -if .name==<PLACEHOLDER>] \
+        # ] {
+        #     edit_pin -snap track \
+        #         -edge 0 \
+        #         -spread_direction clockwise \
+        #         -spread_type center \
+        #         -layer_vertical <PLACEHOLDER>M4 \
+        #         -offset_start 0.0 \
+        #         -spacing 8 -unit track \
+        #         -fixed_pin 1 -fix_overlap 1 \
+        #         -pin [get_db [get_db $ports -if .place_status==unplaced] .name]
+        # }
+    
+        # # Projection of instance pins to vertical edge
+        # foreach pin [list \
+        #     [get_db pins <PLACEHOLDER>instance_pin] \
+        # ] {
+        #     set ports [get_db -u [concat [get_db $pin .net.drivers] [get_db $pin .net.loads]] -if .obj_type==port]
+        #     edit_pin -snap track \
+        #         -edge <PLACEHOLDER>0 \
+        #         -layer_vertical <PLACEHOLDER>M4 \
+        #         -fixed_pin 1 -fix_overlap 1 \
+        #         -assign [list [get_db current_design <PLACEHOLDER>.bbox.ll.x] [get_db $pin .location]\
+        #         -pin [get_db [get_db $ports -if .place_status==unplaced] .name]
+        # }
+    
+        # # All the rest inputs
+        # edit_pin -snap track \
+        #     -edge <PLACEHOLDER>0 \
+        #     -spread_direction clockwise \
+        #     -spread_type center \
+        #     -layer_vertical <PLACEHOLDER>M4 \
+        #     -offset_start 0.0 \
+        #     -spacing 8 -unit track \
+        #     -fixed_pin 1 -fix_overlap 1 \
+        #     -pin [get_db [get_db ports -if .place_status==unplaced&&.direction==in] .name]
+    
+        # # All the rest outputs
+        # edit_pin -snap track \
+        #     -edge <PLACEHOLDER>2 \
+        #     -spread_direction clockwise \
+        #     -spread_type center \
+        #     -layer_vertical <PLACEHOLDER>M4 \
+        #     -offset_start 0.0 \
+        #     -spacing 8 -unit track \
+        #     -fixed_pin 1 -fix_overlap 1 \
+        #     -pin [get_db [get_db ports -if .place_status==unplaced&&.direction==out] .name]
+
+        # Batch mode off
+        set_db assign_pins_edit_in_batch false
+    }
+
     # Initialize power grid in all layers
     proc gf_init_power_grid {} {
         # set nets {<PLACEHOLDER>VDD VSS}
@@ -916,7 +1109,8 @@ gf_create_step -name innovus_procs_interactive_design '
         # catch {delete_route_blockage -name add_stripe_blockage}
         # delete_routes -net $nets -status routed
         # delete_routes -net $nets -status routed -shapes {ring stripe corewire followpin ring padring} -layer {M0 ... AP VIA0 ... RV}
-        
+        # delete_pg_pins -net $nets
+
         # # Reset options
         # if {1} {
         #     reset_db route_special_*
@@ -973,7 +1167,7 @@ gf_create_step -name innovus_procs_interactive_design '
         #         -nets $nets 
         # }
         
-        # # M0 follow pins
+        # # M1 follow pins
         # if {1} {
         #     set_db route_special_connect_broken_core_pin true
         #     # set_db route_special_core_pin_stop_route CellPinEnd
@@ -981,7 +1175,7 @@ gf_create_step -name innovus_procs_interactive_design '
         #     set_db route_special_via_connect_to_shape noshape
         #     route_special \
         #         -connect core_pin \
-        #         -core_pin_layer M0 \
+        #         -core_pin_layer M1 \
         #         -core_pin_width 0.000 \
         #         -allow_jogging 0 \
         #         -allow_layer_change 0 \
@@ -993,7 +1187,7 @@ gf_create_step -name innovus_procs_interactive_design '
         # }
         
         # # Create blockages over macros
-        # create_route_blockage -name add_stripe_blockage -layer {M0 ... M1} -rects [gf_size_bboxes [get_db $macros .bbox] {-0.000 -0.000 0.000 0.000}]
+        # create_route_blockage -name add_stripe_blockage -layer {M1 ... M2} -rects [gf_size_bboxes [get_db $macros .bbox] {-0.000 -0.000 0.000 0.000}]
 
         # # M2 follow pins duplication
         # if {1} {
@@ -1006,6 +1200,7 @@ gf_create_step -name innovus_procs_interactive_design '
         #     deselect_obj -all; select_routes -shapes followpin -layer M1
         #     edit_duplicate_routes -layer_horizontal M2
         #     # edit_update_route_width -width_horizontal 0.000
+        #     # edit_resize_routes -keep_center_line 1 -direction y -side high -to 0.000
         #     reset_db edit_wire_shield_look_down_layers
         #     reset_db edit_wire_shield_look_up_layers
         #     reset_db edit_wire_layer_min
@@ -1016,6 +1211,7 @@ gf_create_step -name innovus_procs_interactive_design '
         #     set_db add_stripes_skip_via_on_wire_shape {ring blockring corewire blockwire iowire padring fillwire noshape}
         #     # set_db generate_special_via_rule_preference {VIA12*}
         #     update_power_vias -selected_wires 1 -add_vias 1 -bottom_layer M1 -top_layer M2 -orthogonal_only 0
+        #     update_power_vias -selected_wires 1 -add_vias 1 -bottom_layer M1 -top_layer M2 -orthogonal_only 0 -split_long_via {0.000 0.000 0.000 0.000}
         #     deselect_obj -all
         #     reset_db add_stripes_skip_via_on_pin
         #     reset_db add_stripes_skip_via_on_wire_shape
@@ -1111,7 +1307,7 @@ gf_create_step -name innovus_procs_interactive_design '
         #         -set_to_set_distance [expr 2*0.000*10] \
         #         -start_offset [expr 0.000+0*0.000*10] \
         #         -snap_wire_center_to_grid grid \
-        #         -area [get_db  .bbox] \
+        #         -area [get_db $macros .bbox] \
         #         -nets $nets
         #     reset_db add_stripes_orthogonal_only
         #     # create_route_blockage -name add_stripe_blockage -layer {M5 M6} -rects [gf_size_bboxes [get_db $macros .bbox] {-0.000 -0.000 0.000 0.000}]
@@ -1199,7 +1395,6 @@ gf_create_step -name innovus_procs_interactive_design '
         # deselect_obj -all
 
         # # Create PG ports (automatically)
-        # delete_pg_pins -net $nets
         # deselect_obj -all
         # select_routes -layer M9 -nets $nets -shapes stripe
         # create_pg_pin -on_die -selected
@@ -1208,7 +1403,7 @@ gf_create_step -name innovus_procs_interactive_design '
         # # Create PG ports in top layer
         # foreach stripe [get_obj_in_area -areas [get_db current_design .bbox] -layers M5 -obj_type special_wire] {
         #     set net_name [get_db $stripe .net.name]
-        #     if {($net_name == "VDD") || ($net_name == "VSS")} {
+        #     if {[lsearch -exact $nets $net_name] >= 0} {
         #         create_pg_pin -name $net_name -net $net_name -geometry [get_db $stripe .layer.name] [get_db $stripe .rect.ll.x] [get_db $stripe .rect.ll.y] [get_db $stripe .rect.ur.x] [get_db $stripe .rect.ur.y]
         #     }
         # }
@@ -1217,60 +1412,28 @@ gf_create_step -name innovus_procs_interactive_design '
         # add_power_mesh_colors
     }
 
-    # Check standard cell legalization
-    proc gf_check_legalization {x y dy {area 100}} {
-        set insts {}
-        foreach base_cell [get_db insts .base_cell -if .area<$area -u] {
-            if {[set inst [lindex [get_db insts -if .base_cell==$base_cell&&.place_status!=fixed] 0]] != ""} {
-                lappend insts $inst
-            }
-        }
-        foreach inst $insts {
-            set_db $inst .location [list $x $y]
-            set y [expr $y+$dy]
-        }
-        place_detail -inst [get_db $insts .name]
-        check_place
+    # Initialize IO rows
+    proc gf_init_io_rows {} {
+        # delete_row -site pad
+        # delete_row -site corner
+        
+        # IO rows
+        # create_io_row -side N -begin_offset <PLACEHOLDER>20 -end_offset <PLACEHOLDER>20 -row_margin <PLACEHOLDER>20 -site <PLACEHOLDER>pad
+        # create_io_row -side S -begin_offset <PLACEHOLDER>20 -end_offset <PLACEHOLDER>20 -row_margin <PLACEHOLDER>20 -site <PLACEHOLDER>pad
+        # create_io_row -side E -begin_offset <PLACEHOLDER>20 -end_offset <PLACEHOLDER>20 -row_margin <PLACEHOLDER>20 -site <PLACEHOLDER>pad
+        # create_io_row -side W -begin_offset <PLACEHOLDER>20 -end_offset <PLACEHOLDER>20 -row_margin <PLACEHOLDER>20 -site <PLACEHOLDER>pad
+        
+        # Corner rows
+        # create_io_row -corner BL -x_offset <PLACEHOLDER>20 -y_offset <PLACEHOLDER>20 -site <PLACEHOLDER>corner
+        # create_io_row -corner BR -x_offset <PLACEHOLDER>20 -y_offset <PLACEHOLDER>20 -site <PLACEHOLDER>corner
+        # create_io_row -corner TL -x_offset <PLACEHOLDER>20 -y_offset <PLACEHOLDER>20 -site <PLACEHOLDER>corner
+        # create_io_row -corner TR -x_offset <PLACEHOLDER>20 -y_offset <PLACEHOLDER>20 -site <PLACEHOLDER>corner
     }
 
-    # Size bboxes
-    proc gf_size_bboxes {bboxes delta} {
-        set results {}
-        foreach bbox $bboxes {
-            lappend results [list \
-                [expr [lindex $bbox 0] + ([lindex $delta 0])] \
-                [expr [lindex $bbox 1] + ([lindex $delta 1])] \
-                [expr [lindex $bbox 2] + ([lindex $delta 2])] \
-                [expr [lindex $bbox 3] + ([lindex $delta 3])] \
-            ]
-        }
-        return $results
-    }
-    
-    # Initialize follow pins in two metals
-    proc gf_init_two_metals_followpins {} {
-        set nets {VDD VSS}
-
-        # Delete all not fixed routing
-        delete_routes -status routed -net $nets -shapes followpin
-
-        ##################################################
-        # Follow pins
-        ##################################################
-
-        # M1 follow pins
-        set_db route_special_via_connect_to_shape noshape
-        route_special -core_pin_layer M1 -connect core_pin -nets $nets -crossover_via_layer_range {M1 M1} -target_via_layer_range {M1 M1}
-
-        # Duplicate follow pins
-        set_db edit_wire_shield_look_down_layers 0
-        set_db edit_wire_shield_look_up_layers 0
-        set_db edit_wire_layer_min M1
-        set_db edit_wire_layer_max M1
-        deselect_obj -all
-        select_routes -shapes followpin
-        edit_duplicate_routes -layer_horizontal M2
-        edit_update_route_width -width_horizontal 0.12
+    # Insert IO fillers
+    proc gf_init_io_fillers {} {
+        catch {delete_io_fillers -cell [get_db [get_db [get_db base_cells -if .site.class==pad *FILL*] -invert {*A *A_G}] .name]}
+        add_io_fillers -cells [get_db [get_db [get_db base_cells -if .site.class==pad *FILL*] -invert {*A *A_G}] .name]
     }
     
     # Route top metal
@@ -1347,21 +1510,6 @@ gf_create_step -name innovus_procs_interactive_design '
         # delete_route_blockages -name block_rv_under_bumps
         # delete_route_blockages -name block_up_under_bumps
     }
-    
-    # # Fill narrow channels with placement blockages
-    # proc gf_fill_place_blockages {} {
-    #     # deselect_obj -all
-    #     # select_obj [get_db place_blockages finishfp_*]
-    #     # delete_selected_from_floorplan
-    #     delete_obj [get_db place_blockages finishfp_*]
-    #     finish_floorplan -fill_place_blockage soft 30
-    #     
-    #     # # Delete blockages at the edges
-    #     # deselect_obj -all
-    #     # select_obj [get_db place_blockages finish* -if .rects.ll.x>=[expr [get_db current_design .core_bbox.ur.x]-30.0]]
-    #     # select_obj [get_db place_blockages finish* -if .rects.ur.x<=[expr [get_db current_design .core_bbox.ll.x]+30.0]]
-    #     # delete_selected_from_floorplan
-    # }   
     
     # proc gf_reserve_space_for_tcd {} {
     #     deselect_obj -all
@@ -1444,14 +1592,23 @@ gf_create_step -name innovus_procs_interactive_design '
     proc gf_finish_floorplan {} {
         gui_hide
         
-        # gf_fill_place_blockages
         # gf_reserve_space_for_tcd
+        
+        # gf_init_io_rows
         # gf_init_io_fillers
+        
         gf_init_tracks
+        
         gf_init_rows
+        gf_init_place_blockages
+        gf_init_rows
+        
         gf_init_boundary_cells
+        
         # gf_init_boundary_wires
+        
         gf_init_power_grid
+        
         gf_write_floorplan
         
         check_floorplan -out_file ./reports/$::TASK_NAME.rpt
@@ -1460,112 +1617,6 @@ gf_create_step -name innovus_procs_interactive_design '
         gui_show
     }
 
-    # Flip left corner endcaps
-    proc gf_flip_left_endcaps {cell_pattern} {
-        set results {}
-        get_db insts -if .base_cell.name==$cell_pattern -foreach {
-            if {[get_db [get_obj_in_area -obj_type row -areas [list \
-                [expr [get_db $object .bbox.ll.x] - [get_db $object .base_cell.site.size.x] / 2] \
-                [expr [get_db $object .bbox.ll.y] + [get_db $object .base_cell.site.size.y] / 2] \
-                [expr [get_db $object .bbox.ll.x] - [get_db $object .base_cell.site.size.x] / 2] \
-                [expr [get_db $object .bbox.ll.y] + [get_db $object .base_cell.site.size.y] / 2] \
-            ]] -if ".site==[get_db $object .base_cell.site]"] == {}} {
-                lappend results $object
-            }
-        }
-        get_db $results .name -u -foreach {flip_or_rotate_obj -flip my -objs $object}
-        return $results
-    }
-
-    # Add physical cells after floorplan modifications
-    proc gf_init_rows {} {
-        #set_layer_preference power -is_visible 0
-        
-        # Initialize core rows
-        delete_row -all
-        # create_row -site core -area [get_db current_design .core_bbox]
-        # create_row -site bcoreExt -area [get_db current_design .core_bbox]
-        init_core_rows
-        split_row
-        
-    }
-
-    # Init boundary nets
-    proc gf_init_boundary_wires {} {
-        delete_routes -net _BOUNDARY_*
-        
-        set_db finish_floorplan_active_objs die
-        # add_dummy_boundary_wires -layer {<PLACEHOLDER>M1 M2 M3 M4} -space {<PLACEHOLDER>0.000 0.000 0.000 0.000} 
-        finish_floorplan -add_boundary_blockage
-
-        set_layer_preference eol -is_visible 1
-        set_db finish_floorplan_active_objs row
-        finish_floorplan -add_boundary_end_of_line_blockage
-
-        check_floorplan
-    }
-
-    # Delete physical cells before floorplan modifications
-    proc gf_reset_boundary_cells {} {
-        delete_filler -prefix FILLER
-        delete_filler -prefix ENDCAP
-        delete_filler -prefix WELLTAP
-    }
-
-    # Add physical cells after floorplan modifications
-    proc gf_init_boundary_cells {} {
-
-        # Delete physical cells
-        gf_reset_boundary_cells
-        
-        # Place boundary cells
-        add_endcaps -prefix ENDCAP
-        # gf_flip_left_endcaps <PLACEHOLDER>BOUNDARY_?CORNER*
-
-        # Place well-tap cells
-        add_well_taps -prefix WELLTAP -checker_board -cell_interval <PLACEHOLDER>50
-
-        # Run checks
-        check_endcaps
-        check_well_taps
-    }
-
-    # # Design-specific ports initialization
-    # proc gf_init_ports {} {
-        # edit_pin -snap track \
-            # -edge 2 \
-            # -spread_direction clockwise \
-            # -spread_type center \
-            # -layer_vertical <PLACEHOLDER>M4 \
-            # -offset_start 0.0 \
-            # -spacing 8 -unit track \
-            # -fixed_pin 1 -fix_overlap 1 \
-            # -pin [get_db ports .name]
-    # }
-
-    # Initialize IO rows
-    proc gf_init_io_rows {} {
-        # delete_row -site pad
-        # delete_row -site corner
-        
-        # IO rows
-        # create_io_row -side N -begin_offset <PLACEHOLDER>20 -end_offset <PLACEHOLDER>20 -row_margin <PLACEHOLDER>20 -site <PLACEHOLDER>pad
-        # create_io_row -side S -begin_offset <PLACEHOLDER>20 -end_offset <PLACEHOLDER>20 -row_margin <PLACEHOLDER>20 -site <PLACEHOLDER>pad
-        # create_io_row -side E -begin_offset <PLACEHOLDER>20 -end_offset <PLACEHOLDER>20 -row_margin <PLACEHOLDER>20 -site <PLACEHOLDER>pad
-        # create_io_row -side W -begin_offset <PLACEHOLDER>20 -end_offset <PLACEHOLDER>20 -row_margin <PLACEHOLDER>20 -site <PLACEHOLDER>pad
-        
-        # Corner rows
-        # create_io_row -corner BL -x_offset <PLACEHOLDER>20 -y_offset <PLACEHOLDER>20 -site <PLACEHOLDER>corner
-        # create_io_row -corner BR -x_offset <PLACEHOLDER>20 -y_offset <PLACEHOLDER>20 -site <PLACEHOLDER>corner
-        # create_io_row -corner TL -x_offset <PLACEHOLDER>20 -y_offset <PLACEHOLDER>20 -site <PLACEHOLDER>corner
-        # create_io_row -corner TR -x_offset <PLACEHOLDER>20 -y_offset <PLACEHOLDER>20 -site <PLACEHOLDER>corner
-    }
-
-    # Insert IO fillers
-    proc gf_init_io_fillers {} {
-        catch {delete_io_fillers -cell [get_db [get_db [get_db base_cells -if .site.class==pad *FILL*] -invert {*A *A_G}] .name]}
-        add_io_fillers -cells [get_db [get_db [get_db base_cells -if .site.class==pad *FILL*] -invert {*A *A_G}] .name]
-    }
 '
 
 ################################################################################
@@ -1785,7 +1836,7 @@ gf_create_step -name innovus_physical_out_design '
     }
 
     # Write out LEF for hierarchical design
-    if {[catch {set top_layer [get_db route_design_top_routing_layer]}]} {set top_layer [get_db design_top_routing_layer]}
+    if {[catch {set top_layer [get_db design_top_routing_layer]}]} {set top_layer [get_db route_design_top_routing_layer]}
     write_lef_abstract ./out/$TASK_NAME/$DESIGN_NAME.lef -no_cut_obs -top_layer $top_layer -stripe_pins -pg_pin_layers $top_layer
 
     # Write lite DEF for STA/ECO
@@ -1891,7 +1942,7 @@ gf_create_step -name innovus_timing_out_design '
 
     # SPEF
     foreach rc_corner [get_db rc_corners .name] {
-        write_parasitics -spef_file ./out/$TASK_NAME.$rc_corner.spef.gz -rc_corner $rc_corner
+        write_parasitics -spef_file ./out/$TASK_NAME/$DESIGN_NAME.$rc_corner.spef.gz -rc_corner $rc_corner
     }
 
     # Detect unique views
@@ -1944,13 +1995,13 @@ gf_create_step -name innovus_data_out_empty_cells_lef '
         NAMESCASESENSITIVE ON ;
         BUSBITCHARS "[]" ;
         DIVIDERCHAR "/" ;
-        MACRO '$DESIGN_NAME'_dummy_fill
+        MACRO `$DESIGN_NAME`_dummy_fill
          CLASS COVER ;
-         FOREIGN '$DESIGN_NAME'_dummy_fill 0.000 0.000 ;
+         FOREIGN `$DESIGN_NAME`_dummy_fill 0.000 0.000 ;
          ORIGIN 0.000 0.000 ;
          SIZE 10.000 BY 10.00 ;
          SYMMETRY X Y ;
-        END '$DESIGN_NAME'_dummy_fill
+        END `$DESIGN_NAME`_dummy_fill
         MACRO <PLACEHOLDER>label
          CLASS COVER ;
          FOREIGN <PLACEHOLDER>label 0.000 0.000 ;
@@ -1963,6 +2014,6 @@ gf_create_step -name innovus_data_out_empty_cells_lef '
 
 # Empty cells spice for LVS
 gf_create_step -name innovus_data_out_empty_cells_spice '
-    .SUBCKT '$DESIGN_NAME'_dummy_fill
+    .SUBCKT `$DESIGN_NAME`_dummy_fill
     .ENDS
 '

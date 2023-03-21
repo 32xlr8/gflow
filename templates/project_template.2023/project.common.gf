@@ -71,23 +71,30 @@ gf_create_step -name init_shell_environment '
 
     # License options
     # export CDS_LIC_ONLY=1
-    # export CDS_LIC_FILE=5280@<PLACEHOLDER>lic_server1:5280@<PLACEHOLDER>lic_server2
-    export LM_LICENSE_FILE=5280@<PLACEHOLDER>lic_server1:5280@<PLACEHOLDER>lic_server2
+    # export CDS_LIC_FILE=10000@<PLACEHOLDER>lic_server1:10000@<PLACEHOLDER>lic_server2
+    export LM_LICENSE_FILE=10000@<PLACEHOLDER>lic_server1:10000@<PLACEHOLDER>lic_server2
 
     # Startup options
     export CDS_AUTO_32BIT=NONE
     export CDS_AUTO_64BIT=ALL
     export CDS_STYLUS_SOURCE_VERBOSE=0
 
-    # # Fast temporary directory in RAM (use if total memory is more than 512Gb)
+    # # Option 1: Fastest temporary directory in RAM (use if total memory is more than 512Gb)
     # if [ -d "$XDG_RUNTIME_DIR" ]; then
     #     export TMPDIR="$XDG_RUNTIME_DIR/tmp"
     #     mkdir -p "$TMPDIR"
     # fi
 
-    # # Slow temporary directory in project area
+    # # Option 2: Temporary directory on fast drive
+    # export TMPDIR="/ssd/tmp/$USER"
+    # mkdir -p "$TMPDIR"
+
+    # # Option 3: Slow temporary directory in project area
     # export TMPDIR="."
     # # mkdir -p "$TMPDIR"
+
+    # Option 4: Default temporary directory (can slow down the runs)
+    export TMPDIR="/tmp"
 
     # Remove command line stack limit
     ulimit -s unlimited

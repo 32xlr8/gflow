@@ -30,9 +30,11 @@
 # Project and block initialization scripts
 gf_source "../../project.common.gf"
 gf_source "../../project.genus.gf"
+# gf_source "../../project.innovus.gf"
 gf_source "./block.common.gf"
 gf_source "./block.files.gf"
 gf_source "./block.genus.gf"
+# gf_source "./block.innovus.gf"
 
 ########################################
 # Genus generic synthesis

@@ -37,7 +37,24 @@ nedit.macroCommands: \
         }\n\
         if (end == -1) end = $text_length\n\
         select(start, end)\n\
-        text = replace_in_string(get_selection(), "(^[ \\\\t]*)(.*)$", "\\\\1# \\\\2", "regex")\n\
+        text = get_selection()\n\
+        if (text != "") {\n\
+            if (search_string(text, "\\\\t", 0, "regex") >= 0) {\n\
+                indent = replace_in_string(text, "\\\\t", "    ", "regex")\n\
+            }\n\
+            indent = text\n\
+            if (search_string(indent, "\\\\S", 0, "regex") >= 0) {\n\
+                indent = replace_in_string(indent, "\\\\S(.*?)$", "", "regex")\n\
+            }\n\
+            if (search_string(indent, "\\\\n", 0, "regex") >= 0) {\n\
+                indent = replace_in_string(indent, "\\\\n.*", "", "regex")\n\
+            }\n\
+            if (indent == "") {\n\
+                text = replace_in_string(text, ("^(.*?)$"), "# \\\\1", "regex")\n\
+            } else {\n\
+                text = replace_in_string(text, ("^(" indent ")?(.*?)$"), (indent "# \\\\2"), "regex")\n\
+            }\n\
+        }\n\
         if (text != "") {\n\
             replace_selection(text)\n\
             select(start, start+length(text))\n\

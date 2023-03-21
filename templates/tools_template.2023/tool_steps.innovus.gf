@@ -181,6 +181,20 @@ gf_create_step -name innovus_time_design_late_early_summary '
 # Power grid creation procedures
 gf_create_step -name innovus_procs_power_grid '
 
+    # Size bboxes
+    proc gf_size_bboxes {bboxes delta} {
+        set results {}
+        foreach bbox $bboxes {
+            lappend results [list \
+                [expr [lindex $bbox 0] + ([lindex $delta 0])] \
+                [expr [lindex $bbox 1] + ([lindex $delta 1])] \
+                [expr [lindex $bbox 2] + ([lindex $delta 2])] \
+                [expr [lindex $bbox 3] + ([lindex $delta 3])] \
+            ]
+        }
+        return $results
+    }
+
     # Horizontal stripe
     proc gf_rect_to_stripe_h {rect} {
         set y [expr 1.0*([lindex $rect 1]+[lindex $rect 3])*5/10]
@@ -368,14 +382,30 @@ gf_create_step -name innovus_procs_power_grid '
             [list $x1 $y1 [expr $x1-$size] [expr $y1-$size]] \
         ]
     }
-    
+
+    # Check standard cell legalization
+    proc gf_check_legalization {x y dy {area 100}} {
+        set insts {}
+        foreach base_cell [get_db insts .base_cell -if .area<$area -u] {
+            if {[set inst [lindex [get_db insts -if .base_cell==$base_cell&&.place_status!=fixed] 0]] != ""} {
+                lappend insts $inst
+            }
+        }
+        foreach inst $insts {
+            set_db $inst .location [list $x $y]
+            set y [expr $y+$dy]
+        }
+        place_detail -inst [get_db $insts .name]
+        check_place
+    }
+
 '
 
 # Objects manipulation procedures
 gf_create_step -name innovus_procs_objects '
 
     # Initialize unplaced ports interactive procedure
-    proc gf_init_ports {layers {edge_in 0} {edge_out 2} {spacing 2}} {
+    proc gf_init_ports_on_edge {layers {edge_in 0} {edge_out 2} {spacing 2}} {
         set assign_pins_edit_in_batch_value [get_db assign_pins_edit_in_batch]
         set_db assign_pins_edit_in_batch true
         

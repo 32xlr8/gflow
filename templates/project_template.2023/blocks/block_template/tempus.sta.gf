@@ -141,7 +141,7 @@ gf_add_tool_commands '
     close $FH
 
     # Write out LEF
-    if {[catch {set top_layer [get_db route_design_top_routing_layer]}]} {set top_layer [get_db design_top_routing_layer]}
+    if {[catch {set top_layer [get_db design_top_routing_layer]}]} {set top_layer [get_db route_design_top_routing_layer]}
     write_lef_abstract ./out/$TASK_NAME.lef -no_cut_obs -top_layer $top_layer -stripe_pins -pg_pin_layers $top_layer
 
     # Write full design in DEF format
@@ -171,7 +171,7 @@ gf_submit_task
 # Quantus extraction
 ########################################
 
-gf_create_task -name Extraction -mother Init
+gf_create_task -name Extraction
 gf_use_quantus_batch
 
 # Shell commands to initialize environment
@@ -358,7 +358,7 @@ gf_submit_task
 # Tempus data out step
 ########################################
 
-gf_create_task -name Data -mother Init
+gf_create_task -name Data
 gf_use_tempus
 
 # Want for extraction to complete

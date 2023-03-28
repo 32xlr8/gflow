@@ -42,11 +42,12 @@ gf_create_task -name TechPGV
 gf_use_voltus
 
 # Choose configuration file
-gf_choose_file_dir_task -variable VOLTUS_POWER_CONFIG_FILE -keep -prompt "Please select timing configuration file:" -files '
+gf_choose_file_dir_task -variable VOLTUS_POWER_CONFIG_FILE -keep -prompt "Please select power configuration file:" -files '
     ../data/*.timing.tcl
     ../data/*/*.timing.tcl
     ../work_*/*/out/ConfigSignoff*.power.tcl
 '
+gf_info "Power config file \e[32m$VOLTUS_POWER_CONFIG_FILE\e[0m selected"
 
 # TCL commands
 gf_add_tool_commands '
@@ -95,11 +96,12 @@ gf_create_task -name CellsPGV
 gf_use_voltus
 
 # Choose configuration file
-gf_choose_file_dir_task -variable VOLTUS_POWER_CONFIG_FILE -keep -prompt "Please select timing configuration file:" -files '
+gf_choose_file_dir_task -variable VOLTUS_POWER_CONFIG_FILE -keep -prompt "Please select power configuration file:" -files '
     ../data/*.timing.tcl
     ../data/*/*.timing.tcl
     ../work_*/*/out/ConfigSignoff*.power.tcl
 '
+gf_info "Power config file \e[32m$VOLTUS_POWER_CONFIG_FILE\e[0m selected"
 
 # TCL commands
 gf_add_tool_commands '
@@ -148,11 +150,12 @@ gf_create_task -name MacrosPGV
 gf_use_voltus
 
 # Choose configuration file
-gf_choose_file_dir_task -variable VOLTUS_POWER_CONFIG_FILE -keep -prompt "Please select timing configuration file:" -files '
+gf_choose_file_dir_task -variable VOLTUS_POWER_CONFIG_FILE -keep -prompt "Please select power configuration file:" -files '
     ../data/*.timing.tcl
     ../data/*/*.timing.tcl
     ../work_*/*/out/ConfigSignoff*.power.tcl
 '
+gf_info "Power config file \e[32m$VOLTUS_POWER_CONFIG_FILE\e[0m selected"
 
 # TCL commands
 gf_add_tool_commands '

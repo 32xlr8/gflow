@@ -92,15 +92,17 @@ GFR=$'\r'
 # Remove dummy path parts
 gf_simplify_path_perl='
     s:/{2,}:/:g;
-    s:^\./::g;
-    1 while (s:/\./:/:);
-    while (m:[^/]+/\.\.(/|$):) {
-        last if (m:^\.\./\.\.:);
-        s:[^/]+/\.\.(/|$)::;
+    if ($_ ne "/") {
+        s:^\./::g;
+        1 while (s:/\./:/:);
+        while (m:[^/]+/\.\.(/|$):) {
+            last if (m:^\.\./\.\.:);
+            s:[^/]+/\.\.(/|$)::;
+        }
+        s:/\.$::;
+        s:[/\s]+$::;
+        s:(/\.)+$::;
     }
-    s:/\.$::;
-    s:[/\s]+$::;
-    s:(/\.)+$::;
 '
 
 # Expand path relative to second argument
@@ -1764,6 +1766,9 @@ function gf_choose_file_dir_task_bash {
         fi
         gf_debug gf_internal_result
 
+        # Chosen variables
+        GF_CHOSEN_VARS+="$gf_variable=$gf_internal_result"$'\n'
+        
         # Task chosen
         if [ -e "$gf_internal_result/run" ]; then
 
@@ -1799,6 +1804,13 @@ function gf_choose_file_dir_task_bash {
 
         # Set internal variable
         eval "$gf_variable='$gf_internal_result'"
+    
+    # Wait/want for active task chosen earlier
+    elif [ -n "$gf_keep" ]; then
+        local last_value="$(echo "$GF_CHOSEN_VARS" | sed -ne "s|^$gf_variable=||p" | tail -1)"
+        if [ -n "$last_value" -a -n "$gf_wait_cmd" -a -e "$last_value/run" ]; then
+            $gf_wait_cmd -exact "$last_value"
+        fi
     fi
     GF_IS_SPACE=0
 }
@@ -5289,7 +5301,7 @@ function gf_add_shell_commands {
             * )
                 if [ -n "$gf_command_type" ]; then
                     gf_debug gf_key
-                    if [ -z "$(echo "$gf_key" | grep -e '\<PLACEHOLDER' | grep -v '^\s*\#')" ]; then
+                    if [ -z "$(echo "$gf_key" | grep -e '\<PLACEHOLDER' | grep -v '^\s*#')" ]; then
                         if [ "$gf_command_type" == "init" ]; then
                             # GF_TASK_INIT+="$(gf_auto_tab_commands "$gf_key")"$'\n'
                             GF_TASK_INIT+="$(gf_auto_tab_commands "$(gf_expand_content '' "$gf_key")")"$'\n'
@@ -5299,7 +5311,7 @@ function gf_add_shell_commands {
                         fi
                         gf_print_commands_info "$gf_key" "$GF_RUN_DIR/tasks/$TASK_NAME/run"
                     else
-                        gf_fatal "Shell commands contains placeholders:"$'\n'"${GFH7}$(echo "$gf_key" | grep -e '\<PLACEHOLDER' | grep -v '^\s*\#')${GFC0}."
+                        gf_fatal "Shell commands contains placeholders:"$'\n'"${GFH7}$(echo "$gf_key" | grep -e '\<PLACEHOLDER' | grep -v '^\s*#')${GFC0}."
                     fi
                 else
                     gf_fatal "One of ${GFH7}-init${GFC0} or ${GFH7}-post${GFC0} arguments is required."

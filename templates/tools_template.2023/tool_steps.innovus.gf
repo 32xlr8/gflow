@@ -115,6 +115,64 @@ gf_create_step -name innovus_report_timing_early '
     }
 '
 
+# Create late worst timing reports
+gf_create_step -name innovus_report_timing_late_worst '
+    set collection [report_timing -late -collection -max_paths 1000]
+    redirect ./reports/$TASK_NAME/timing.late.worst.rpt {
+        gf_report_timing_worst_slack $collection 1000
+        gf_report_timing_worst_path_delay $collection 1000
+        gf_report_timing_best_path_delay $collection 1000
+        gf_report_timing_worst_skew $collection 1000
+        gf_report_timing_worst_net_length $collection 1000
+        gf_report_timing_worst_delay $collection 1000
+        gf_report_timing_worst_delta_delay $collection 1000
+        gf_report_timing_worst_slew $collection 1000
+    }
+'
+
+# Create early worst timing reports
+gf_create_step -name innovus_report_timing_early_worst '
+    set collection [report_timing -early -collection -max_paths 1000]
+    redirect ./reports/$TASK_NAME/timing.early.worst.rpt {
+        gf_report_timing_worst_slack $collection 1000
+        gf_report_timing_worst_path_delay $collection 1000
+        gf_report_timing_best_path_delay $collection 1000
+        gf_report_timing_worst_skew $collection 1000
+        gf_report_timing_worst_net_length $collection 1000
+        gf_report_timing_worst_delay $collection 1000
+        gf_report_timing_worst_delta_delay $collection 1000
+        gf_report_timing_worst_slew $collection 1000
+    }
+'
+
+# Create late timing reports histogram
+gf_create_step -name innovus_report_timing_late_histograms '
+    set collection [report_timing -late -collection -max_paths 10000]
+    redirect ./reports/$TASK_NAME/timing.late.histograms.rpt {
+        gf_report_histogram_slack $collection
+        gf_report_histogram_delay $collection
+        gf_report_histogram_skew $collection
+        gf_report_histogram_worst_manhattan_length $collection
+        gf_report_histogram_worst_cell_delay $collection
+        gf_report_histogram_slew $collection
+        gf_report_histogram_datapath $collection
+    }
+'
+
+# Create early timing reports histogram
+gf_create_step -name innovus_report_timing_early_histograms '
+    set collection [report_timing -early -collection -max_paths 10000]
+    redirect ./reports/$TASK_NAME/timing.early.histograms.rpt {
+        gf_report_histogram_slack $collection
+        gf_report_histogram_delay $collection
+        gf_report_histogram_skew $collection
+        gf_report_histogram_worst_manhattan_length $collection
+        gf_report_histogram_worst_cell_delay $collection
+        gf_report_histogram_slew $collection
+        gf_report_histogram_datapath $collection
+    }
+'
+
 ################################################################################
 # Report steps
 ################################################################################
@@ -690,6 +748,381 @@ gf_create_step -name innovus_procs_objects '
     }
 '
 
+# Visual reports procedures
+gf_create_step -name innovus_procs_reports '
+
+    # Returns bar line for {symbol value} pairs 
+    proc gf_get_symbols {max_value spaces is_limit args} {
+        set result ""
+        foreach {symbol value} $args {
+            if {$is_limit && ($value > $max_value)} {
+                set count [expr $spaces-1]
+            } else {
+                set count [expr int(0.5+1.0*$value*$spaces/$max_value)]
+            }
+            for {set i 0} {$i<$count} {incr i} {
+                set result "$result$symbol"
+            }
+            if {$is_limit && ($value > $max_value)} {
+                set result "$result>"
+            }
+        }
+        return $result
+    }
+    
+    # Prints timing collection short report
+    proc gf_report_timing_collection {collection {is_colored 0}} {
+        set index 0
+        if {$is_colored} {
+            set skew_symbol "\033\[95;45m>\033\[0m"
+            set cell_delay_symbol "\033\[92;42m#\033\[0m"
+            set net_delay_symbol "\033\[93;43m*\033\[0m"
+            set clock_symbol "\033\[96;46m-\033\[0m"
+        } else {
+            set skew_symbol ">"
+            set cell_delay_symbol "#"
+            set net_delay_symbol "*"
+            set clock_symbol "-"
+        }
+        
+        # Proceed paths one by one
+        foreach_in_collection timing_path $collection {
+            incr index
+
+            set period [expr int(0.5+1000*[get_db $timing_path .period])]
+            if {$period > 0} {
+                set clock_period $period
+            } else {
+                set clock_period [expr int(0.5+1000*[get_db $timing_path .capturing_clock.period])]
+            }
+            set path_cell_delay [expr int(0.5+1000*[get_db $timing_path .path_cell_delay])]
+            set path_net_delay [expr int(0.5+1000*[get_db $timing_path .path_net_delay])]
+            set skew [expr int(0.5+1000*[get_db $timing_path .skew])]
+            set slack [expr int(0.5+1000*[get_db $timing_path .slack])]
+
+            # Path summary
+            puts "($index) Slack: $slack; Delay: $path_cell_delay+$path_net_delay; Period: $clock_period; Skew: $skew; Points: [llength [get_db $timing_path .timing_points]]"
+
+            # Delay histogram
+            puts [gf_get_symbols $clock_period 50 0 $skew_symbol [expr -($skew)] $cell_delay_symbol $path_cell_delay $net_delay_symbol $path_net_delay]
+            if {$period > 0} {
+                puts [gf_get_symbols $clock_period 50 0 $skew_symbol $skew $clock_symbol $clock_period]
+            }
+            
+            # Points
+            puts "  From: [get_db $timing_path .launching_point.name]"
+            puts "    To: [get_db $timing_path .capturing_point.name]"
+
+            # Delay
+            catch {
+                set worst_point ""
+                set worst_value 0.0
+                foreach timing_point [get_db $timing_path .timing_points] {
+                    set value [get_db $timing_point .delay]
+                    if {$worst_value < $value} {
+                        set worst_value $value
+                        set worst_point [get_db $timing_point .hierarchical_name]
+                    }
+                }
+                if {$worst_point != ""} {
+                    puts " Delay: [expr int(0.5+$worst_value*1000)] $worst_point"
+                }
+            }
+            
+            # Delta delay
+            catch {
+                set worst_point ""
+                set worst_value 0.0
+                foreach timing_point [get_db $timing_path .timing_points] {
+                    set value [get_db $timing_point .delta_delay]
+                    if {$worst_value < $value} {
+                        set worst_value $value
+                        set worst_point [get_db $timing_point .hierarchical_name]
+                    }
+                }
+                if {$worst_point != ""} {
+                    puts " Delta: [expr int(0.5+$worst_value*1000)] $worst_point"
+                }
+            }
+            
+            # Slew
+            catch {
+                set worst_point ""
+                set worst_value 0.0
+                foreach timing_point [get_db $timing_path .timing_points] {
+                    set value [get_db $timing_point .slew]
+                    if {$worst_value < $value} {
+                        set worst_value $value
+                        set worst_point [get_db $timing_point .hierarchical_name]
+                    }
+                }
+                if {$worst_point != ""} {
+                    puts "  Slew: [expr int(0.5+$worst_value*1000)] $worst_point"
+                }
+            }
+            
+            # Net length 
+            puts "   Net: [expr int(0.5+[get_db $timing_path .worst_manhattan_length])] [get_db $timing_path .worst_manhattan_length_net_name]"
+            
+            puts ""
+        }
+    }
+
+    # Worst timing slack
+    proc gf_report_timing_worst_slack {collection {count 20}} {
+        set values {}
+        foreach_in_collection timing_path $collection {
+            set value [get_db $timing_path .slack]
+            lappend values [list $value [get_db $timing_path .launching_point.name] [get_db $timing_path .capturing_point.name]]
+        }
+        foreach result [lsort -index 0 -real -increasing $values] {
+            incr index
+            if {$index > $count} {break}
+            puts "($index) Slack: [lindex $result 0]\n[lindex $result 1]\n[lindex $result 2]\n"
+        }
+    }
+
+    # Worst path delay
+    proc gf_report_timing_worst_path_delay {collection {count 20}} {
+        set values {}
+        foreach_in_collection timing_path $collection {
+            set value [get_db $timing_path .path_delay]
+            lappend values [list $value [get_db $timing_path .launching_point.name] [get_db $timing_path .capturing_point.name]]
+        }
+        foreach result [lsort -index 0 -real -decreasing $values] {
+            incr index
+            if {$index > $count} {break}
+            puts "($index) Delay: [lindex $result 0]\n[lindex $result 1]\n[lindex $result 2]\n"
+        }
+    }
+
+    # Worst path delay
+    proc gf_report_timing_best_path_delay {collection {count 20}} {
+        set values {}
+        foreach_in_collection timing_path $collection {
+            set value [get_db $timing_path .path_delay]
+            lappend values [list $value [get_db $timing_path .launching_point.name] [get_db $timing_path .capturing_point.name]]
+        }
+        foreach result [lsort -index 0 -real -increasing $values] {
+            incr index
+            if {$index > $count} {break}
+            puts "($index) Delay: [lindex $result 0]\n[lindex $result 1]\n[lindex $result 2]\n"
+        }
+    }
+
+    # Worst skew
+    proc gf_report_timing_worst_skew {collection {count 20}} {
+        set values {}
+        foreach_in_collection timing_path $collection {
+            set value [get_db $timing_path .skew]
+            set sort_value [expr abs($value)]
+            lappend values [list $sort_value $value [get_db $timing_path .launching_point.name] [get_db $timing_path .capturing_point.name]]
+        }
+        foreach result [lsort -index 0 -real -decreasing $values] {
+            incr index
+            if {$index > $count} {break}
+            puts "($index) Skew: [lindex $result 1]\n[lindex $result 2]\n[lindex $result 3]\n"
+        }
+    }
+
+    # Worst net length
+    proc gf_report_timing_worst_net_length {collection {count 20}} {
+        set values {}
+        foreach_in_collection timing_path $collection {
+            set value [get_db $timing_path .worst_manhattan_length]
+            lappend values [list $value [get_db $timing_path .worst_manhattan_length_net_name]]
+        }
+        foreach result [lsort -index 0 -real -decreasing $values] {
+            incr index
+            if {$index > $count} {break}
+            puts "($index) Net length: [lindex $result 0] @ [lindex $result 1]"
+        }
+    }
+
+    # Worst point delay
+    proc gf_report_timing_worst_delay {collection {count 20}} {
+        set values {}
+        foreach timing_point [get_db $collection .timing_points] {
+            set value [get_db $timing_point .delay]
+            lappend values [list $value [get_db $timing_point .hierarchical_name]]
+        }
+        set results {}
+        foreach result [lsort -index 0 -real -decreasing $values] {
+            set result "[lindex $result 0] @ [lindex $result 1]"
+            if {[lsearch -exact $results $result] < 0} {
+                incr index
+                if {$index > $count} {break}
+                puts "($index) Delay: $result"
+                lappend results $result
+            }
+        }
+    }
+
+    # Worst delta delay
+    proc gf_report_timing_worst_delta_delay {collection {count 20}} {
+        set values {}
+        foreach timing_point [get_db $collection .timing_points] {
+            set value [get_db $timing_point .delta_delay]
+            lappend values [list $value [get_db $timing_point .hierarchical_name]]
+        }
+        set results {}
+        foreach result [lsort -index 0 -real -decreasing $values] {
+            set result "[lindex $result 0] @ [lindex $result 1]"
+            if {[lsearch -exact $results $result] < 0} {
+                incr index
+                if {$index > $count} {break}
+                puts "($index) Delta delay: $result"
+                lappend results $result
+            }
+        }
+    }
+
+    # Worst slew
+    proc gf_report_timing_worst_slew {collection {count 20}} {
+        set values {}
+        foreach timing_point [get_db $collection .timing_points] {
+            set value [get_db $timing_point .slew]
+            lappend values [list $value [get_db $timing_point .hierarchical_name]]
+        }
+        set results {}
+        foreach result [lsort -index 0 -real -decreasing $values] {
+            set result "[lindex $result 0] @ [lindex $result 1]"
+            if {[lsearch -exact $results $result] < 0} {
+                incr index
+                if {$index > $count} {break}
+                puts "($index) Slew: $result"
+                lappend results $result
+            }
+        }
+    }
+
+    # Histogram reporting
+    proc gf_report_histogram {values {spaces 80} {bins 10}} {
+        set count 0
+        set min_value ""
+        set max_value ""
+        foreach value $values {
+            incr count
+            if {$min_value == ""} {set min_value $value} elseif {$min_value > $value} {set min_value $value}
+            if {$max_value == ""} {set max_value $value} elseif {$max_value < $value} {set max_value $value}
+        }
+
+        set bin_limit ""
+        set bin_limits {}
+        set title_length 0
+        if {[llength $bins] > 1} {
+            foreach right_limit [lsort -real -increasing $bins] {
+                if {$bin_limit == ""} {
+                    set bin_limit $right_limit
+                } else {
+                    if {$right_limit > $max_value} {break}
+                    set title "$bin_limit:$right_limit"
+                    if {$title_length < [string length $title]} {set title_length [string length $title]}
+                    set bin_limit $right_limit
+                    lappend bin_limits [list $bin_limit $title]
+                }
+            }
+            set bins [llength $bin_limits]
+        } else {
+            set bin_limit $min_value
+            set bin_step [expr 1.0/$bins*($max_value-$min_value)]
+            for {set i 0} {$i<$bins} {incr i} {
+                set right_limit [expr $bin_limit+$bin_step]
+                set title "$bin_limit:$right_limit"
+                if {$title_length < [string length $title]} {set title_length [string length $title]}
+                set bin_limit $right_limit
+                lappend bin_limits [list $bin_limit $title]
+            }
+        }
+        
+        set categories {}
+        foreach value $values {
+            set index 0
+            while {$index < $bins} {
+                if {$value < [lindex $bin_limits $index 0]} {
+                    break
+                }
+                incr index
+            }
+            lappend categories [list $index $value]
+        }
+
+        for {set i 0} {$i<$bins} {incr i} {
+            set value 0
+            foreach category $categories {
+                if {[lindex $category 0]==$i} {incr value}
+            }
+            if {$value > 0} {
+                puts " [format "%${title_length}s" [lindex $bin_limits $i 1]] [gf_get_symbols $count $spaces 0 {#} $value {.} [expr $count-$value]] $value"
+            }
+        }
+    }
+
+    # Slack histogram
+    proc gf_report_histogram_slack {collection {spaces 80} {bins 10}} {
+        set values [get_db $collection .slack]
+
+        puts "# Slack histogram ([llength $values] values)"
+        gf_report_histogram $values $spaces $bins; puts ""
+    }
+
+    # Path delay histogram
+    proc gf_report_histogram_delay {collection {spaces 80} {bins 10}} {
+        set values [get_db $collection .path_delay]
+
+        puts "# Path delay histogram ([llength $values] values)"
+        gf_report_histogram $values $spaces $bins; puts ""
+    }
+
+    # Clock skew histogram
+    proc gf_report_histogram_skew {collection {spaces 80} {bins 10}} {
+        set values [get_db $collection .skew]
+        
+        puts "# Clock skew histogram ([llength $values] values)"
+        gf_report_histogram $values $spaces $bins; puts ""
+    }
+
+    # Worst manhattan net length histogram
+    proc gf_report_histogram_worst_manhattan_length {collection {spaces 80} {bins {0 10 20 30 50 80 130 210 340 550 890 1440 2330}}} {
+        set values [get_db $collection .worst_manhattan_length]
+
+        puts "# Worst manhattan net length histogram ([llength $values] values)"
+        gf_report_histogram $values $spaces $bins; puts ""
+    }
+
+    # Worst cell delay histogram
+    proc gf_report_histogram_worst_cell_delay {collection {spaces 80} {bins 10}} {
+        set values [get_db $collection .worst_cell_delay]
+        
+        puts "# Worst cell delay histogram ([llength $values] values)"
+        gf_report_histogram $values $spaces $bins; puts ""
+    }
+
+    # Data path transition histogram
+    proc gf_report_histogram_slew {collection {spaces 80} {bins 10}} {
+        set values {}
+        foreach_in_collection timing_path $collection {
+            lappend values [get_db $timing_path .timing_points.slew]
+        }
+        set values [eval "concat $values"]
+        
+        puts "# Data path transition histogram ([llength $values] values)"
+        gf_report_histogram $values $spaces $bins; puts ""
+    }
+
+    # Data path histogram
+    proc gf_report_histogram_datapath {collection {spaces 80} {bins 10}} {
+        set values {}
+        foreach_in_collection timing_path $collection {
+            lappend values [llength [get_db $timing_path .timing_points]]
+        }
+
+        puts "# Data path histogram ([llength $values] values)"
+        gf_report_histogram $values $spaces $bins; puts ""
+    }
+
+'
+
 # ECO automation procedures
 gf_create_step -name innovus_procs_eco_common '
 
@@ -1139,7 +1572,7 @@ gf_create_step -name innovus_procs_db '
     # Write floorplan with unique name each 10 minutes
     set gf_fp_date 0
     set gf_fp_index 1
-    proc gf_write_floorplan {{tag {}}} {
+    proc gf_write_floorplan_local {{tag {}}} {
         upvar gf_fp_date gf_fp_date
         upvar gf_fp_index gf_fp_index
         set base "./out/$::TASK_NAME"
@@ -1153,6 +1586,7 @@ gf_create_step -name innovus_procs_db '
         puts "\033\[42m \033\[0m Writing floorplan $base.$tag.fp ..."
         write_floorplan $base.$tag.fp
         write_def -floorplan -io_row -routing $base.$tag.fp.def.gz
+        set ::FLOORPLAN_FILE_LAST $base.$tag.fp
     }
 
     # Print last comnands
@@ -1576,7 +2010,7 @@ gf_create_step -name innovus_procs_add_buffers '
     namespace eval gf {
 
         # Add IO buffers and attach it to the ports
-        proc attach_io_buffers {input_cell output_ceoll} {
+        proc attach_io_buffers {input_cell output_cell} {
             set not_io_buffers [get_db insts *_GF_io_buffer]
             add_io_buffers \
                 -suffix _GF_io_buffer \

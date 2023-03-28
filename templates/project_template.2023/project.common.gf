@@ -79,7 +79,7 @@ gf_create_step -name init_shell_environment '
     export CDS_AUTO_64BIT=ALL
     export CDS_STYLUS_SOURCE_VERBOSE=0
 
-    # # Option 1: Fastest temporary directory in RAM (use if total memory is more than 512Gb)
+    # # Option 1: Fastest temporary directory in RAM (use if $XDG_RUNTIME_DIR size is at least 50Gb)
     # if [ -d "$XDG_RUNTIME_DIR" ]; then
     #     export TMPDIR="$XDG_RUNTIME_DIR/tmp"
     #     mkdir -p "$TMPDIR"

@@ -79,7 +79,11 @@ fi
 [[ "$USE_DUMMY_GDS" != "Y" ]] && QUANTUS_DUMMY_GDS=""
 
 # Shell commands to initialize environment
-gf_add_shell_commands -init "tclsh ./scripts/$TASK_NAME.config.tcl"
+gf_add_shell_commands -init "
+    rm -f ./out/$TASK_NAME.design.tcl
+    rm -f *.spef.gz
+    tclsh ./scripts/$TASK_NAME.config.tcl
+"
 
 # Quantus CCL commands
 gf_add_tool_commands '
@@ -170,15 +174,49 @@ gf_add_tool_commands -comment '#' -file "./scripts/$TASK_NAME.config.tcl" '
         puts $FH "output_db \\\n    -type spef \\\n    -hierarchy_delimiter \"/\" \\\n    -output_incomplete_nets true \\\n    -output_unrouted_nets true \\\n    -subtype \"starN\" \\\n    -user_defined_file_name \\\n        [join $spef_files " \\\n        "]\n"
 
     close $FH
+    
+    # Create output configuration TCL
+    set FH [open "./outputs.tcl" w]
+
+        puts $FH "# Configuration"
+        puts $FH ""
+        puts $FH "set SPEF_DIR \"\[file dirname \[info script\]\]\""
+        puts $FH "set SPEF_TASK_NAME {`$TASK_NAME`}"
+        puts $FH ""
+        puts $FH "# Design"
+        puts $FH ""
+        puts $FH "set SPEF_CORNERS {"
+        foreach {extraction_corner qrc_corner temperature} $EXTRACTION_CORNERS {
+            puts $FH "    $extraction_corner"
+        }
+        puts $FH "}"
+        puts $FH "set SPEF_TEMPERATURES {"
+        foreach temperature $qrc_temperatures {
+            puts $FH "    $temperature"
+        }
+        puts $FH "}"
+        puts $FH "set SPEF_FILES {"
+        foreach spef_file $spef_files {
+            puts $FH "    {`$TASK_NAME`.$spef_file.gz}"
+        }
+        puts $FH "}"
+
+    close $FH
 '
 
 # Move SPEF files to output directory
 gf_add_shell_commands -post "bash -e ./scripts/$TASK_NAME.move.sh"
 gf_add_tool_commands -file "./scripts/$TASK_NAME.move.sh" '
+    TASK_NAME=`$TASK_NAME`
+    
+    # Move spef files to the output directory
     for file in *.spef.gz; do
-        mv $file ./out/`$TASK_NAME`.$file
-        ln -nsf ./out/`$TASK_NAME`.$file $file
+        mv $file ./out/$TASK_NAME.$file
+        ln -nsf ./out/$TASK_NAME.$file $file
     done
+
+    # Move outputs configuration file
+    mv ./outputs.tcl ./out/$TASK_NAME.design.tcl
 '
 
 # Run task

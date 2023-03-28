@@ -72,6 +72,709 @@ gf_set_task_options -disable DataOutTiming
 # LDB_MODE=Y
 
 ################################################################################
+# Floorplanning flow steps - ./innovus.fp.gf, ./innovus.eco.gf
+################################################################################
+
+# Floorplan automation procedures
+gf_create_step -name innovus_procs_interactive_design '
+
+    # # Initialize tracks pattern
+    # proc gf_init_tracks {} {
+    #     add_tracks -width_pitch_pattern [join {
+    #         m0 offset 0.0 
+    #         width 0.000 pitch 0.000 
+    #         {width 0.000 pitch 0.000 repeat 0}
+    #         width 0.000 pitch 0.000
+    #         width 0.000 pitch 0.000
+    #         {width 0.000 pitch 0.000 repeat 0}
+    #         width 0.000 pitch 0.000
+    #     }] -mask_pattern [join {
+    #         m0 2 1 2 1 2 1 2 1 2 1
+    #         m1 1 2 
+    #         m2 2 1 
+    #         m3 1 2
+    #     }] -offset [join {
+    #         m1 vert 0.000 
+    #         m2 horiz 0.000
+    #     }]
+    # }
+    
+    # Add physical cells after floorplan modifications
+    proc gf_init_rows {} {
+        #set_layer_preference power -is_visible 0
+        
+        # Initialize core rows
+        delete_row -all
+        # create_row -site core -area [get_db current_design .core_bbox]
+        # create_row -site bcoreExt -area [get_db current_design .core_bbox]
+        init_core_rows
+        split_row
+        
+    }
+
+    # # Fill narrow channels with placement blockages
+    # proc gf_init_place_blockages {} {
+    #     delete_obj [get_db place_blockages finishfp_*]
+    #
+    #     finish_floorplan -fill_place_blockage hard 5
+    #     finish_floorplan -fill_place_blockage soft 30
+    #     
+    #     # # Delete blockages at the edges
+    #     # deselect_obj -all
+    #     # select_obj [get_db place_blockages finish* -if .rects.ll.x>=[expr [get_db current_design .core_bbox.ur.x]-30.0]]
+    #     # select_obj [get_db place_blockages finish* -if .rects.ur.x<=[expr [get_db current_design .core_bbox.ll.x]+30.0]]
+    #     # delete_selected_from_floorplan
+    # }   
+    
+    # Flip left corner endcaps
+    proc gf_flip_left_endcaps {cell_pattern} {
+        set results {}
+        get_db insts -if .base_cell.name==$cell_pattern -foreach {
+            if {[get_db [get_obj_in_area -obj_type row -areas [list \
+                [expr [get_db $object .bbox.ll.x] - [get_db $object .base_cell.site.size.x] / 2] \
+                [expr [get_db $object .bbox.ll.y] + [get_db $object .base_cell.site.size.y] / 2] \
+                [expr [get_db $object .bbox.ll.x] - [get_db $object .base_cell.site.size.x] / 2] \
+                [expr [get_db $object .bbox.ll.y] + [get_db $object .base_cell.site.size.y] / 2] \
+            ]] -if ".site==[get_db $object .base_cell.site]"] == {}} {
+                lappend results $object
+            }
+        }
+        get_db $results .name -u -foreach {flip_or_rotate_obj -flip my -objs $object}
+        return $results
+    }
+
+    # Delete physical cells before floorplan modifications
+    proc gf_reset_boundary_cells {} {
+        delete_filler -prefix FILLER
+        delete_filler -prefix ENDCAP
+        delete_filler -prefix WELLTAP
+    }
+
+    # Add physical cells after floorplan modifications
+    proc gf_init_boundary_cells {} {
+
+        # Delete physical cells
+        gf_reset_boundary_cells
+        
+        # Place boundary cells
+        add_endcaps -prefix ENDCAP
+        # gf_flip_left_endcaps <PLACEHOLDER>BOUNDARY_?CORNER*
+
+        # Place well-tap cells
+        add_well_taps -prefix WELLTAP -checker_board -cell_interval <PLACEHOLDER>50
+
+        # Run checks
+        check_endcaps
+        check_well_taps
+    }
+
+    # Init boundary nets
+    proc gf_init_boundary_wires {} {
+        delete_routes -net _BOUNDARY_*
+        
+        set_db finish_floorplan_active_objs die
+        # add_dummy_boundary_wires -layer {<PLACEHOLDER>M1 M2 M3 M4} -space {<PLACEHOLDER>0.000 0.000 0.000 0.000} 
+        finish_floorplan -add_boundary_blockage
+
+        set_layer_preference eol -is_visible 1
+        set_db finish_floorplan_active_objs row
+        finish_floorplan -add_boundary_end_of_line_blockage
+
+        check_floorplan
+    }
+
+    # Design-specific ports initialization
+    proc gf_init_ports {} {
+    
+        # Unplace all ports
+        set_partition_pin_status -status unplaced -quiet \
+            -partition [get_db current_design .name] \
+            -pins [get_db ports .name]
+    
+        # Batch mode on
+        set_db assign_pins_edit_in_batch true
+    
+        # # Group ports by name
+        # foreach ports [list \
+        #     [get_db ports -if .name==<PLACEHOLDER>] \
+        # ] {
+        #     edit_pin -snap track \
+        #         -edge 0 \
+        #         -spread_direction clockwise \
+        #         -spread_type center \
+        #         -layer_vertical <PLACEHOLDER>M4 \
+        #         -offset_start 0.0 \
+        #         -spacing 8 -unit track \
+        #         -fixed_pin 1 -fix_overlap 1 \
+        #         -pin [get_db [get_db $ports -if .place_status==unplaced] .name]
+        # }
+    
+        # # Projection of instance pins to vertical edge
+        # foreach pin [list \
+        #     [get_db pins <PLACEHOLDER>instance_pin] \
+        # ] {
+        #     set ports [get_db -u [concat [get_db $pin .net.drivers] [get_db $pin .net.loads]] -if .obj_type==port]
+        #     edit_pin -snap track \
+        #         -edge <PLACEHOLDER>0 \
+        #         -layer_vertical <PLACEHOLDER>M4 \
+        #         -fixed_pin 1 -fix_overlap 1 \
+        #         -assign [list [get_db current_design <PLACEHOLDER>.bbox.ll.x] [get_db $pin .location]\
+        #         -pin [get_db [get_db $ports -if .place_status==unplaced] .name]
+        # }
+    
+        # # All the rest inputs
+        # edit_pin -snap track \
+        #     -edge <PLACEHOLDER>0 \
+        #     -spread_direction clockwise \
+        #     -spread_type center \
+        #     -layer_vertical <PLACEHOLDER>M4 \
+        #     -offset_start 0.0 \
+        #     -spacing 8 -unit track \
+        #     -fixed_pin 1 -fix_overlap 1 \
+        #     -pin [get_db [get_db ports -if .place_status==unplaced&&.direction==in] .name]
+    
+        # # All the rest outputs
+        # edit_pin -snap track \
+        #     -edge <PLACEHOLDER>2 \
+        #     -spread_direction clockwise \
+        #     -spread_type center \
+        #     -layer_vertical <PLACEHOLDER>M4 \
+        #     -offset_start 0.0 \
+        #     -spacing 8 -unit track \
+        #     -fixed_pin 1 -fix_overlap 1 \
+        #     -pin [get_db [get_db ports -if .place_status==unplaced&&.direction==out] .name]
+
+        # Batch mode off
+        set_db assign_pins_edit_in_batch false
+    }
+
+    # Initialize power grid in all layers
+    proc gf_init_power_grid {} {
+        # set nets {<PLACEHOLDER>VDD VSS}
+        # set macro_area_threshold <PLACEHOLDER>100
+        
+        # (!) Notes: 
+        # This proc contains a mix of commands for different metal stacks
+        # Please remove unnecessary code manually
+        
+        # # Macros detection
+        # set macros [get_db insts -if .area>$macro_area_threshold]
+        
+        # # Remove existing follow pins and stripes
+        # catch {delete_route_blockage -name add_stripe_blockage}
+        # delete_routes -net $nets -status routed
+        # delete_routes -net $nets -status routed -shapes {ring stripe corewire followpin ring padring} -layer {M0 ... AP VIA0 ... RV}
+        # delete_pg_pins -net $nets
+
+        # # Reset options
+        # if {1} {
+        #     reset_db route_special_*
+        #     reset_db add_stripes_*
+        #     reset_db generate_special_via_*
+        #     set_db add_stripes_spacing_type center_to_center
+        #     set_db add_stripes_remove_floating_stapling true
+        #     # set_db add_stripes_stop_at_last_wire_for_area 1
+        #     set_db add_stripes_opt_stripe_for_routing_track shift
+        #     set_db add_stripes_skip_via_on_wire_shape {iowire}
+        #     set_db generate_special_via_preferred_vias_only keep
+        #     set_db generate_special_via_allow_wire_shape_change false
+        #     set_db generate_special_via_opt_cross_via true
+        #     set_db add_stripes_stacked_via_bottom_layer 1
+        #     set_db add_stripes_stacked_via_top_layer 1
+        # }
+        
+        # # Special PG vias
+        # if {1} { 
+        #     catch {
+        #         create_via_definition -name PGVIA4 -bottom_layer M4 -cut_layer VIA4 -top_layer M5 \
+        #             -bottom_rects {{-0.000 -0.000} {0.000 0.000}} -top_rects {{-0.000 -0.000} {0.000 0.000}} \
+        #             -cut_rects {{-0.000 -0.000} {-0.000 0.000} {-0.000 -0.000} {0.000 0.000} {0.000 -0.000} {0.000 0.000}}
+        #     }
+        # }
+
+        # # Core rings
+        # if {1} {
+        #     reset_db add_rings_*
+        #     set_db add_rings_stacked_via_top_layer M3
+        #     set_db add_rings_skip_via_on_wire_shape {stripe blockring}
+        #     set_db add_rings_break_core_ring_io_list [get_db $macros .name]
+        #     add_rings -nets [concat $nets $nets $nets $nets] \
+        #         -type core_rings -follow core \
+        #         -layer {top M2 bottom M2 left M3 right M3} \
+        #         -width {top 0.000 bottom 0.000 left 0.000 right 0.000} \
+        #         -spacing {top 0.000 bottom 0.000 left 0.000 right 0.000} \
+        #         -offset {top 0.000 bottom 0.000 left 0.000 right 1.0} \
+        #         -threshold 0 -jog_distance 0 -use_wire_group 1 -snap_wire_center_to_grid none
+        # }
+        
+        # # Route to power/ground pads
+        # if {1} {
+        #     route_special \
+        #         -connect {pad_pin} \
+        #         -block_pin_target {nearest_target} \
+        #         -pad_pin_layer_range {M1 M2} \
+        #         -pad_pin_target {block_ring ring} \
+        #         -pad_pin_port_connect {all_port all_geom} \
+        #         -crossover_via_layer_range {M1 AP} \
+        #         -target_via_layer_range {M1 AP} \
+        #         -allow_layer_change 1 -layer_change_range {M1 M4} \
+        #         -allow_jogging 0 \
+        #         -nets $nets 
+        # }
+        
+        # # M1 follow pins
+        # if {1} {
+        #     set_db route_special_connect_broken_core_pin true
+        #     # set_db route_special_core_pin_stop_route CellPinEnd
+        #     # set_db route_special_core_pin_ignore_obs overlap_obs
+        #     set_db route_special_via_connect_to_shape noshape
+        #     route_special \
+        #         -connect core_pin \
+        #         -core_pin_layer M1 \
+        #         -core_pin_width 0.000 \
+        #         -allow_jogging 0 \
+        #         -allow_layer_change 0 \
+        #         -core_pin_target none \
+        #         -nets $nets
+        #
+        #     # # Force follow pins masks
+        #     # set_db [get_db [get_db nets $nets] .special_wires -if .shape==followpin] .mask 1
+        # }
+        
+        # # Create blockages over macros
+        # create_route_blockage -name add_stripe_blockage -layer {M1 ... M2} -rects [gf_size_bboxes [get_db $macros .bbox] {-0.000 -0.000 0.000 0.000}]
+
+        # # M2 follow pins duplication
+        # if {1} {
+        #     set_db add_stripes_stacked_via_bottom_layer M1
+        #     set_db add_stripes_stacked_via_top_layer M1
+        #     set_db edit_wire_shield_look_down_layers 0
+        #     set_db edit_wire_shield_look_up_layers 0
+        #     set_db edit_wire_layer_min M1
+        #     set_db edit_wire_layer_max M1
+        #     deselect_obj -all; select_routes -shapes followpin -layer M1
+        #     edit_duplicate_routes -layer_horizontal M2
+        #     # edit_update_route_width -width_horizontal 0.000
+        #     # edit_resize_routes -keep_center_line 1 -direction y -side high -to 0.000
+        #     reset_db edit_wire_shield_look_down_layers
+        #     reset_db edit_wire_shield_look_up_layers
+        #     reset_db edit_wire_layer_min
+        #     reset_db edit_wire_layer_max
+        #
+        #     # Follow pin vias
+        #     set_db add_stripes_skip_via_on_pin {pad block cover standardcell}
+        #     set_db add_stripes_skip_via_on_wire_shape {ring blockring corewire blockwire iowire padring fillwire noshape}
+        #     # set_db generate_special_via_rule_preference {VIA12*}
+        #     update_power_vias -selected_wires 1 -add_vias 1 -bottom_layer M1 -top_layer M2 -orthogonal_only 0
+        #     update_power_vias -selected_wires 1 -add_vias 1 -bottom_layer M1 -top_layer M2 -orthogonal_only 0 -split_long_via {0.000 0.000 0.000 0.000}
+        #     deselect_obj -all
+        #     reset_db add_stripes_skip_via_on_pin
+        #     reset_db add_stripes_skip_via_on_wire_shape
+        #     delete_markers -all
+        # }
+
+        # # M2 stripes (staggered)
+        # set_db add_stripes_stacked_via_bottom_layer M1
+        # set_db add_stripes_stacked_via_top_layer M2
+        # set_db add_stripes_skip_via_on_pin {pad block cover}
+        # set_db generate_special_via_rule_preference {VIA01_*}
+        # set_db add_stripes_route_over_rows_only true
+        # add_stripes \
+        #     -layer M2 \
+        #     -direction vertical \
+        #     -width 0.000 \
+        #     -set_to_set_distance [expr 2*0.000*NTRACKS] \
+        #     -start_offset [expr 0.000+0*0.000*NTRACKS] \
+        #     -snap_wire_center_to_grid none \
+        #     -nets [lindex $nets 0]
+        # add_stripes \
+        #     -layer M2 \
+        #     -direction vertical \
+        #     -width 0.000 \
+        #     -set_to_set_distance [expr 2*0.000*NTRACKS] \
+        #     -start_offset [expr 0.000+1*0.000*NTRACKS] \
+        #     -snap_wire_center_to_grid none \
+        #     -nets [lindex $nets 1]
+        
+        # # M2 stripes (regular)
+        # set_db add_stripes_stacked_via_bottom_layer M1
+        # set_db add_stripes_stacked_via_top_layer M2
+        # set_db generate_special_via_rule_preference {VIA12_*}
+        # set_db add_stripes_skip_via_on_pin {pad cover}
+        # set_db add_stripes_route_over_rows_only true
+        # add_stripes \
+        #     -layer M2 \
+        #     -direction horizontal \
+        #     -width 0.000 \
+        #     -spacing [expr 1*0.000] \
+        #     -set_to_set_distance [expr 2*0.000] \
+        #     -start_offset -0.000 \
+        #     -snap_wire_center_to_grid grid \
+        #     -nets $nets
+        
+        # # M3 stripes (regular)
+        # set_db add_stripes_stacked_via_bottom_layer M2
+        # set_db add_stripes_stacked_via_top_layer M3
+        # set_db generate_special_via_rule_preference {VIA23_*}
+        # set_db add_stripes_skip_via_on_pin {pad cover}
+        # set_db add_stripes_route_over_rows_only true
+        # add_stripes \
+        #     -layer M3 \
+        #     -direction horizontal \
+        #     -width 0.000 \
+        #     -spacing [expr 1*0.000] \
+        #     -set_to_set_distance [expr 2*0.000] \
+        #     -start_offset -0.000 \
+        #     -snap_wire_center_to_grid grid \
+        #     -nets $nets
+        #
+        # # M2 stripes (stapling)
+        # set_db add_stripes_stacked_via_bottom_layer M1
+        # set_db add_stripes_stacked_via_top_layer M3
+        # set_db generate_special_via_rule_preference {VIA12_* VIA23_*}
+        # set_db add_stripes_skip_via_on_pin {pad cover}
+        # set_db add_stripes_route_over_rows_only true
+        # foreach net $nets {
+        #     add_stripes \
+        #         -layer M2 \
+        #         -direction vertical \
+        #         -width 0.000 \
+        #         -stapling {0.000 M3} \
+        #         -set_to_set_distance [expr 2*0.000] \
+        #         -start_offset -0.000 \
+        #         -snap_wire_center_to_grid grid \
+        #         -nets $nets
+        # }
+
+        # # M6 stripes over macros (orthogonal pins)
+        # if {1} {
+        #     set_db add_stripes_stacked_via_bottom_layer M4
+        #     set_db add_stripes_stacked_via_top_layer M6
+        #     set_db generate_special_via_rule_preference {VIA45_* VIA56_*}
+        #     set_db add_stripes_skip_via_on_pin {pad cover}
+        #     set_db add_stripes_route_over_rows_only false
+        #     set_db add_stripes_orthogonal_only false
+        #     add_stripes \
+        #         -layer M6 \
+        #         -direction vertical \
+        #         -width 0.000 \
+        #         -spacing [expr 1*0.000*10] \
+        #         -set_to_set_distance [expr 2*0.000*10] \
+        #         -start_offset [expr 0.000+0*0.000*10] \
+        #         -snap_wire_center_to_grid grid \
+        #         -area [get_db $macros .bbox] \
+        #         -nets $nets
+        #     reset_db add_stripes_orthogonal_only
+        #     # create_route_blockage -name add_stripe_blockage -layer {M5 M6} -rects [gf_size_bboxes [get_db $macros .bbox] {-0.000 -0.000 0.000 0.000}]
+        # }
+        
+        # # M6 stripes
+        # set_db add_stripes_stacked_via_bottom_layer M5
+        # set_db add_stripes_stacked_via_top_layer M6
+        # set_db generate_special_via_rule_preference {VIA56_*}
+        # set_db add_stripes_skip_via_on_pin {pad block cover}
+        # set_db add_stripes_route_over_rows_only false
+        # add_stripes \
+        #     -layer M6 \
+        #     -direction vertical \
+        #     -width 0.000 \
+        #     -spacing [expr 1*0.000*30] \
+        #     -set_to_set_distance [expr 2*0.000*30] \
+        #     -start_offset [expr 0.000+0*0.000*30] \
+        #     -snap_wire_center_to_grid none \
+        #     -nets $nets
+
+        # # Delete blockages over macros
+        # catch {delete_route_blockage -name add_stripe_blockage}
+        
+        # # # Update PG vias over macros
+        # # deselect_obj -all; select_obj $macros
+        # # reset_db generate_special_via_rule_preference
+        # # update_power_vias -bottom_layer M4 -top_layer M5 -delete_vias 1 -selected_blocks 1
+        # # update_power_vias -bottom_layer M4 -top_layer M5 -add_vias 1 -selected_blocks 1
+        # # deselect_obj -all
+
+        # # # M5 stripes over endcaps
+        # # if {1} {
+        # #     gf_init_power_stripes_over_endcaps $nets <PLACEHOLDER>BOUNDARY_LEFT BOUNDARY_RIGHT M5 M2 0.300 0.200 vertical
+        # #     get_db markers -if {.user_type==Endcap*} -foreach {
+        # #         create_route_blockage -layers M5 -name block_route_over_endcaps -rects [get_db $object .bbox]
+        # #     }
+        # #     delete_markers -all
+        # # }
+        
+        # # # M5/M6 stripes and routing blockages over memories
+        # # set_db add_stripes_stacked_via_bottom_layer M4
+        # # set_db add_stripes_stacked_via_top_layer M5
+        # # set_db generate_special_via_rule_preference {VIA45_*}
+        # # set_db add_stripes_skip_via_on_pin {pad cover}
+        # # set_db add_stripes_route_over_rows_only true
+        # # foreach macro [get_db insts -if .base_cell.class==block&&.pg_pins.pg_base_pin.physical_pins.layer_shapes.layer.name==*<PLACEHOLDER>MACRO_TOP_LAYER:M4*&&.base_cell.site.class!=pad] {
+        # #     add_stripes \
+        # #         -layer M5 \
+        # #         -width 0.000 \
+        # #         -spacing 0.000 \
+        # #         -set_to_set_distance [expr 2*0.000] \
+        # #         -direction horizontal \
+        # #         -snap_wire_center_to_grid grid \
+        # #         -area [get_db $macro .bbox] \
+        # #         -nets $nets
+        # #     create_route_blockage -layers {M5} -name block_route_over_mems -rects [ gf_size_bboxes [get_db $marco .bbox] {-0.000 -0.000 0.000 0.000}]
+        # # }
+       
+        # # Remove floating followpins and stripes
+        # edit_trim_routes -layers {M0 M1 M2 M3 M4 M5} -nets $nets -type float
+        
+        # # Trim followpins and stripes
+        # edit_trim_routes -layers {M1 M3} -nets $nets
+
+        # # Update ring vias
+        # foreach layer {6 7 8} {
+        #     deselect_obj -all; select_routes -shape ring -layer M$layer
+        #     update_power_vias -nets $nets -top_layer M$layer -bottom_layer M[expr $layer-1] -selected_wires 1 -add_vias 1
+        # }
+        # deselect_obj -all
+        
+        # # Update RV
+        # foreach bump [get_db bumps] {
+        #     create_route_blockage -layers RV -name block_rv_under_bumps -rects [list [list \
+        #         [expr [get_db $bump .center.x]-60] [expr [get_db $bump .center.y]-60] \
+        #         [expr [get_db $bump .center.x]+60] [expr [get_db $bump .center.y]+60] \
+        #     ]]
+        # }
+        # deselect_obj -all
+        # select_routes -layer {AP M11} -shapes stripe -nets $nets
+        # update_power_vias -nets $nets -top_layer AP -bottom_layer M11 -between_selected_wires 1 -delete_vias 1
+        # update_power_vias -nets $nets -top_layer AP -bottom_layer M11 -between_selected_wires 1 -add_vias 1
+        # delete_route_blockages -name block_rv_under_bumps
+        # deselect_obj -all
+
+        # # Create PG ports (automatically)
+        # deselect_obj -all
+        # select_routes -layer M9 -nets $nets -shapes stripe
+        # create_pg_pin -on_die -selected
+        # deselect_obj -all
+
+        # # Create PG ports in top layer
+        # foreach stripe [get_obj_in_area -areas [get_db current_design .bbox] -layers M5 -obj_type special_wire] {
+        #     set net_name [get_db $stripe .net.name]
+        #     if {[lsearch -exact $nets $net_name] >= 0} {
+        #         create_pg_pin -name $net_name -net $net_name -geometry [get_db $stripe .layer.name] [get_db $stripe .rect.ll.x] [get_db $stripe .rect.ll.y] [get_db $stripe .rect.ur.x] [get_db $stripe .rect.ur.y]
+        #     }
+        # }
+
+        # # Colorize DPT layers
+        # add_power_mesh_colors
+    }
+
+    # Initialize IO rows
+    proc gf_init_io_rows {} {
+        # delete_row -site pad
+        # delete_row -site corner
+        
+        # IO rows
+        # create_io_row -side N -begin_offset <PLACEHOLDER>20 -end_offset <PLACEHOLDER>20 -row_margin <PLACEHOLDER>20 -site <PLACEHOLDER>pad
+        # create_io_row -side S -begin_offset <PLACEHOLDER>20 -end_offset <PLACEHOLDER>20 -row_margin <PLACEHOLDER>20 -site <PLACEHOLDER>pad
+        # create_io_row -side E -begin_offset <PLACEHOLDER>20 -end_offset <PLACEHOLDER>20 -row_margin <PLACEHOLDER>20 -site <PLACEHOLDER>pad
+        # create_io_row -side W -begin_offset <PLACEHOLDER>20 -end_offset <PLACEHOLDER>20 -row_margin <PLACEHOLDER>20 -site <PLACEHOLDER>pad
+        
+        # Corner rows
+        # create_io_row -corner BL -x_offset <PLACEHOLDER>20 -y_offset <PLACEHOLDER>20 -site <PLACEHOLDER>corner
+        # create_io_row -corner BR -x_offset <PLACEHOLDER>20 -y_offset <PLACEHOLDER>20 -site <PLACEHOLDER>corner
+        # create_io_row -corner TL -x_offset <PLACEHOLDER>20 -y_offset <PLACEHOLDER>20 -site <PLACEHOLDER>corner
+        # create_io_row -corner TR -x_offset <PLACEHOLDER>20 -y_offset <PLACEHOLDER>20 -site <PLACEHOLDER>corner
+    }
+
+    # Insert IO fillers
+    proc gf_init_io_fillers {} {
+        catch {delete_io_fillers -cell [get_db [get_db [get_db base_cells -if .site.class==pad *FILL*] -invert {*A *A_G}] .name]}
+        add_io_fillers -cells [get_db [get_db [get_db base_cells -if .site.class==pad *FILL*] -invert {*A *A_G}] .name]
+    }
+    
+    # Route top metal
+    proc gf_route_flipchip {} {
+        
+        # # Signal bumps       
+        # reset_db flip_chip_*
+        # set_db flip_chip_prevent_via_under_bump true
+        # route_flip_chip -target connect_bump_to_pad -delete_existing_routes 
+
+        # # Power bumps
+        # set_db flip_chip_connect_power_cell_to_bump true
+        # set_db flip_chip_multiple_connection default
+        # route_flip_chip -nets <PLACEHOLDER> -target connect_bump_to_pad
+
+        # # AP grid
+        # set_db add_stripes_stacked_via_top_layer AP
+        # set_db add_stripes_stacked_via_bottom_layer M11
+        # delete_routes -layer {RV AP} -net $nets -shapes stripe
+        # set x_stripe_half_width 30
+        # set y_stripe_half_width 30
+        # set x_stripe_forbidden_edge 60
+        # set y_stripe_forbidden_edge 60
+        # foreach bump [get_db bumps] {
+        #     if {[lsearch -exact $nets [get_db $bump .net.name]]>=0} {
+        # 
+        #         # RV blockage around bumps
+        #         create_route_blockage -layers RV -name block_rv_under_bumps -rects [list [list \
+        #             [expr [get_db $bump .center.x]-$x_stripe_forbidden_edge] [expr [get_db $bump .center.y]-$y_stripe_forbidden_edge] \
+        #             [expr [get_db $bump .center.x]+$x_stripe_forbidden_edge] [expr [get_db $bump .center.y]+$y_stripe_forbidden_edge] \
+        #         ]]
+        # 
+        #         # AP blockage at bump corners
+        #         create_route_blockage -layers AP -name block_up_under_bumps -rects [list \
+        #             [expr [get_db $bump .center.x]-$x_stripe_forbidden_edge] [expr [get_db $bump .center.y]-$y_stripe_forbidden_edge] \
+        #             [expr [get_db $bump .center.x]-$x_stripe_half_width] [expr [get_db $bump .center.y]-$y_stripe_half_width] \
+        #         ]
+        #         create_route_blockage -layers AP -name block_up_under_bumps -rects [list \
+        #             [expr [get_db $bump .center.x]-$x_stripe_forbidden_edge] [expr [get_db $bump .center.y]+$y_stripe_forbidden_edge] \
+        #             [expr [get_db $bump .center.x]-$x_stripe_half_width] [expr [get_db $bump .center.y]+$y_stripe_half_width] \
+        #         ]
+        #         create_route_blockage -layers AP -name block_up_under_bumps -rects [list \
+        #             [expr [get_db $bump .center.x]+$x_stripe_forbidden_edge] [expr [get_db $bump .center.y]-$y_stripe_forbidden_edge] \
+        #             [expr [get_db $bump .center.x]+$x_stripe_half_width] [expr [get_db $bump .center.y]-$y_stripe_half_width] \
+        #         ]
+        #         create_route_blockage -layers AP -name block_up_under_bumps -rects [list \
+        #             [expr [get_db $bump .center.x]+$x_stripe_forbidden_edge] [expr [get_db $bump .center.y]+$y_stripe_forbidden_edge] \
+        #             [expr [get_db $bump .center.x]+$x_stripe_half_width] [expr [get_db $bump .center.y]+$y_stripe_half_width] \
+        #         ]
+        # 
+        #         # Horizontal stripes
+        #         add_stripes -nets [get_db $bump .net.name] -layer AP -direction horizontal -start_from bottom \
+        #             -start_offset 2.7 -width 9.6 -spacing 5.4 -set_to_set_distance 15.0 \
+        #             -switch_layer_over_obs false -use_wire_group 0 -snap_wire_center_to_grid none \
+        #             -pad_core_ring_top_layer_limit AP -pad_core_ring_bottom_layer_limit AP \
+        #             -block_ring_top_layer_limit AP -block_ring_bottom_layer_limit AP \
+        #             -area [list \
+        #                 [expr [get_db $bump .center.x]-95] [expr [get_db $bump .center.y]-90] \
+        #                 [expr [get_db $bump .center.x]+95] [expr [get_db $bump .center.y]+90] \
+        #             ]
+        # 
+        #         # Vertical stripes
+        #         add_stripes -nets [get_db $bump .net.name] -layer AP -direction vertical -start_from left \
+        #             -start_offset 0.2 -width 9.6 -spacing 15.4 -set_to_set_distance 25.0 \
+        #             -switch_layer_over_obs false -use_wire_group 0 -snap_wire_center_to_grid none \
+        #             -pad_core_ring_top_layer_limit AP -pad_core_ring_bottom_layer_limit AP \
+        #             -block_ring_top_layer_limit AP -block_ring_bottom_layer_limit AP \
+        #             -area [list \
+        #                 [expr [get_db $bump .center.x]-80] [expr [get_db $bump .center.y]-87.5] \
+        #                 [expr [get_db $bump .center.x]+80] [expr [get_db $bump .center.y]+87.5] \
+        #             ]
+        #     }
+        # }
+        # delete_route_blockages -name block_rv_under_bumps
+        # delete_route_blockages -name block_up_under_bumps
+    }
+    
+    # proc gf_reserve_space_for_tcd {} {
+    #     deselect_obj -all
+    #     select_obj [get_db place_blockages blockage_for_dtcd]
+    #     select_obj [get_db route_blockages blockage_for_dtcd]
+    #     delete_selected_from_floorplan
+    #     set xgrid [get_db site:core .size.x]
+    #     set ygrid [get_db site:core .size.y]
+    #     foreach rect {
+    #         <PLACEHOLDER>
+    #         {1000 1000 1020 1020}
+    #     } {
+    #         create_place_blockage -type hard -name blockage_for_dtcd -rects [list \
+    #             [expr "round([lindex $rect 0] / $xgrid) * $xgrid"] \
+    #             [expr "round([lindex $rect 1] / $ygrid) * $ygrid"] \
+    #             [expr "round([lindex $rect 2] / $xgrid) * $xgrid"] \
+    #             [expr "round([lindex $rect 3] / $ygrid) * $ygrid"] \
+    #         ]
+    #         create_route_blockage -layers {<PLACEHOLDER>M1 M2 M3 M4 M5 M6 M7 M8 M9} -name blockage_for_dtcd -rects [list \
+    #             [expr "round([lindex $rect 0] / $xgrid + 6) * $xgrid"] \
+    #             [expr "round([lindex $rect 1] / $ygrid + 1) * $ygrid"] \
+    #             [expr "round([lindex $rect 2] / $xgrid - 6) * $xgrid"] \
+    #             [expr "round([lindex $rect 3] / $ygrid - 1) * $ygrid"] \
+    #         ]
+    #     }
+    # }
+    
+    # # Insert TCD cells into the design
+    # proc gf_insert_tcd_cells {} {
+        # set tcd_patterns {*_TCD_* FEOL_* BEOL_* *DTCD_FEOL* *DTCD_BEOL* *_DTCD_*}
+        # foreach cell [get_db base_cells $tcd_patterns] {get_db insts -if ".base_cell==$cell" -foreach {delete_inst -inst [get_db $object .name]}}
+        # set index 1
+        # foreach location {
+            # {600 980}
+            # {600 1640}
+            # {1470 980}
+            # {1470 1640}
+        # } {
+            # incr index
+            # set tcd_insts {}
+            # foreach cell [get_db [get_db base_cells $tcd_patterns] .name] {
+                # create_inst -physical -status fixed -location $location -cell $cell -inst ${cell}_${index}
+                # lappend tcd_insts inst:${cell}_${index}
+            # }
+            
+            # gf_align_instances_to_grid 0.048 0.090 $tcd_insts
+            
+            # catch {delete_route_blockages -name block_under_tcd}
+            # foreach rect [get_db $tcd_insts .bbox -u] {
+                # create_route_blockage -layers {M1 VIA1 M2 VIA2 M3 VIA3 M4 VIA4 M5 VIA5 M6 VIA6 M7 VIA7 M8 VIA8 M9} -name block_under_tcd -rects [list [list \
+                    # [expr [lindex $rect 0]-4.0] [expr [lindex $rect 1]-4.0] \
+                    # [expr [lindex $rect 2]+4.0] [expr [lindex $rect 3]+4.0] \
+                # ]]
+            # }
+        # }
+    # }
+    
+    # # Check floorplan
+    # proc gf_run_tcic {} {
+    #     eval_legacy {
+    #         source "*_tCIC_macro_usage_manager.tcl"
+    #         source "*_tCIC_set_cip_variables.tcl"
+    #     
+    #         tCIC_set_design_cell_type <PLACEHOLDER>
+    #         tCIC_set_max_DTCD_layer <PLACEHOLDER>11
+    #         tCIC_reset_macro_usage
+    #         tCIC_specify_macro_usage -usage TSMC_SRAM -macro [get_db [get_db insts -if .base_cell.name==*] .name]
+    #         
+    #         # Report macro usage
+    #         tCIC_report_macro_usage
+    #         
+    #         convert_tCIC_to_ufc \
+    #             -input_files "*_tCIC_*.tcl" \
+    #             -ufc_file ./out/$TASK_NAME.ufc
+    #         redirect { check_ufc ./out/$TASK_NAME.ufc } > "./reports/$TASK_NAME.tcic.log"
+    #     }
+    # }
+
+    # Finalize and save floorplan
+    proc gf_finish_floorplan {} {
+        gui_hide
+        
+        # gf_reserve_space_for_tcd
+        
+        # gf_init_io_rows
+        # gf_init_io_fillers
+        
+        gf_init_tracks
+        
+        gf_init_rows
+        gf_init_place_blockages
+        gf_init_rows
+        
+        gf_init_boundary_cells
+        
+        # gf_init_boundary_wires
+        
+        gf_init_power_grid
+        
+        gf_write_floorplan_local
+        
+        redirect ./reports/$::TASK_NAME.rpt {check_floorplan}
+        cat ./reports/$::TASK_NAME.rpt
+        
+        gui_show
+    }
+
+'
+
+################################################################################
 # Implementation flow steps - ./innovus.be.gf, ./innovus.ispatial.gf
 ################################################################################
 
@@ -86,6 +789,7 @@ gf_create_step -name innovus_procs_common '
     `@innovus_procs_copy_place`
     `@innovus_procs_power_grid`
     `@innovus_procs_objects`
+    `@innovus_procs_reports`
 
     # Useful bindkeys
     catch {gui_bind_key F7 -cmd "gf_select_similar_instances_by_index"}
@@ -917,709 +1621,6 @@ gf_create_step -name innovus_pre_gui '
 '
 
 ################################################################################
-# Floorplanning flow steps - ./innovus.fp.gf, ./innovus.eco.gf
-################################################################################
-
-# Floorplan automation procedures
-gf_create_step -name innovus_procs_interactive_design '
-
-    # # Initialize tracks pattern
-    # proc gf_init_tracks {} {
-    #     add_tracks -width_pitch_pattern [join {
-    #         m0 offset 0.0 
-    #         width 0.000 pitch 0.000 
-    #         {width 0.000 pitch 0.000 repeat 0}
-    #         width 0.000 pitch 0.000
-    #         width 0.000 pitch 0.000
-    #         {width 0.000 pitch 0.000 repeat 0}
-    #         width 0.000 pitch 0.000
-    #     }] -mask_pattern [join {
-    #         m0 2 1 2 1 2 1 2 1 2 1
-    #         m1 1 2 
-    #         m2 2 1 
-    #         m3 1 2
-    #     }] -offset [join {
-    #         m1 vert 0.000 
-    #         m2 horiz 0.000
-    #     }]
-    # }
-    
-    # Add physical cells after floorplan modifications
-    proc gf_init_rows {} {
-        #set_layer_preference power -is_visible 0
-        
-        # Initialize core rows
-        delete_row -all
-        # create_row -site core -area [get_db current_design .core_bbox]
-        # create_row -site bcoreExt -area [get_db current_design .core_bbox]
-        init_core_rows
-        split_row
-        
-    }
-
-    # # Fill narrow channels with placement blockages
-    # proc gf_init_place_blockages {} {
-    #     delete_obj [get_db place_blockages finishfp_*]
-    #
-    #     finish_floorplan -fill_place_blockage hard 5
-    #     finish_floorplan -fill_place_blockage soft 30
-    #     
-    #     # # Delete blockages at the edges
-    #     # deselect_obj -all
-    #     # select_obj [get_db place_blockages finish* -if .rects.ll.x>=[expr [get_db current_design .core_bbox.ur.x]-30.0]]
-    #     # select_obj [get_db place_blockages finish* -if .rects.ur.x<=[expr [get_db current_design .core_bbox.ll.x]+30.0]]
-    #     # delete_selected_from_floorplan
-    # }   
-    
-    # Flip left corner endcaps
-    proc gf_flip_left_endcaps {cell_pattern} {
-        set results {}
-        get_db insts -if .base_cell.name==$cell_pattern -foreach {
-            if {[get_db [get_obj_in_area -obj_type row -areas [list \
-                [expr [get_db $object .bbox.ll.x] - [get_db $object .base_cell.site.size.x] / 2] \
-                [expr [get_db $object .bbox.ll.y] + [get_db $object .base_cell.site.size.y] / 2] \
-                [expr [get_db $object .bbox.ll.x] - [get_db $object .base_cell.site.size.x] / 2] \
-                [expr [get_db $object .bbox.ll.y] + [get_db $object .base_cell.site.size.y] / 2] \
-            ]] -if ".site==[get_db $object .base_cell.site]"] == {}} {
-                lappend results $object
-            }
-        }
-        get_db $results .name -u -foreach {flip_or_rotate_obj -flip my -objs $object}
-        return $results
-    }
-
-    # Delete physical cells before floorplan modifications
-    proc gf_reset_boundary_cells {} {
-        delete_filler -prefix FILLER
-        delete_filler -prefix ENDCAP
-        delete_filler -prefix WELLTAP
-    }
-
-    # Add physical cells after floorplan modifications
-    proc gf_init_boundary_cells {} {
-
-        # Delete physical cells
-        gf_reset_boundary_cells
-        
-        # Place boundary cells
-        add_endcaps -prefix ENDCAP
-        # gf_flip_left_endcaps <PLACEHOLDER>BOUNDARY_?CORNER*
-
-        # Place well-tap cells
-        add_well_taps -prefix WELLTAP -checker_board -cell_interval <PLACEHOLDER>50
-
-        # Run checks
-        check_endcaps
-        check_well_taps
-    }
-
-    # Init boundary nets
-    proc gf_init_boundary_wires {} {
-        delete_routes -net _BOUNDARY_*
-        
-        set_db finish_floorplan_active_objs die
-        # add_dummy_boundary_wires -layer {<PLACEHOLDER>M1 M2 M3 M4} -space {<PLACEHOLDER>0.000 0.000 0.000 0.000} 
-        finish_floorplan -add_boundary_blockage
-
-        set_layer_preference eol -is_visible 1
-        set_db finish_floorplan_active_objs row
-        finish_floorplan -add_boundary_end_of_line_blockage
-
-        check_floorplan
-    }
-
-    # Design-specific ports initialization
-    proc gf_init_ports {} {
-    
-        # Unplace all ports
-        set_partition_pin_status -status unplaced -quiet \
-            -partition [get_db current_design .name] \
-            -pins [get_db ports .name]
-    
-        # Batch mode on
-        set_db assign_pins_edit_in_batch true
-    
-        # # Group ports by name
-        # foreach ports [list \
-        #     [get_db ports -if .name==<PLACEHOLDER>] \
-        # ] {
-        #     edit_pin -snap track \
-        #         -edge 0 \
-        #         -spread_direction clockwise \
-        #         -spread_type center \
-        #         -layer_vertical <PLACEHOLDER>M4 \
-        #         -offset_start 0.0 \
-        #         -spacing 8 -unit track \
-        #         -fixed_pin 1 -fix_overlap 1 \
-        #         -pin [get_db [get_db $ports -if .place_status==unplaced] .name]
-        # }
-    
-        # # Projection of instance pins to vertical edge
-        # foreach pin [list \
-        #     [get_db pins <PLACEHOLDER>instance_pin] \
-        # ] {
-        #     set ports [get_db -u [concat [get_db $pin .net.drivers] [get_db $pin .net.loads]] -if .obj_type==port]
-        #     edit_pin -snap track \
-        #         -edge <PLACEHOLDER>0 \
-        #         -layer_vertical <PLACEHOLDER>M4 \
-        #         -fixed_pin 1 -fix_overlap 1 \
-        #         -assign [list [get_db current_design <PLACEHOLDER>.bbox.ll.x] [get_db $pin .location]\
-        #         -pin [get_db [get_db $ports -if .place_status==unplaced] .name]
-        # }
-    
-        # # All the rest inputs
-        # edit_pin -snap track \
-        #     -edge <PLACEHOLDER>0 \
-        #     -spread_direction clockwise \
-        #     -spread_type center \
-        #     -layer_vertical <PLACEHOLDER>M4 \
-        #     -offset_start 0.0 \
-        #     -spacing 8 -unit track \
-        #     -fixed_pin 1 -fix_overlap 1 \
-        #     -pin [get_db [get_db ports -if .place_status==unplaced&&.direction==in] .name]
-    
-        # # All the rest outputs
-        # edit_pin -snap track \
-        #     -edge <PLACEHOLDER>2 \
-        #     -spread_direction clockwise \
-        #     -spread_type center \
-        #     -layer_vertical <PLACEHOLDER>M4 \
-        #     -offset_start 0.0 \
-        #     -spacing 8 -unit track \
-        #     -fixed_pin 1 -fix_overlap 1 \
-        #     -pin [get_db [get_db ports -if .place_status==unplaced&&.direction==out] .name]
-
-        # Batch mode off
-        set_db assign_pins_edit_in_batch false
-    }
-
-    # Initialize power grid in all layers
-    proc gf_init_power_grid {} {
-        # set nets {<PLACEHOLDER>VDD VSS}
-        # set macro_area_threshold <PLACEHOLDER>100
-        
-        # (!) Notes: 
-        # This proc contains a mix of commands for different metal stacks
-        # Please remove unnecessary code manually
-        
-        # # Macros detection
-        # set macros [get_db insts -if .area>$macro_area_threshold]
-        
-        # # Remove existing follow pins and stripes
-        # catch {delete_route_blockage -name add_stripe_blockage}
-        # delete_routes -net $nets -status routed
-        # delete_routes -net $nets -status routed -shapes {ring stripe corewire followpin ring padring} -layer {M0 ... AP VIA0 ... RV}
-        # delete_pg_pins -net $nets
-
-        # # Reset options
-        # if {1} {
-        #     reset_db route_special_*
-        #     reset_db add_stripes_*
-        #     reset_db generate_special_via_*
-        #     set_db add_stripes_spacing_type center_to_center
-        #     set_db add_stripes_remove_floating_stapling true
-        #     # set_db add_stripes_stop_at_last_wire_for_area 1
-        #     set_db add_stripes_opt_stripe_for_routing_track shift
-        #     set_db add_stripes_skip_via_on_wire_shape {iowire}
-        #     set_db generate_special_via_preferred_vias_only keep
-        #     set_db generate_special_via_allow_wire_shape_change false
-        #     set_db generate_special_via_opt_cross_via true
-        #     set_db add_stripes_stacked_via_bottom_layer 1
-        #     set_db add_stripes_stacked_via_top_layer 1
-        # }
-        
-        # # Special PG vias
-        # if {1} { 
-        #     catch {
-        #         create_via_definition -name PGVIA4 -bottom_layer M4 -cut_layer VIA4 -top_layer M5 \
-        #             -bottom_rects {{-0.000 -0.000} {0.000 0.000}} -top_rects {{-0.000 -0.000} {0.000 0.000}} \
-        #             -cut_rects {{-0.000 -0.000} {-0.000 0.000} {-0.000 -0.000} {0.000 0.000} {0.000 -0.000} {0.000 0.000}}
-        #     }
-        # }
-
-        # # Core rings
-        # if {1} {
-        #     reset_db add_rings_*
-        #     set_db add_rings_stacked_via_top_layer M3
-        #     set_db add_rings_skip_via_on_wire_shape {stripe blockring}
-        #     set_db add_rings_break_core_ring_io_list [get_db $macros .name]
-        #     add_rings -nets [concat $nets $nets $nets $nets] \
-        #         -type core_rings -follow core \
-        #         -layer {top M2 bottom M2 left M3 right M3} \
-        #         -width {top 0.000 bottom 0.000 left 0.000 right 0.000} \
-        #         -spacing {top 0.000 bottom 0.000 left 0.000 right 0.000} \
-        #         -offset {top 0.000 bottom 0.000 left 0.000 right 1.0} \
-        #         -threshold 0 -jog_distance 0 -use_wire_group 1 -snap_wire_center_to_grid none
-        # }
-        
-        # # Route to power/ground pads
-        # if {1} {
-        #     route_special \
-        #         -connect {pad_pin} \
-        #         -block_pin_target {nearest_target} \
-        #         -pad_pin_layer_range {M1 M2} \
-        #         -pad_pin_target {block_ring ring} \
-        #         -pad_pin_port_connect {all_port all_geom} \
-        #         -crossover_via_layer_range {M1 AP} \
-        #         -target_via_layer_range {M1 AP} \
-        #         -allow_layer_change 1 -layer_change_range {M1 M4} \
-        #         -allow_jogging 0 \
-        #         -nets $nets 
-        # }
-        
-        # # M1 follow pins
-        # if {1} {
-        #     set_db route_special_connect_broken_core_pin true
-        #     # set_db route_special_core_pin_stop_route CellPinEnd
-        #     # set_db route_special_core_pin_ignore_obs overlap_obs
-        #     set_db route_special_via_connect_to_shape noshape
-        #     route_special \
-        #         -connect core_pin \
-        #         -core_pin_layer M1 \
-        #         -core_pin_width 0.000 \
-        #         -allow_jogging 0 \
-        #         -allow_layer_change 0 \
-        #         -core_pin_target none \
-        #         -nets $nets
-        #
-        #     # # Force follow pins masks
-        #     # set_db [get_db [get_db nets $nets] .special_wires -if .shape==followpin] .mask 1
-        # }
-        
-        # # Create blockages over macros
-        # create_route_blockage -name add_stripe_blockage -layer {M1 ... M2} -rects [gf_size_bboxes [get_db $macros .bbox] {-0.000 -0.000 0.000 0.000}]
-
-        # # M2 follow pins duplication
-        # if {1} {
-        #     set_db add_stripes_stacked_via_bottom_layer M1
-        #     set_db add_stripes_stacked_via_top_layer M1
-        #     set_db edit_wire_shield_look_down_layers 0
-        #     set_db edit_wire_shield_look_up_layers 0
-        #     set_db edit_wire_layer_min M1
-        #     set_db edit_wire_layer_max M1
-        #     deselect_obj -all; select_routes -shapes followpin -layer M1
-        #     edit_duplicate_routes -layer_horizontal M2
-        #     # edit_update_route_width -width_horizontal 0.000
-        #     # edit_resize_routes -keep_center_line 1 -direction y -side high -to 0.000
-        #     reset_db edit_wire_shield_look_down_layers
-        #     reset_db edit_wire_shield_look_up_layers
-        #     reset_db edit_wire_layer_min
-        #     reset_db edit_wire_layer_max
-        #
-        #     # Follow pin vias
-        #     set_db add_stripes_skip_via_on_pin {pad block cover standardcell}
-        #     set_db add_stripes_skip_via_on_wire_shape {ring blockring corewire blockwire iowire padring fillwire noshape}
-        #     # set_db generate_special_via_rule_preference {VIA12*}
-        #     update_power_vias -selected_wires 1 -add_vias 1 -bottom_layer M1 -top_layer M2 -orthogonal_only 0
-        #     update_power_vias -selected_wires 1 -add_vias 1 -bottom_layer M1 -top_layer M2 -orthogonal_only 0 -split_long_via {0.000 0.000 0.000 0.000}
-        #     deselect_obj -all
-        #     reset_db add_stripes_skip_via_on_pin
-        #     reset_db add_stripes_skip_via_on_wire_shape
-        #     delete_markers -all
-        # }
-
-        # # M2 stripes (staggered)
-        # set_db add_stripes_stacked_via_bottom_layer M1
-        # set_db add_stripes_stacked_via_top_layer M2
-        # set_db add_stripes_skip_via_on_pin {pad block cover}
-        # set_db generate_special_via_rule_preference {VIA01_*}
-        # set_db add_stripes_route_over_rows_only true
-        # add_stripes \
-        #     -layer M2 \
-        #     -direction vertical \
-        #     -width 0.000 \
-        #     -set_to_set_distance [expr 2*0.000*NTRACKS] \
-        #     -start_offset [expr 0.000+0*0.000*NTRACKS] \
-        #     -snap_wire_center_to_grid none \
-        #     -nets [lindex $nets 0]
-        # add_stripes \
-        #     -layer M2 \
-        #     -direction vertical \
-        #     -width 0.000 \
-        #     -set_to_set_distance [expr 2*0.000*NTRACKS] \
-        #     -start_offset [expr 0.000+1*0.000*NTRACKS] \
-        #     -snap_wire_center_to_grid none \
-        #     -nets [lindex $nets 1]
-        
-        # # M2 stripes (regular)
-        # set_db add_stripes_stacked_via_bottom_layer M1
-        # set_db add_stripes_stacked_via_top_layer M2
-        # set_db generate_special_via_rule_preference {VIA12_*}
-        # set_db add_stripes_skip_via_on_pin {pad cover}
-        # set_db add_stripes_route_over_rows_only true
-        # add_stripes \
-        #     -layer M2 \
-        #     -direction horizontal \
-        #     -width 0.000 \
-        #     -spacing [expr 1*0.000] \
-        #     -set_to_set_distance [expr 2*0.000] \
-        #     -start_offset -0.000 \
-        #     -snap_wire_center_to_grid grid \
-        #     -nets $nets
-        
-        # # M3 stripes (regular)
-        # set_db add_stripes_stacked_via_bottom_layer M2
-        # set_db add_stripes_stacked_via_top_layer M3
-        # set_db generate_special_via_rule_preference {VIA23_*}
-        # set_db add_stripes_skip_via_on_pin {pad cover}
-        # set_db add_stripes_route_over_rows_only true
-        # add_stripes \
-        #     -layer M3 \
-        #     -direction horizontal \
-        #     -width 0.000 \
-        #     -spacing [expr 1*0.000] \
-        #     -set_to_set_distance [expr 2*0.000] \
-        #     -start_offset -0.000 \
-        #     -snap_wire_center_to_grid grid \
-        #     -nets $nets
-        #
-        # # M2 stripes (stapling)
-        # set_db add_stripes_stacked_via_bottom_layer M1
-        # set_db add_stripes_stacked_via_top_layer M3
-        # set_db generate_special_via_rule_preference {VIA12_* VIA23_*}
-        # set_db add_stripes_skip_via_on_pin {pad cover}
-        # set_db add_stripes_route_over_rows_only true
-        # foreach net $nets {
-        #     add_stripes \
-        #         -layer M2 \
-        #         -direction vertical \
-        #         -width 0.000 \
-        #         -stapling {0.000 M3} \
-        #         -set_to_set_distance [expr 2*0.000] \
-        #         -start_offset -0.000 \
-        #         -snap_wire_center_to_grid grid \
-        #         -nets $nets
-        # }
-
-        # # M6 stripes over macros (orthogonal pins)
-        # if {1} {
-        #     set_db add_stripes_stacked_via_bottom_layer M4
-        #     set_db add_stripes_stacked_via_top_layer M6
-        #     set_db generate_special_via_rule_preference {VIA45_* VIA56_*}
-        #     set_db add_stripes_skip_via_on_pin {pad cover}
-        #     set_db add_stripes_route_over_rows_only false
-        #     set_db add_stripes_orthogonal_only false
-        #     add_stripes \
-        #         -layer M6 \
-        #         -direction vertical \
-        #         -width 0.000 \
-        #         -spacing [expr 1*0.000*10] \
-        #         -set_to_set_distance [expr 2*0.000*10] \
-        #         -start_offset [expr 0.000+0*0.000*10] \
-        #         -snap_wire_center_to_grid grid \
-        #         -area [get_db $macros .bbox] \
-        #         -nets $nets
-        #     reset_db add_stripes_orthogonal_only
-        #     # create_route_blockage -name add_stripe_blockage -layer {M5 M6} -rects [gf_size_bboxes [get_db $macros .bbox] {-0.000 -0.000 0.000 0.000}]
-        # }
-        
-        # # M6 stripes
-        # set_db add_stripes_stacked_via_bottom_layer M5
-        # set_db add_stripes_stacked_via_top_layer M6
-        # set_db generate_special_via_rule_preference {VIA56_*}
-        # set_db add_stripes_skip_via_on_pin {pad block cover}
-        # set_db add_stripes_route_over_rows_only false
-        # add_stripes \
-        #     -layer M6 \
-        #     -direction vertical \
-        #     -width 0.000 \
-        #     -spacing [expr 1*0.000*30] \
-        #     -set_to_set_distance [expr 2*0.000*30] \
-        #     -start_offset [expr 0.000+0*0.000*30] \
-        #     -snap_wire_center_to_grid none \
-        #     -nets $nets
-
-        # # Delete blockages over macros
-        # catch {delete_route_blockage -name add_stripe_blockage}
-        
-        # # # Update PG vias over macros
-        # # deselect_obj -all; select_obj $macros
-        # # reset_db generate_special_via_rule_preference
-        # # update_power_vias -bottom_layer M4 -top_layer M5 -delete_vias 1 -selected_blocks 1
-        # # update_power_vias -bottom_layer M4 -top_layer M5 -add_vias 1 -selected_blocks 1
-        # # deselect_obj -all
-
-        # # # M5 stripes over endcaps
-        # # if {1} {
-        # #     gf_init_power_stripes_over_endcaps $nets <PLACEHOLDER>BOUNDARY_LEFT BOUNDARY_RIGHT M5 M2 0.300 0.200 vertical
-        # #     get_db markers -if {.user_type==Endcap*} -foreach {
-        # #         create_route_blockage -layers M5 -name block_route_over_endcaps -rects [get_db $object .bbox]
-        # #     }
-        # #     delete_markers -all
-        # # }
-        
-        # # # M5/M6 stripes and routing blockages over memories
-        # # set_db add_stripes_stacked_via_bottom_layer M4
-        # # set_db add_stripes_stacked_via_top_layer M5
-        # # set_db generate_special_via_rule_preference {VIA45_*}
-        # # set_db add_stripes_skip_via_on_pin {pad cover}
-        # # set_db add_stripes_route_over_rows_only true
-        # # foreach macro [get_db insts -if .base_cell.class==block&&.pg_pins.pg_base_pin.physical_pins.layer_shapes.layer.name==*<PLACEHOLDER>MACRO_TOP_LAYER:M4*&&.base_cell.site.class!=pad] {
-        # #     add_stripes \
-        # #         -layer M5 \
-        # #         -width 0.000 \
-        # #         -spacing 0.000 \
-        # #         -set_to_set_distance [expr 2*0.000] \
-        # #         -direction horizontal \
-        # #         -snap_wire_center_to_grid grid \
-        # #         -area [get_db $macro .bbox] \
-        # #         -nets $nets
-        # #     create_route_blockage -layers {M5} -name block_route_over_mems -rects [ gf_size_bboxes [get_db $marco .bbox] {-0.000 -0.000 0.000 0.000}]
-        # # }
-       
-        # # Remove floating followpins and stripes
-        # edit_trim_routes -layers {M0 M1 M2 M3 M4 M5} -nets $nets -type float
-        
-        # # Trim followpins and stripes
-        # edit_trim_routes -layers {M1 M3} -nets $nets
-
-        # # Update ring vias
-        # foreach layer {6 7 8} {
-        #     deselect_obj -all; select_routes -shape ring -layer M$layer
-        #     update_power_vias -nets $nets -top_layer M$layer -bottom_layer M[expr $layer-1] -selected_wires 1 -add_vias 1
-        # }
-        # deselect_obj -all
-        
-        # # Update RV
-        # foreach bump [get_db bumps] {
-        #     create_route_blockage -layers RV -name block_rv_under_bumps -rects [list [list \
-        #         [expr [get_db $bump .center.x]-60] [expr [get_db $bump .center.y]-60] \
-        #         [expr [get_db $bump .center.x]+60] [expr [get_db $bump .center.y]+60] \
-        #     ]]
-        # }
-        # deselect_obj -all
-        # select_routes -layer {AP M11} -shapes stripe -nets $nets
-        # update_power_vias -nets $nets -top_layer AP -bottom_layer M11 -between_selected_wires 1 -delete_vias 1
-        # update_power_vias -nets $nets -top_layer AP -bottom_layer M11 -between_selected_wires 1 -add_vias 1
-        # delete_route_blockages -name block_rv_under_bumps
-        # deselect_obj -all
-
-        # # Create PG ports (automatically)
-        # deselect_obj -all
-        # select_routes -layer M9 -nets $nets -shapes stripe
-        # create_pg_pin -on_die -selected
-        # deselect_obj -all
-
-        # # Create PG ports in top layer
-        # foreach stripe [get_obj_in_area -areas [get_db current_design .bbox] -layers M5 -obj_type special_wire] {
-        #     set net_name [get_db $stripe .net.name]
-        #     if {[lsearch -exact $nets $net_name] >= 0} {
-        #         create_pg_pin -name $net_name -net $net_name -geometry [get_db $stripe .layer.name] [get_db $stripe .rect.ll.x] [get_db $stripe .rect.ll.y] [get_db $stripe .rect.ur.x] [get_db $stripe .rect.ur.y]
-        #     }
-        # }
-
-        # # Colorize DPT layers
-        # add_power_mesh_colors
-    }
-
-    # Initialize IO rows
-    proc gf_init_io_rows {} {
-        # delete_row -site pad
-        # delete_row -site corner
-        
-        # IO rows
-        # create_io_row -side N -begin_offset <PLACEHOLDER>20 -end_offset <PLACEHOLDER>20 -row_margin <PLACEHOLDER>20 -site <PLACEHOLDER>pad
-        # create_io_row -side S -begin_offset <PLACEHOLDER>20 -end_offset <PLACEHOLDER>20 -row_margin <PLACEHOLDER>20 -site <PLACEHOLDER>pad
-        # create_io_row -side E -begin_offset <PLACEHOLDER>20 -end_offset <PLACEHOLDER>20 -row_margin <PLACEHOLDER>20 -site <PLACEHOLDER>pad
-        # create_io_row -side W -begin_offset <PLACEHOLDER>20 -end_offset <PLACEHOLDER>20 -row_margin <PLACEHOLDER>20 -site <PLACEHOLDER>pad
-        
-        # Corner rows
-        # create_io_row -corner BL -x_offset <PLACEHOLDER>20 -y_offset <PLACEHOLDER>20 -site <PLACEHOLDER>corner
-        # create_io_row -corner BR -x_offset <PLACEHOLDER>20 -y_offset <PLACEHOLDER>20 -site <PLACEHOLDER>corner
-        # create_io_row -corner TL -x_offset <PLACEHOLDER>20 -y_offset <PLACEHOLDER>20 -site <PLACEHOLDER>corner
-        # create_io_row -corner TR -x_offset <PLACEHOLDER>20 -y_offset <PLACEHOLDER>20 -site <PLACEHOLDER>corner
-    }
-
-    # Insert IO fillers
-    proc gf_init_io_fillers {} {
-        catch {delete_io_fillers -cell [get_db [get_db [get_db base_cells -if .site.class==pad *FILL*] -invert {*A *A_G}] .name]}
-        add_io_fillers -cells [get_db [get_db [get_db base_cells -if .site.class==pad *FILL*] -invert {*A *A_G}] .name]
-    }
-    
-    # Route top metal
-    proc gf_route_flipchip {} {
-        
-        # # Signal bumps       
-        # reset_db flip_chip_*
-        # set_db flip_chip_prevent_via_under_bump true
-        # route_flip_chip -target connect_bump_to_pad -delete_existing_routes 
-
-        # # Power bumps
-        # set_db flip_chip_connect_power_cell_to_bump true
-        # set_db flip_chip_multiple_connection default
-        # route_flip_chip -nets <PLACEHOLDER> -target connect_bump_to_pad
-
-        # # AP grid
-        # set_db add_stripes_stacked_via_top_layer AP
-        # set_db add_stripes_stacked_via_bottom_layer M11
-        # delete_routes -layer {RV AP} -net $nets -shapes stripe
-        # set x_stripe_half_width 30
-        # set y_stripe_half_width 30
-        # set x_stripe_forbidden_edge 60
-        # set y_stripe_forbidden_edge 60
-        # foreach bump [get_db bumps] {
-        #     if {[lsearch -exact $nets [get_db $bump .net.name]]>=0} {
-        # 
-        #         # RV blockage around bumps
-        #         create_route_blockage -layers RV -name block_rv_under_bumps -rects [list [list \
-        #             [expr [get_db $bump .center.x]-$x_stripe_forbidden_edge] [expr [get_db $bump .center.y]-$y_stripe_forbidden_edge] \
-        #             [expr [get_db $bump .center.x]+$x_stripe_forbidden_edge] [expr [get_db $bump .center.y]+$y_stripe_forbidden_edge] \
-        #         ]]
-        # 
-        #         # AP blockage at bump corners
-        #         create_route_blockage -layers AP -name block_up_under_bumps -rects [list \
-        #             [expr [get_db $bump .center.x]-$x_stripe_forbidden_edge] [expr [get_db $bump .center.y]-$y_stripe_forbidden_edge] \
-        #             [expr [get_db $bump .center.x]-$x_stripe_half_width] [expr [get_db $bump .center.y]-$y_stripe_half_width] \
-        #         ]
-        #         create_route_blockage -layers AP -name block_up_under_bumps -rects [list \
-        #             [expr [get_db $bump .center.x]-$x_stripe_forbidden_edge] [expr [get_db $bump .center.y]+$y_stripe_forbidden_edge] \
-        #             [expr [get_db $bump .center.x]-$x_stripe_half_width] [expr [get_db $bump .center.y]+$y_stripe_half_width] \
-        #         ]
-        #         create_route_blockage -layers AP -name block_up_under_bumps -rects [list \
-        #             [expr [get_db $bump .center.x]+$x_stripe_forbidden_edge] [expr [get_db $bump .center.y]-$y_stripe_forbidden_edge] \
-        #             [expr [get_db $bump .center.x]+$x_stripe_half_width] [expr [get_db $bump .center.y]-$y_stripe_half_width] \
-        #         ]
-        #         create_route_blockage -layers AP -name block_up_under_bumps -rects [list \
-        #             [expr [get_db $bump .center.x]+$x_stripe_forbidden_edge] [expr [get_db $bump .center.y]+$y_stripe_forbidden_edge] \
-        #             [expr [get_db $bump .center.x]+$x_stripe_half_width] [expr [get_db $bump .center.y]+$y_stripe_half_width] \
-        #         ]
-        # 
-        #         # Horizontal stripes
-        #         add_stripes -nets [get_db $bump .net.name] -layer AP -direction horizontal -start_from bottom \
-        #             -start_offset 2.7 -width 9.6 -spacing 5.4 -set_to_set_distance 15.0 \
-        #             -switch_layer_over_obs false -use_wire_group 0 -snap_wire_center_to_grid none \
-        #             -pad_core_ring_top_layer_limit AP -pad_core_ring_bottom_layer_limit AP \
-        #             -block_ring_top_layer_limit AP -block_ring_bottom_layer_limit AP \
-        #             -area [list \
-        #                 [expr [get_db $bump .center.x]-95] [expr [get_db $bump .center.y]-90] \
-        #                 [expr [get_db $bump .center.x]+95] [expr [get_db $bump .center.y]+90] \
-        #             ]
-        # 
-        #         # Vertical stripes
-        #         add_stripes -nets [get_db $bump .net.name] -layer AP -direction vertical -start_from left \
-        #             -start_offset 0.2 -width 9.6 -spacing 15.4 -set_to_set_distance 25.0 \
-        #             -switch_layer_over_obs false -use_wire_group 0 -snap_wire_center_to_grid none \
-        #             -pad_core_ring_top_layer_limit AP -pad_core_ring_bottom_layer_limit AP \
-        #             -block_ring_top_layer_limit AP -block_ring_bottom_layer_limit AP \
-        #             -area [list \
-        #                 [expr [get_db $bump .center.x]-80] [expr [get_db $bump .center.y]-87.5] \
-        #                 [expr [get_db $bump .center.x]+80] [expr [get_db $bump .center.y]+87.5] \
-        #             ]
-        #     }
-        # }
-        # delete_route_blockages -name block_rv_under_bumps
-        # delete_route_blockages -name block_up_under_bumps
-    }
-    
-    # proc gf_reserve_space_for_tcd {} {
-    #     deselect_obj -all
-    #     select_obj [get_db place_blockages blockage_for_dtcd]
-    #     select_obj [get_db route_blockages blockage_for_dtcd]
-    #     delete_selected_from_floorplan
-    #     set xgrid [get_db site:core .size.x]
-    #     set ygrid [get_db site:core .size.y]
-    #     foreach rect {
-    #         <PLACEHOLDER>
-    #         {1000 1000 1020 1020}
-    #     } {
-    #         create_place_blockage -type hard -name blockage_for_dtcd -rects [list \
-    #             [expr "round([lindex $rect 0] / $xgrid) * $xgrid"] \
-    #             [expr "round([lindex $rect 1] / $ygrid) * $ygrid"] \
-    #             [expr "round([lindex $rect 2] / $xgrid) * $xgrid"] \
-    #             [expr "round([lindex $rect 3] / $ygrid) * $ygrid"] \
-    #         ]
-    #         create_route_blockage -layers {<PLACEHOLDER>M1 M2 M3 M4 M5 M6 M7 M8 M9} -name blockage_for_dtcd -rects [list \
-    #             [expr "round([lindex $rect 0] / $xgrid + 6) * $xgrid"] \
-    #             [expr "round([lindex $rect 1] / $ygrid + 1) * $ygrid"] \
-    #             [expr "round([lindex $rect 2] / $xgrid - 6) * $xgrid"] \
-    #             [expr "round([lindex $rect 3] / $ygrid - 1) * $ygrid"] \
-    #         ]
-    #     }
-    # }
-    
-    # # Insert TCD cells into the design
-    # proc gf_insert_tcd_cells {} {
-        # set tcd_patterns {*_TCD_* FEOL_* BEOL_* *DTCD_FEOL* *DTCD_BEOL* *_DTCD_*}
-        # foreach cell [get_db base_cells $tcd_patterns] {get_db insts -if ".base_cell==$cell" -foreach {delete_inst -inst [get_db $object .name]}}
-        # set index 1
-        # foreach location {
-            # {600 980}
-            # {600 1640}
-            # {1470 980}
-            # {1470 1640}
-        # } {
-            # incr index
-            # set tcd_insts {}
-            # foreach cell [get_db [get_db base_cells $tcd_patterns] .name] {
-                # create_inst -physical -status fixed -location $location -cell $cell -inst ${cell}_${index}
-                # lappend tcd_insts inst:${cell}_${index}
-            # }
-            
-            # gf_align_instances_to_grid 0.048 0.090 $tcd_insts
-            
-            # catch {delete_route_blockages -name block_under_tcd}
-            # foreach rect [get_db $tcd_insts .bbox -u] {
-                # create_route_blockage -layers {M1 VIA1 M2 VIA2 M3 VIA3 M4 VIA4 M5 VIA5 M6 VIA6 M7 VIA7 M8 VIA8 M9} -name block_under_tcd -rects [list [list \
-                    # [expr [lindex $rect 0]-4.0] [expr [lindex $rect 1]-4.0] \
-                    # [expr [lindex $rect 2]+4.0] [expr [lindex $rect 3]+4.0] \
-                # ]]
-            # }
-        # }
-    # }
-    
-    # # Check floorplan
-    # proc gf_run_tcic {} {
-    #     eval_legacy {
-    #         source "*_tCIC_macro_usage_manager.tcl"
-    #         source "*_tCIC_set_cip_variables.tcl"
-    #     
-    #         tCIC_set_design_cell_type <PLACEHOLDER>
-    #         tCIC_set_max_DTCD_layer <PLACEHOLDER>11
-    #         tCIC_reset_macro_usage
-    #         tCIC_specify_macro_usage -usage TSMC_SRAM -macro [get_db [get_db insts -if .base_cell.name==*] .name]
-    #         
-    #         # Report macro usage
-    #         tCIC_report_macro_usage
-    #         
-    #         convert_tCIC_to_ufc \
-    #             -input_files "*_tCIC_*.tcl" \
-    #             -ufc_file ./out/$TASK_NAME.ufc
-    #         redirect { check_ufc ./out/$TASK_NAME.ufc } > "./reports/$TASK_NAME.tcic.log"
-    #     }
-    # }
-
-    # Finalize and save floorplan
-    proc gf_finish_floorplan {} {
-        gui_hide
-        
-        # gf_reserve_space_for_tcd
-        
-        # gf_init_io_rows
-        # gf_init_io_fillers
-        
-        gf_init_tracks
-        
-        gf_init_rows
-        gf_init_place_blockages
-        gf_init_rows
-        
-        gf_init_boundary_cells
-        
-        # gf_init_boundary_wires
-        
-        gf_init_power_grid
-        
-        gf_write_floorplan
-        
-        check_floorplan -out_file ./reports/$::TASK_NAME.rpt
-        cat ./reports/$::TASK_NAME.rpt
-        
-        gui_show
-    }
-
-'
-
-################################################################################
 # Concurrent macro placement flow steps - ./innovus.macro.gf
 ################################################################################
 
@@ -1662,7 +1663,7 @@ gf_create_step -name innovus_concurrent_macro_placement '
     # delete_place_halo -all_macros; finish_floorplan -add_halo <PLACEHOLDER>0.000
     # finish_floorplan -fill_place_blockage hard <PLACEHOLDER>0.000
     # finish_floorplan -fill_place_blockage soft <PLACEHOLDER>0.000
-    # gf_write_floorplan
+    # gf_write_floorplan_local
     # 
     # # Check the result
     # suspend
@@ -1739,6 +1740,9 @@ gf_create_step -name innovus_design_reports_post_place '
     # Set of pre-clock reports in simultaneous setup and hold mode
     `@innovus_time_design_late_early_summary`
     `@innovus_report_timing_late`
+
+    `@innovus_report_timing_late_worst`
+    `@innovus_report_timing_late_histograms`
 '
 
 # Pre-route design stage reports
@@ -1749,6 +1753,11 @@ gf_create_step -name innovus_design_reports_post_clock '
     `@innovus_report_timing_late`
     `@innovus_report_timing_early`
     `@innovus_report_clock_timing`
+
+    `@innovus_report_timing_late_worst`
+    `@innovus_report_timing_late_histograms`
+    `@innovus_report_timing_early_worst`
+    `@innovus_report_timing_early_histograms`
 '
 
 # Post-route design stage reports
@@ -1763,6 +1772,11 @@ gf_create_step -name innovus_design_reports_post_route '
     `@innovus_report_route_drc`
     `@innovus_report_route_process`
     `@innovus_report_density`
+    
+    `@innovus_report_timing_late_worst`
+    `@innovus_report_timing_late_histograms`
+    `@innovus_report_timing_early_worst`
+    `@innovus_report_timing_early_histograms`
     
     # # Write out SDF and netlist for block level simulation
     # write_sdf ./out/$::TASK_NAME.sdf \
@@ -1913,32 +1927,43 @@ gf_create_step -name innovus_timing_out_design '
     # Simultaneous setup/hold mode
     set_db timing_enable_simultaneous_setup_hold_mode true
 
+    # Enable noise reporting
+    set_db si_delay_enable_report true
+
     # QoR reports
     report_qor -format html -file ./reports/$TASK_NAME/qor.html
-    report_gate_count -level 5 > ./reports/$TASK_NAME/gate_count.rpt
+    redirect ./reports/$TASK_NAME/gate_count.rpt {report_gate_count -level 5}
 
     # Timing checks
-    check_timing -verbose > ./reports/$TASK_NAME/checkюtiming.rpt
-    report_analysis_coverage > ./reports/$TASK_NAME/analysis_coverage.rpt
-    report_analysis_coverage -verbose violated > ./reports/$TASK_NAME/analysis_coverage.violated.rpt
-    report_analysis_coverage -verbose untested > ./reports/$TASK_NAME/analysis_coverage.untested.rpt
-    report_constraint -all_violators > ./reports/$TASK_NAME/constraint.all_violators.rpt
+    redirect ./reports/$TASK_NAME/checkюtiming.rpt {check_timing -verbose}
+    redirect ./reports/$TASK_NAME/analysis_coverage.rpt {report_analysis_coverage}
+    redirect ./reports/$TASK_NAME/analysis_coverage.violated.rpt {report_analysis_coverage -verbose violated}
+    redirect ./reports/$TASK_NAME/analysis_coverage.untested.rpt {report_analysis_coverage -verbose untested}
+    redirect ./reports/$TASK_NAME/constraint.all_violators.rpt {report_constraint -all_violators}
 
     # Clock, power, noise
-    report_clocks > ./reports/$TASK_NAME/clocks.rpt
-    report_power > ./reports/$TASK_NAME/power.rpt
-    check_noise -all -verbose > ./reports/$TASK_NAME/check.noise.rpt
-    report_noise -out_file ./reports/$TASK_NAME/noise.rpt
+    redirect ./reports/$TASK_NAME/clocks.rpt {report_clocks}
+    redirect ./reports/$TASK_NAME/power.rpt {report_power}
+    redirect ./reports/$TASK_NAME/check.noise.rpt {check_noise -all -verbose}
+    redirect ./reports/$TASK_NAME/noise.rpt {report_noise}
     
     # Late timing
-    report_timing -late -max_paths 1000 > ./reports/$TASK_NAME/.timing.late.rpt
-    report_path_exceptions -late > ./reports/$TASK_NAME/.path_exceptions.late.rpt
-    report_path_exceptions -late -ignored > ./reports/$TASK_NAME/path_exceptions.late.ignored.rpt
+    redirect ./reports/$TASK_NAME/timing.late.rpt {report_timing -late -max_paths 1000}
+    redirect ./reports/$TASK_NAME/path_exceptions.late.rpt {report_path_exceptions -late}
+    redirect ./reports/$TASK_NAME/path_exceptions.late.ignored.rpt {report_path_exceptions -late -ignored}
+
+    # Early summary reports
+    `@innovus_report_timing_late_worst`
+    `@innovus_report_timing_late_histograms`
 
     # Early timing
-    report_timing -early -max_paths 1000 > ./reports/$TASK_NAME/timing.early.rpt
-    report_path_exceptions -early > ./reports/$TASK_NAME/path_exceptions.early.rpt
-    report_path_exceptions -early -ignored > ./reports/$TASK_NAME/path_exceptions.early.ignored.rpt
+    redirect ./reports/$TASK_NAME/timing.early.rpt {report_timing -early -max_paths 1000}
+    redirect ./reports/$TASK_NAME/path_exceptions.early.rpt {report_path_exceptions -early}
+    redirect ./reports/$TASK_NAME/path_exceptions.early.ignored.rpt {report_path_exceptions -early -ignored}
+
+    # Early summary reports
+    `@innovus_report_timing_early_worst`
+    `@innovus_report_timing_early_histograms`
 
     # SPEF
     foreach rc_corner [get_db rc_corners .name] {

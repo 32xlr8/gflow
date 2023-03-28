@@ -140,18 +140,13 @@ gf_add_tool_commands '
     exec ln -nsf $DATABASE ./out/$TASK_NAME/$DESIGN_NAME.innovus.db
 
     # Write out design files
+    `@innovus_procs_common`
     `@innovus_procs_write_data`
     `@innovus_timing_out_design`
 
     # Exit interactive session
     exit
 '
-
-# Shell commands to update MD5 sum
-gf_add_shell_commands -post "
-    md5sum ./out/$TASK_NAME/*.gds.gz > ./out/$TASK_NAME.gds.gz.md5sum
-"
-
 
 # Task summary
 gf_add_status_marks ^Writing

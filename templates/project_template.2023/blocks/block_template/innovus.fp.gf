@@ -106,17 +106,32 @@ gf_add_tool_commands '
     # Pre-load settings
     `@innovus_pre_read_libs`
 
+    # Procedure to read last floorplan
+    set FLOORPLAN_FILE_LAST $FLOORPLAN_FILE
+    proc gf_read_floorplan_last {} {
+        puts "\033\[42m \033\[0m Reading floorplan $::FLOORPLAN_FILE_LAST ..."
+        read_floorplan $::FLOORPLAN_FILE_LAST.fp
+    }
+    
+    # Procedure to overwrite last floorplan
+    proc gf_write_floorplan_overwrite {} {
+        puts "\033\[42m \033\[0m Writing floorplan $::FLOORPLAN_FILE_LAST ..."
+        write_floorplan $::FLOORPLAN_FILE_LAST.fp
+        write_def -floorplan -io_row -routing $::FLOORPLAN_FILE_LAST.fp.def.gz
+    }
+    
     # Procedure to save new floorplan into block data directory
     proc gf_write_floorplan_global {{tag {}}} {
         upvar gf_fp_date gf_fp_date
         upvar gf_fp_index gf_fp_index
         set base "../../../../data/[exec date +%y%m%d]"
-        if {$tag != {}} {
-            set base "$base.$tag"
+        if {$tag == ""} {
+            set tag "[expr int(0.5+[get_db current_design .bbox.width])]x[expr int(0.5+[get_db current_design .bbox.length])]"
         }
-        puts "\033\[42m \033\[0m Writing floorplan $base.fp ..."
-        write_floorplan $base.fp
-        write_def -floorplan -io_row -routing $base.fp.def.gz
+        puts "\033\[42m \033\[0m Writing floorplan $base.$tag.fp ..."
+        set ::FLOORPLAN_FILE_LAST $base.$tag.fp
+        write_floorplan $base.$tag.fp
+        write_def -floorplan -io_row -routing $base.$tag.fp.def.gz
     }
     
     # Generate and read MMMC and OCV files 

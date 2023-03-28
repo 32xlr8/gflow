@@ -176,7 +176,7 @@ gf_add_tool_commands '
         reset_timing_derate
         source $OCV_FILE
     }
-    report_timing_derate > ./reports/$TASK_NAME.derate.rpt
+    redirect ./reports/$TASK_NAME.derate.rpt {report_timing_derate}
 
     # Create initial metrics
     create_snapshot -name Init
@@ -384,6 +384,7 @@ gf_add_tool_commands '
     exec mkdir -p ./reports/$TASK_NAME
     
     # Design-specific reports
+    `@innovus_procs_reports`
     `@innovus_design_reports_post_place`
     
     # Report collected metrics
@@ -419,6 +420,7 @@ gf_add_tool_commands '
     exec mkdir -p ./reports/$TASK_NAME
     
     # Design-specific reports
+    `@innovus_procs_reports`
     `@innovus_design_reports_post_clock`
 
     # Report collected metrics
@@ -454,6 +456,7 @@ gf_add_tool_commands '
     exec mkdir -p ./reports/$TASK_NAME
     
     # Design-specific reports
+    `@innovus_procs_reports`
     `@innovus_design_reports_post_route`
 
     # Report collected metrics

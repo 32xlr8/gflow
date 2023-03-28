@@ -84,11 +84,11 @@ gf_create_step -name gconfig_procs_generate_files '
                 gconfig::get_mmmc_commands -views $analysis_views -dump_to_file ./out/$TASK_NAME.$tag.timing.mmmc.tcl
 
                 set FH [open "./out/$TASK_NAME.$tag.timing.tcl" w]
+                puts $FH ""
                 puts $FH "set CONFIG_DIR \"\[file dirname \[info script\]\]\""
-
+                puts $FH ""
                 puts $FH "set MMMC_FILE \"\$CONFIG_DIR/$TASK_NAME.$tag.timing.mmmc.tcl\""
                 puts $FH "set OCV_FILE \"\$CONFIG_DIR/$TASK_NAME.$tag.timing.ocv.tcl\""
-
                 puts $FH ""
                 gf_write_corners_config $FH $analysis_views
 
@@ -114,6 +114,7 @@ gf_create_step -name gconfig_procs_generate_files '
             foreach {tag power_set} $power_sets {
                 set FH [open "./out/$TASK_NAME.$tag.power.tcl" w]
                 puts $FH "set CONFIG_DIR \"\[file dirname \[info script\]\]\""
+                puts $FH ""
 
                 # Analysis views
                 set analysis_views_index {}
@@ -121,32 +122,53 @@ gf_create_step -name gconfig_procs_generate_files '
                 foreach {var view} $power_set {
                     try {
                         
-                        # Extraction corners
-                        if {[lsearch -exact {PGV_SPEF_CORNER SIGNAL_SPEF_CORNER POWER_SPEF_CORNER} $var] >= 0} {
+                        # RC variables only
+                        if {[lsearch -exact {PGV_RC_CORNER} $var] >= 0} {
                             puts $FH "set ${var}_QRC_FILE {[gconfig::get_files qrc -view $view]}"
                             puts $FH "set ${var}_TEMPERATURE {[gconfig::get temperature -view $view]}"
+                            puts $FH ""
+
+                        # Extraction corners
+                        } elseif {[lsearch -exact {SIGNAL_SPEF_CORNER POWER_SPEF_CORNER} $var] >= 0} {
+                            puts $FH "set ${var} {[gconfig::get extract_corner_name -view $view]}"
+                            puts $FH ""
+                            lappend analysis_views $view
 
                         # MMMC views
-                        } elseif {[lsearch -exact {STATIC_POWER_VIEW DINAMIC_POWER_VIEW STATIC_RAIL_VIEW DINAMIC_RAIL_VIEW SIGNAL_EM_VIEW} $var] >= 0} {
+                        } elseif {[lsearch -exact {STATIC_POWER_VIEW DYNAMIC_POWER_VIEW SIGNAL_EM_VIEW} $var] >= 0} {
                             set name [gconfig::get analysis_view_name -view $view]
-                            puts $FH "set ${var}_QRC_FILE {[gconfig::get_files qrc -view $view]}"
-                            puts $FH "set ${var}_TEMPERATURE {[gconfig::get temperature -view $view]}"
                             puts $FH "set ${var}_MMMC_FILE \"\$CONFIG_DIR/$TASK_NAME.$tag.power.mmmc.$name.tcl\""
                             puts $FH "set ${var}_OCV_FILE \"\$CONFIG_DIR/$TASK_NAME.$tag.power.ocv.$name.tcl\""
-                            
+                            puts $FH ""
+
                             if {[lsearch -exact $analysis_views_index $name] < 0} {
                                 lappend analysis_views_index $name
                                 gconfig::get_ocv_commands -views [list $view] -dump_to_file ./out/$TASK_NAME.$tag.power.ocv.$name.tcl
                                 gconfig::get_mmmc_commands -views [list $view] -dump_to_file ./out/$TASK_NAME.$tag.power.mmmc.$name.tcl
                             }
+                            lappend analysis_views $view
+                            
+                        # MMMC views and RC variables
+                        } elseif {[lsearch -exact {STATIC_RAIL_VIEW DYNAMIC_RAIL_VIEW} $var] >= 0} {
+                            set name [gconfig::get analysis_view_name -view $view]
+                            puts $FH "set ${var}_QRC_FILE {[gconfig::get_files qrc -view $view]}"
+                            puts $FH "set ${var}_TEMPERATURE {[gconfig::get temperature -view $view]}"
+                            puts $FH "set ${var}_MMMC_FILE \"\$CONFIG_DIR/$TASK_NAME.$tag.power.mmmc.$name.tcl\""
+                            puts $FH "set ${var}_OCV_FILE \"\$CONFIG_DIR/$TASK_NAME.$tag.power.ocv.$name.tcl\""
+                            puts $FH ""
+
+                            if {[lsearch -exact $analysis_views_index $name] < 0} {
+                                lappend analysis_views_index $name
+                                gconfig::get_ocv_commands -views [list $view] -dump_to_file ./out/$TASK_NAME.$tag.power.ocv.$name.tcl
+                                gconfig::get_mmmc_commands -views [list $view] -dump_to_file ./out/$TASK_NAME.$tag.power.mmmc.$name.tcl
+                            }
+                            lappend analysis_views $view
                             
                         # Unknown type
                         } else {
                             puts "\033\[41;31m \033\[0m Unknown $var corner/view type"
                             set is_ok 0
                         }
-                        
-                        lappend analysis_views $view
                         
                     } on error {result options} {
                         set is_ok 0

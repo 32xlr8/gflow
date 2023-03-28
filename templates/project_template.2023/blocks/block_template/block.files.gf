@@ -267,13 +267,15 @@ gf_create_step -name gconfig_cadence_mmmc_files '
 
 # # PGV libraries for rail analysis (optional, will be asked if empty)
 # VOLTUS_PGV_LIBS="
-#     <PLACEHOLDER>../../../../../voltus.pgv.0000/out/TechPGV.cl
-#     <PLACEHOLDER>../../../../../voltus.pgv.0000/out/CellsPGV.cl
-#     <PLACEHOLDER>../../../../../voltus.pgv.0000/out/MacrosPGV.cl
+#     <PLACEHOLDER>../../../../../voltus.pgv.0000/out/TechPGV/techonly.cl
+#     <PLACEHOLDER>../../../../../voltus.pgv.0000/out/CellsPGV/stdcells.cl
+#     <PLACEHOLDER>../../../../../voltus.pgv.0000/out/MacrosPGV/macros.cl
 # "
 
 # # Specific design configuration for power analysis (optional, will be asked if empty)
 # VOLTUS_POWER_CONFIG_FILE='../../../config.gen.0000/out/ConfigSignoff*.power.tcl'
+# VOLTUS_DATA_OUT_CONFIG_FILE='../../../innovus.out.0000/out/DataOutPhysical*.design.tcl'
+# VOLTUS_SPEF_CONFIG_FILE='../../../quantus.ext.0000/out/Extraction*.design.tcl'
 
 ################################################################################
 # Calibre input files - ./calibre.phys.gf

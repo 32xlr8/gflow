@@ -66,9 +66,12 @@ gf_add_tool_commands '
 
     # Stage-specific options    
     `@voltus_pre_write_pgv_tech_only`
+
+    # Print info
+    puts "QRC file: {$PGV_RC_CORNER_TEMPERATURE $PGV_RC_CORNER_QRC_FILE}"
         
     # Write out library
-    write_pg_library -out_dir ./out/$TASK_NAME.cl
+    write_pg_library -out_dir ./out/$TASK_NAME
     
     # Exit interactive session
     exit
@@ -117,8 +120,11 @@ gf_add_tool_commands '
     # Stage-specific options    
     `@voltus_pre_write_pgv_standard_cells`
 
+    # Print info
+    puts "QRC file: {$PGV_RC_CORNER_TEMPERATURE $PGV_RC_CORNER_QRC_FILE}"
+
     # Write out library
-    write_pg_library -out_dir ./out/$TASK_NAME.cl
+    write_pg_library -out_dir ./out/$TASK_NAME
     
     # Exit interactive session
     exit
@@ -175,8 +181,11 @@ gf_add_tool_commands '
     # Block-specific settings
     `@init_block_voltus_pgv_macros`
 
+    # Print info
+    puts "QRC file: {$PGV_RC_CORNER_TEMPERATURE $PGV_RC_CORNER_QRC_FILE}"
+
     # Write out library
-    write_pg_library -out_dir ./out/$TASK_NAME.cl
+    write_pg_library -out_dir ./out/$TASK_NAME
     
     # Exit interactive session
     exit

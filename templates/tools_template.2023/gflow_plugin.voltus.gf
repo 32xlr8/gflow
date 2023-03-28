@@ -77,7 +77,7 @@ function gf_use_voltus {
 
     # Status marks
     gf_add_success_marks 'Exiting Voltus' 'Ending.*Voltus'
-    gf_add_status_marks 'Run directory:' 'Extraction view:' 'Power analysis view:'
+    gf_add_status_marks 'Run directory:' 'SPEF file:' 'QRC file:' 'MMMC file:'
     gf_add_status_marks 'Voltage Source.*%' 'Current Tap.*%'
     gf_add_status_marks 'annotated' 'disconnected nodes'
     gf_add_status_marks 'Total.*Power:' 'Total .* coverage:' 'Num Violations:' 'Instance.* IR Drop:'
@@ -134,7 +134,7 @@ function gf_use_voltus_batch {
 
     # Status marks
     gf_add_success_marks 'Exiting Voltus' 'Ending.*Voltus'
-    gf_add_status_marks 'Run directory:' 'Extraction view:' 'Power analysis view:'
+    gf_add_status_marks 'Run directory:' 'SPEF file:' 'QRC file:' 'MMMC file:'
     gf_add_status_marks 'Voltage Source.*%' 'Current Tap.*%'
     gf_add_status_marks 'annotated' 'disconnected nodes'
     gf_add_status_marks 'Total.*Power:' 'Total .* coverage:' 'Num Violations:' 'Instance.* IR Drop:'

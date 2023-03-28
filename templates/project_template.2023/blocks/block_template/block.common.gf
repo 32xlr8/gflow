@@ -324,25 +324,26 @@ gf_create_step -name gconfig_settings_signoff '
     # Power analysis scenarios:
     # -------------------------
     # - each scenario is {<scenario_name> {view_type {analysis_view} ...}}
-    #   - PGV_SPEF_CORNER - PGV generation extraction corner
-    #   - SIGNAL_SPEF_CORNER - Signal nets extraction corner
-    #   - POWER_SPEF_CORNER - Power grid extraction corner
-    #   - STATIC_POWER_VIEW - Static power analysis view
-    #   - DINAMIC_POWER_VIEW - Dynamic power analysis view
-    #   - STATIC_RAIL_VIEW - Static rail analysis view
-    #   - DINAMIC_RAIL_VIEW - Dynamic rail analysis view
-    #   - SIGNAL_EM_VIEW - Signal electromigration analysis view
+    #   - PGV_RC_CORNER - PGV generation extraction corner (worst RC parasitics)
+    #   - SIGNAL_SPEF_CORNER - Signal nets extraction corner (best RC parasitics)
+    #   - POWER_SPEF_CORNER - Power grid extraction corner (worst C parasitics)
+    #   - STATIC_POWER_VIEW - Static power analysis view (worst cells currents)
+    #   - DYNAMIC_POWER_VIEW - Dynamic power analysis view (worst cells currents)
+    #   - STATIC_RAIL_VIEW - Static rail analysis view (worst RC parasitics)
+    #   - DYNAMIC_RAIL_VIEW - Dynamic rail analysis view (worst RC parasitics)
+    #   - SIGNAL_EM_VIEW - Signal electromigration analysis view (worst cells currents, worst C parasitics)
     set POWER_SETS {
         basic {
-            PGV_SPEF_CORNER {* * * 125 rcw *}
+            PGV_RC_CORNER {* * * 125 rcw *}
+            
             SIGNAL_SPEF_CORNER {* * * m40 rcb *}
             POWER_SPEF_CORNER {* * * 125 cw *}
             
             STATIC_POWER_VIEW {func ff 1p100v 125 cw h}
-            DINAMIC_POWER_VIEW {func ff 1p100v 125 cw h}
-            
+            DYNAMIC_POWER_VIEW {func ff 1p100v 125 cw h}
+
             STATIC_RAIL_VIEW {func ss 0p900v 125 rcw h}
-            DINAMIC_RAIL_VIEW {func ss 0p900v 125 rcw h}
+            DYNAMIC_RAIL_VIEW {func ss 0p900v 125 rcw h}
 
             SIGNAL_EM_VIEW {func ff 1p100v 125 cw h}
         }

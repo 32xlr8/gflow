@@ -44,9 +44,9 @@ gf_set_task_options -disable MacrosPGV
 # # Disable not needed power analysis tasks
 # gf_set_task_options -disable StaticPower
 # gf_set_task_options -disable StaticRail
-gf_set_task_options -enable DynamicPower
-gf_set_task_options -enable DynamicRail
-gf_set_task_options -enable SignalEM
+gf_set_task_options -disable DynamicPower
+gf_set_task_options -disable DynamicRail
+gf_set_task_options -disable SignalEM
 
 ################################################################################
 # Flow variables
@@ -214,8 +214,8 @@ gf_create_step -name voltus_pre_write_pgv_tech_only '
         -decap_cells $PGV_DECAP_CELLS \
         -default_area_cap 0.01fF \
         -lef_layer_map ./in/$TASK_NAME.lef.map \
-        -extraction_tech_file $PGV_SPEF_CORNER_QRC_FILE \
-        -temperature $PGV_SPEF_CORNER_TEMPERATURE \
+        -extraction_tech_file $PGV_RC_CORNER_QRC_FILE \
+        -temperature $PGV_RC_CORNER_TEMPERATURE \
         -current_distribution propagation \
         -cell_type techonly
 
@@ -231,8 +231,8 @@ gf_create_step -name voltus_pre_write_pgv_standard_cells '
 
     # Standard cells PGV settings
     set_pg_library_mode \
-        -extraction_tech_file $PGV_SPEF_CORNER_QRC_FILE \
-        -temperature $PGV_SPEF_CORNER_TEMPERATURE \
+        -extraction_tech_file $PGV_RC_CORNER_QRC_FILE \
+        -temperature $PGV_RC_CORNER_TEMPERATURE \
         -spice_models {`$VOLTUS_PGV_SPICE_MODELS`} \
         -spice_corners {`$VOLTUS_PGV_SPICE_CORNERS`} \
         -spice_subckts {`$VOLTUS_PGV_SPICE_FILES`} \
@@ -274,8 +274,8 @@ gf_create_step -name voltus_pre_write_pgv_macros '
 
     # Macro PGV settings
     set_pg_library_mode \
-        -extraction_tech_file $PGV_SPEF_CORNER_QRC_FILE \
-        -temperature $PGV_SPEF_CORNER_TEMPERATURE \
+        -extraction_tech_file $PGV_RC_CORNER_QRC_FILE \
+        -temperature $PGV_RC_CORNER_TEMPERATURE \
         -stream_files [join {`$GDS_FILES`}] \
         -spice_models {`$VOLTUS_PGV_SPICE_MODELS`} \
         -spice_corners {`$VOLTUS_PGV_SPICE_CORNERS`} \
@@ -342,7 +342,7 @@ gf_create_step -name voltus_run_report_power_static '
 
     # Generate power database
     set_power_output_dir ./out/$TASK_NAME.power
-    report_power
+    redirect -tee ./reports/$TASK_NAME.power.rpt {report_power}
 '
 
 # Commands before performing static rail analysis
@@ -361,15 +361,18 @@ gf_create_step -name voltus_run_report_rail_static '
     set_pg_net -net VDD -voltage 0.000 -threshold 0.000
     set_pg_net -net VSS -voltage 0 -threshold 0.000
 
-    # Tap coordinates files
-    <PLACEHOLDER>
-    set_power_pads -format xy -net VDD -file ./out/$MOTHER_TASK_NAME.VDD.pp
-    set_power_pads -format xy -net VSS -file ./out/$MOTHER_TASK_NAME.VSS.pp
-    
+    # Option 1: Tap coordinates files generated in data out task
+    foreach net [list $VOLTUS_POWER_NETS $VOLTUS_GROUND_NETS] {
+        set_power_pads -format xy -net $net -file $CONFIG_DIR/$CONFIG_TASK_NAME/$DESIGN_NAME.$net.pp
+    }
+    # # Option 2: Tap coordinates files specified manually
+    # set_power_pads -format xy -net VDD -file /PATH/TO/VDD.pp
+    # set_power_pads -format xy -net VSS -file /PATH/TO/VSS.pp
+
     # Power data
     set power_files {}
     foreach net [list $VOLTUS_POWER_NETS $VOLTUS_GROUND_NETS] {
-        lappend power_files ./out/$POWER_TASK.power/dynamic_${net}.ptiavg
+        lappend power_files ./out/$POWER_TASK.power/static_${net}.ptiavg
     }
     set_power_data -format current -scale 1 $power_files
 
@@ -421,7 +424,7 @@ gf_create_step -name voltus_run_report_power_dynamic '
 
     # Generate power database
     set_power_output_dir ./out/$TASK_NAME.power
-    report_power
+    redirect -tee ./reports/$TASK_NAME.power.rpt {report_power}
 '
 
 # Commands before performing dynamic rail analysis
@@ -429,8 +432,8 @@ gf_create_step -name voltus_run_report_rail_dynamic '
 
     # Dynamic rail analysis settings
     set_rail_analysis_mode \
-        -extraction_tech_file $STATIC_RAIL_VIEW_QRC_FILE \
-        -temperature $STATIC_RAIL_VIEW_TEMPERATURE \
+        -extraction_tech_file $DYNAMIC_RAIL_VIEW_QRC_FILE \
+        -temperature $DYNAMIC_RAIL_VIEW_TEMPERATURE \
         -power_grid_libraries [join {`$VOLTUS_PGV_LIBS`}] \
         -ict_em_models [join {`$VOLTUS_ICT_EM_RULE`}] \
         -accuracy hd -method dynamic -ignore_shorts true -limit_number_of_steps false
@@ -443,10 +446,13 @@ gf_create_step -name voltus_run_report_rail_dynamic '
     set_pg_net -net VDD -voltage 0.000 -threshold 0.000
     set_pg_net -net VSS -voltage 0 -threshold 0.000
 
-    # Tap coordinates files
-    <PLACEHOLDER>
-    set_power_pads -format xy -net VDD -file ./out/$MOTHER_TASK_NAME.VDD.pp
-    set_power_pads -format xy -net VSS -file ./out/$MOTHER_TASK_NAME.VSS.pp
+    # Option 1: Tap coordinates files generated in data out task
+    foreach net [list $VOLTUS_POWER_NETS $VOLTUS_GROUND_NETS] {
+        set_power_pads -format xy -net $net -file $CONFIG_DIR/$CONFIG_TASK_NAME/$DESIGN_NAME.$net.pp
+    }
+    # # Option 2: Tap coordinates files specified manually
+    # set_power_pads -format xy -net VDD -file /PATH/TO/VDD.pp
+    # set_power_pads -format xy -net VSS -file /PATH/TO/VSS.pp
 
     # Power data
     set power_files {}

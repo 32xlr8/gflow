@@ -101,8 +101,8 @@ gf_add_tool_commands '
     # Load configuration variables
     source $TIMING_CONFIG_FILE
 
-    # Common tool procedures
-    `@innovus_procs_common`
+    # Load common tool procedures
+    source ./scripts/$TASK_NAME.procs.tcl
 
     # Pre-load settings
     `@innovus_pre_read_libs`
@@ -210,6 +210,13 @@ gf_add_tool_commands '
 
     # Close interactive session
     exit
+'
+
+# Common tool procedures
+gf_add_tool_commands -comment '#' -file ./scripts/$TASK_NAME.procs.tcl '
+    `@innovus_procs_common`
+    `@innovus_procs_interactive_design`
+    `@innovus_procs_eco_design`
 '
 
 # Display status
@@ -334,7 +341,7 @@ gf_add_tool_commands '
     # Stage-specific Innovus options    
     `@innovus_pre_route_opt_setup_hold`
 
-    # # Re-insert fillers by priority (    # Perform post-route setup and hold optimization
+    # Perform post-route setup and hold optimization
     set_db opt_new_inst_prefix RouteOptSetupHold
     opt_design -post_route -setup -hold -report_dir ./reports/$TASK_NAME -report_prefix opt_design \
         -hold_violation_report ./reports/$TASK_NAME/opt_design.hold_violations

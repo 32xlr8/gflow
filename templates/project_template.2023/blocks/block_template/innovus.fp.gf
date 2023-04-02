@@ -110,14 +110,14 @@ gf_add_tool_commands '
     set FLOORPLAN_FILE_LAST $FLOORPLAN_FILE
     proc gf_read_floorplan_last {} {
         puts "\033\[42m \033\[0m Reading floorplan $::FLOORPLAN_FILE_LAST ..."
-        read_floorplan $::FLOORPLAN_FILE_LAST.fp
+        read_floorplan $::FLOORPLAN_FILE_LAST
     }
     
     # Procedure to overwrite last floorplan
     proc gf_write_floorplan_overwrite {} {
         puts "\033\[42m \033\[0m Writing floorplan $::FLOORPLAN_FILE_LAST ..."
-        write_floorplan $::FLOORPLAN_FILE_LAST.fp
-        write_def -floorplan -io_row -routing $::FLOORPLAN_FILE_LAST.fp.def.gz
+        write_floorplan $::FLOORPLAN_FILE_LAST
+        write_def -floorplan -io_row -routing $::FLOORPLAN_FILE_LAST.def.gz
     }
     
     # Procedure to save new floorplan into block data directory
@@ -126,7 +126,7 @@ gf_add_tool_commands '
         upvar gf_fp_index gf_fp_index
         set base "../../../../data/[exec date +%y%m%d]"
         if {$tag == ""} {
-            set tag "[expr int(0.5+[get_db current_design .bbox.width])]x[expr int(0.5+[get_db current_design .bbox.length])]"
+            set tag "[expr int(0.5+[get_db current_design .bbox.ur.x]-[get_db current_design .bbox.ll.x])]x[expr int(0.5+[get_db current_design .bbox.ur.y]-[get_db current_design .bbox.ll.y])]"
         }
         puts "\033\[42m \033\[0m Writing floorplan $base.$tag.fp ..."
         set ::FLOORPLAN_FILE_LAST $base.$tag.fp
@@ -206,10 +206,8 @@ gf_add_tool_commands '
         set_db place_global_ignore_scan false
     }
     
-    # Common tool procedures
-    `@innovus_procs_common`
-    `@innovus_procs_interactive_design`
-    `@innovus_procs_eco_design`
+    # Load common tool procedures
+    source ./scripts/$TASK_NAME.procs.tcl
 
     # Stage-specific options    
     if {$TIMING_MODE == "Y"} {
@@ -238,6 +236,13 @@ gf_add_tool_commands '
     gui_show
     gui_fit
     gui_set_draw_view fplan
+'
+
+# Common tool procedures
+gf_add_tool_commands -comment '#' -file ./scripts/$TASK_NAME.procs.tcl '
+    `@innovus_procs_common`
+    `@innovus_procs_interactive_design`
+    `@innovus_procs_eco_design`
 '
 
 # Run task

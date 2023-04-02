@@ -139,13 +139,20 @@ gf_add_tool_commands '
     exec mkdir ./out/$TASK_NAME/
     exec ln -nsf $DATABASE ./out/$TASK_NAME/$DESIGN_NAME.innovus.db
 
+    # Load common tool procedures
+    source ./scripts/$TASK_NAME.procs.tcl
+
     # Write out design files
-    `@innovus_procs_common`
     `@innovus_procs_write_data`
     `@innovus_timing_out_design`
 
     # Exit interactive session
     exit
+'
+
+# Common tool procedures
+gf_add_tool_commands -comment '#' -file ./scripts/$TASK_NAME.procs.tcl '
+    `@innovus_procs_common`
 '
 
 # Task summary

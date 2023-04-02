@@ -338,6 +338,8 @@ gf_create_step -name genus_design_reports_post_syn_gen '
     redirect ./reports/$TASK_NAME/timing.500.tarpt {report_timing -fields {+ timing_point arc cell delay transition fanout load} -max_paths 500}
     redirect ./reports/$TASK_NAME/timing.end.tarpt {report_timing -path_type endpoint -max_paths 1000}
     redirect ./reports/$TASK_NAME/timing.lint.tarpt {report_timing -lint -verbose}
+
+    redirect ./reports/$TASK_NAME/messages.rpt {report_messages}
 '
 
 # Post-mapping Genus reports
@@ -365,4 +367,6 @@ gf_create_step -name genus_design_reports_post_syn_map '
         write_sdc -view $view > ./out/$TASK_NAME.$view.sdc
         write_sdf -view $view -edges check_edge -interconn interconnect -nonegchecks > ./out/$TASK_NAME.$view.sdf
     }
+
+    redirect ./reports/$TASK_NAME/messages.rpt {report_messages}
 '

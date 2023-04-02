@@ -75,10 +75,8 @@ gf_add_tool_commands '
     # Top level design name
     set DESIGN_NAME [get_db current_design .name]
     
-    # Common tool procedures
-    `@innovus_procs_common`
-    `@innovus_procs_interactive_design`
-    `@innovus_procs_eco_design`
+    # Load common tool procedures
+    source ./scripts/$TASK_NAME.procs.tcl
 
     # Trace timing utility
     if {$TIMING_MODE == "Y"} {
@@ -92,6 +90,13 @@ gf_add_tool_commands '
 
     set_layer_preference phyCell -color #555555
     gui_show
+'
+
+# Common tool procedures
+gf_add_tool_commands -comment '#' -file ./scripts/$TASK_NAME.procs.tcl '
+    `@innovus_procs_common`
+    `@innovus_procs_interactive_design`
+    `@innovus_procs_eco_design`
 '
 
 # Run task

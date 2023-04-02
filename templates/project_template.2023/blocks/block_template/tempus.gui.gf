@@ -34,8 +34,8 @@ gf_source "./block.common.gf"
 gf_source "./block.files.gf"
 gf_source "./block.tempus.gf"
 
-# General flow script options
-gf_set_flow_options -continue -restart -auto_close -hide
+# Basic flow script options
+gf_set_flow_options -continue -incr -auto_close -hide
 
 ########################################
 # Tempus STA
@@ -112,7 +112,7 @@ gf_add_tool_commands '
     # Generate and load OCV configuration
     reset_timing_derate
     source ./scripts/$TASK_NAME.ocv.tcl
-    report_timing_derate > ./reports/$TASK_NAME.derate.rpt
+    redirect ./reports/$TASK_NAME.derate.rpt {report_timing_derate}
     
     # Initialize tool environment
     `@tempus_post_init_design_technology`

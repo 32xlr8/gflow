@@ -34,8 +34,8 @@ gf_source "./block.common.gf"
 gf_source "./block.files.gf"
 gf_source "./block.calibre.gf"
 
-# General flow script options
-gf_set_flow_options -continue -restart -auto_close -hide
+# Basic flow script options
+gf_set_flow_options -continue -incr -auto_close -hide
 
 ########################################
 # Automatical GDS selection

@@ -19,9 +19,10 @@
 ################################################################################
 # Filename: integration/language_gf.lua
 # Purpose:  Language support for lite-xl text editor
-# Filename: integration/bash.rc
-# Purpose:  Resources file for bash shell
 ################################################################################
+-- mod-version:3
+local syntax = require "core.syntax"
+
 -- Lite-XL language syntax for Generic Flow
 -- Put it under ~/.config/lite-xl/plugins/
 
@@ -119,23 +120,3 @@ syntax.add {
     ["false"]     = "literal"
   }
 }
-
-
-function . { ls --color "$PWD"/* -1d; }
-function .. { cd ..; pwd; ls --color "$PWD"/* -1d; }
-function ... { cd ../..; pwd; ls --color; }
-
-function ll { ls --color -ltra $@; }
-function ld {
-    DIR=$PWD
-    while [ "$DIR" != "/" -a  "$DIR" != "." ]; do
-      ls -ld $DIR
-      DIR=$(dirname $DIR)
-    done
-}
-
-function e { nedit $@ & }
-function r { nedit -read $@ & }
-
-function xb { xterm -fg '#AAAAAA' -bg '#110000' -xrm 'xterm.vt100.foreground:#AAAAAA' -xrm 'xterm.vt100.background:#000000' -xrm 'xterm.vt100.cursorColor:#AAAAAA' -xrm 'xterm.vt100.color0:#555555' -xrm 'xterm.vt100.color8:#888888' -xrm 'xterm.vt100.color1:#BB3333' -xrm 'xterm.vt100.color9:#FF4040' -xrm 'xterm.vt100.color2:#33AA33' -xrm 'xterm.vt100.color10:#66FF66' -xrm 'xterm.vt100.color3:#CCCC33' -xrm 'xterm.vt100.color11:#FFFF33' -xrm 'xterm.vt100.color4:#0066CC' -xrm 'xterm.vt100.color12:#3399FF' -xrm 'xterm.vt100.color5:#AA66AA' -xrm 'xterm.vt100.color13:#FF88FF' -xrm 'xterm.vt100.color6:#00CCCC' -xrm 'xterm.vt100.color14:#00FFFF' -xrm 'xterm.vt100.color7:#D5D5D5' -xrm 'xterm.vt100.color15:#FFFFFF' -xrm 'xterm.vt100.colorBD:#FFFFFF' & }
-function xw { xterm -fg '#444444' -bg '#FFFFFF' -xrm 'xterm.vt100.foreground:#444444' -xrm 'xterm.vt100.background:#FFFFFF' -xrm 'xterm.vt100.cursorColor:#444444' -xrm 'xterm.vt100.color0:#AAAAAA' -xrm 'xterm.vt100.color8:#888888' -xrm 'xterm.vt100.color1:#AA0000' -xrm 'xterm.vt100.color9:#FF0000' -xrm 'xterm.vt100.color2:#008800' -xrm 'xterm.vt100.color10:#00CC00' -xrm 'xterm.vt100.color3:#777700' -xrm 'xterm.vt100.color11:#999900' -xrm 'xterm.vt100.color4:#005588' -xrm 'xterm.vt100.color12:#0088AA' -xrm 'xterm.vt100.color5:#885588' -xrm 'xterm.vt100.color13:#AA88AA' -xrm 'xterm.vt100.color6:#008888' -xrm 'xterm.vt100.color14:#00AAAA' -xrm 'xterm.vt100.color7:#222222' -xrm 'xterm.vt100.color15:#000000' -xrm 'xterm.vt100.colorBD:#000000' & }

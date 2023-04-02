@@ -260,6 +260,9 @@ gf_create_step -name innovus_procs_interactive_design '
         # # Macros detection
         # set macros [get_db insts -if .area>$macro_area_threshold]
         
+        # Hide main window
+        gui_hide
+        
         # # Remove existing follow pins and stripes
         # catch {delete_route_blockage -name add_stripe_blockage}
         # delete_routes -net $nets -status routed
@@ -551,20 +554,22 @@ gf_create_step -name innovus_procs_interactive_design '
 
         # # Create PG ports (automatically)
         # deselect_obj -all
-        # select_routes -layer M9 -nets $nets -shapes stripe
+        # select_routes -layer <PLACEHOLDER>M9 -nets $nets -shapes stripe
         # create_pg_pin -on_die -selected
         # deselect_obj -all
 
         # # Create PG ports in top layer
-        # foreach stripe [get_obj_in_area -areas [get_db current_design .bbox] -layers M5 -obj_type special_wire] {
-        #     set net_name [get_db $stripe .net.name]
-        #     if {[lsearch -exact $nets $net_name] >= 0} {
+        # foreach stripe [get_obj_in_area -areas [get_db current_design .bbox] -layers <PLACEHOLDER>M9 -obj_type special_wire] {
+        #     if {[lsearch -exact $nets [set net_name [get_db $stripe .net.name]]] >= 0} {
         #         create_pg_pin -name $net_name -net $net_name -geometry [get_db $stripe .layer.name] [get_db $stripe .rect.ll.x] [get_db $stripe .rect.ll.y] [get_db $stripe .rect.ur.x] [get_db $stripe .rect.ur.y]
         #     }
         # }
 
         # # Colorize DPT layers
         # add_power_mesh_colors
+        
+        # Show main window
+        gui_hide
     }
 
     # Initialize IO rows
@@ -1378,13 +1383,13 @@ gf_create_step -name innovus_pre_place '
     # # Speed up RAM clock pins
     # lappend preplaced [gf_bufferize_pins -buffer_cell <PLACEHOLDER>DCCKD4 -placed -pins [get_db pins */CLK]]
     #
-    # # Bufferize selected pins
-    # lappend preplaced [gf_bufferize_pins -buffer_cell <PLACEHOLDER>BUFFD6 -placed -pins $pins_to_bufferize]
-    #
     # # Add and preplace buffers for critical pins to balance delay
     # set pins_to_bufferize [get_db -if .net.name!=<PLACEHOLDER>FE*TIE* -u \
     #     [get_db [get_db ports "<PLACEHOLDER>PORTS*"] .net.drivers "*/<PLACEHOLDER>PAD"] \
     # .inst.pins "*/I"]
+    #
+    # # Bufferize selected pins
+    # lappend preplaced [gf_bufferize_pins -buffer_cell <PLACEHOLDER>BUFFD6 -placed -pins $pins_to_bufferize]
     #
     # # Magnify instances to selected pins
     # lappend preplaced [list [gf_magnify_pin_fan_instances -pins $pins_to_bufferize]]
@@ -1824,13 +1829,13 @@ gf_create_step -name innovus_physical_out_design '
     # Write physical netlist for LVS
     set exclude_cells [get_db [get_db base_cells {`$PHYSICAL_NETLIST_EXCLUDE_CELLS -optional`}] .name]
     if {[llength $exclude_cells] > 0} {
-        write_netlist -flatten_bus -exclude_leaf_cells \
+        write_netlist -keep_all_backslash -flatten_bus -exclude_leaf_cells \
             -exclude_insts_of_cells $exclude_cells  \
             -phys -include_pg_ports -include_phys_insts \
             -top_module $DESIGN_NAME \
             ./out/$TASK_NAME/$DESIGN_NAME.physical.v.gz
     } else {
-        write_netlist -flatten_bus -exclude_leaf_cells \
+        write_netlist -keep_all_backslash -flatten_bus -exclude_leaf_cells \
             -phys -include_pg_ports -include_phys_insts \
             -top_module $DESIGN_NAME \
             ./out/$TASK_NAME/$DESIGN_NAME.physical.v.gz
@@ -1839,12 +1844,12 @@ gf_create_step -name innovus_physical_out_design '
     # Write logical netlist for STA
     set exclude_cells [get_db [get_db base_cells {`$LOGICAL_NETLIST_EXCLUDE_CELLS -optional`}] .name]
     if {[llength $exclude_cells] > 0} {
-        write_netlist -flatten_bus -exclude_leaf_cells \
+        write_netlist -keep_all_backslash -flatten_bus -exclude_leaf_cells \
             -exclude_insts_of_cells $exclude_cells \
             -top_module_first -top_module $DESIGN_NAME \
             ./out/$TASK_NAME/$DESIGN_NAME.logical.v.gz
     } else {
-        write_netlist -flatten_bus -exclude_leaf_cells \
+        write_netlist -keep_all_backslash -flatten_bus -exclude_leaf_cells \
             -top_module_first -top_module $DESIGN_NAME \
             ./out/$TASK_NAME/$DESIGN_NAME.logical.v.gz
     }
@@ -1889,7 +1894,7 @@ gf_create_step -name innovus_physical_out_design '
     gf_write_pin_locations ./out/$TASK_NAME/$DESIGN_NAME.pins
     
     # Write current sources coordinates for power grid analysis
-    gf_write_current_sources_locations ./out/$TASK_NAME/$DESIGN_NAME
+    gf_write_current_sources_locations ./out/$TASK_NAME/$DESIGN_NAME <PLACEHOLDER>10.0
 
     # Output configuration file
     set FH [open "./out/$TASK_NAME.design.tcl" w]

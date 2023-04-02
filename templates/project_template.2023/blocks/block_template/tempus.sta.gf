@@ -283,7 +283,7 @@ gf_add_tool_commands '
         reset_timing_derate
         source $OCV_FILE
     }
-    report_timing_derate > ./reports/$TASK_NAME.derate.rpt
+    redirect ./reports/$TASK_NAME.derate.rpt {report_timing_derate}
     
     # Initialize tool environment
     `@tempus_post_init_design_technology`

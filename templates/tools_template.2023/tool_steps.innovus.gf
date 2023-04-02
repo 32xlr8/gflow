@@ -1502,8 +1502,8 @@ gf_create_step -name innovus_procs_write_data '
     }
     
     # Write out current sources coordinates
-    proc gf_write_current_sources_locations {file_base_name} {
-        set via_counter 0
+    proc gf_write_current_sources_locations {file_base_name {radius ""}} {
+        set total_counter 0
         foreach net [concat [get_db init_power_nets] [get_db init_ground_nets]] {
             set vias [get_db [get_db nets $net] .special_vias]
             set layers [get_db $vias .via_def.top_layer -u]
@@ -1515,19 +1515,70 @@ gf_create_step -name innovus_procs_write_data '
                     set top_layer_index [get_db $layer .route_index]
                 }
             }
-            puts "\033\[44m \033\[0m Writing $file_base_name.$net.pp"
-            set FH [open "$file_base_name.$net.pp" w]
-            set extract_corner_names {}
-            set net_via_counter 0
-            foreach via [get_db $vias -if .via_def.top_layer.name==$top_layer_name] {
-                incr via_counter
-                incr net_via_counter
-                puts $FH "${top_layer_name}_${via_counter} [get_db $via .point.x] [get_db $via .point.y] $top_layer_name"
+            
+            # Filtered points
+            set locations {}
+            
+            # Based on PG pins coordinates
+            if {[llength [set shapes [get_db [get_db ports $net] .physical_pins.layer_shapes -if .layer.name==$top_layer_name]]]} {
+                foreach shape [get_db $shapes .shapes] {
+                    # lappend locations [list \
+                        # [expr 0.5*([get_db $shape .rect.ll.x]+[get_db $shape .rect.ur.x])] \
+                        # [expr 0.5*([get_db $shape .rect.ll.y]+[get_db $shape .rect.ur.y])] \
+                    # ]
+                    lappend locations [list \
+                        [get_db $shape .rect.ll.x] \
+                        [get_db $shape .rect.ll.y] \
+                    ]
+                    lappend locations [list \
+                        [get_db $shape .rect.ur.x] \
+                        [get_db $shape .rect.ur.y] \
+                    ]
+                }
+             
+            # Based on upper layer via coordinates
+            } else {
+                foreach via [get_db $vias -if .via_def.top_layer.name==$top_layer_name] {
+                    lappend locations [list \
+                        [get_db $via .point.x] \
+                        [get_db $via .point.y] \
+                    ]
+                }
             }
-            puts "  \033\[42m \033\[0m $net_via_counter locations"
+            
+            # Filter current source locations
+            set written_locations {}
+            foreach location $locations {
+                set x0 [lindex $location 0]
+                set y0 [lindex $location 1]
+                set is_print 1
+                if {$radius != ""} {
+                    foreach check_location $written_locations {
+                        set x [lindex $check_location 0]
+                        set y [lindex $check_location 1]
+                        if {[expr sqrt(($x-$x0)*($x-$x0)+($y-$y0)*($y-$y0))] < $radius} {
+                            set is_print 0
+                            break
+                        }
+                    }
+                }
+                if {$is_print} {
+                    lappend written_locations $location
+                    incr total_counter
+                }
+            }
+            
+            # Write locations to file
+            puts "Writing $file_base_name.$net.pp - [llength $written_locations] locations"
+            set FH [open "$file_base_name.$net.pp" w]
+            set counter 0
+            foreach location $written_locations {
+                incr counter
+                puts $FH "${net}_${top_layer_name}_$counter [lindex $location 0] [lindex $location 1] $top_layer_name"
+            }
             close $FH
         }
-        puts "\n\033\[42m \033\[0m Total $via_counter locations written"
+        puts "\n\033\[42m \033\[0m Total $total_counter locations written"
     }
 '
 

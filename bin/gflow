@@ -4830,7 +4830,7 @@ function gf_set_flow_options {
                     local gf_task
                     GF_TASK_OPTIONS+="gf_set_task_option>$GF_TASK_OPTIONS_PRIORITY>*>-enable"$'\n'"0"$'\n'
                     gf_info "${GFC4}Specific${GFC0} tasks selected in command line."
-                    for gf_task in $1; do
+                    for gf_task in "$1"; do
                         GF_TASK_OPTIONS+="gf_set_task_option>$GF_TASK_OPTIONS_PRIORITY>$gf_task>-enable"$'\n'"1"$'\n'
                         # if [ -z "$GF_CONTROL_TASKS_CMD_LINE" ]; then
                             # GF_CONTROL_TASKS_CMD_LINE+="NE=* "

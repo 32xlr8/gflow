@@ -42,7 +42,7 @@ gf_set_flow_options -continue -incr -auto_close -hide
 ########################################
 
 # Choose available Genus database
-gf_choose_file_dir_task -variable DATABASE -keep -prompt "Please select database to load:" -files '
+gf_choose_file_dir_task -variable GENUS_DATABASE -keep -prompt "Choose database to load:" -files '
     ../work_*/*/out/*.genus.db
 '
 gf_spacer
@@ -58,8 +58,8 @@ gf_use_genus
 gf_add_tool_commands '
     
     # Read latest available database
-    set DATABASE {`$DATABASE`}
-    read_db $DATABASE
+    set GENUS_DATABASE {`$GENUS_DATABASE`}
+    read_db $GENUS_DATABASE
 
     # Top level design name
     set DESIGN_NAME [get_db current_design .name]
@@ -71,7 +71,6 @@ gf_add_tool_commands '
         gui_bind_key Shift+F8 -cmd "gf_gui_trace_timing_highlight_selected"
         puts "Use \[Shift+F8\] to trace timing through selected instance"
     }
-
 
     gui_show
 '

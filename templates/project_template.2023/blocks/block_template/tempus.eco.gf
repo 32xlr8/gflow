@@ -63,7 +63,7 @@ gf_choose -keep -variable ECO_SCENARIO -message "Which ECO scenario to run?" -va
 gf_want_tasks STA
 
 # Choose configuration file
-gf_choose_file_dir_task -variable TEMPUS_TIMING_CONFIG_FILE -keep -prompt "Please select timing configuration file:" -files '
+gf_choose_file_dir_task -variable TEMPUS_TIMING_CONFIG_FILE -keep -prompt "Choose timing configuration file:" -files '
     ../data/*.timing.tcl
     ../data/*/*.timing.tcl
     ../work_*/*/out/ConfigSignoff*.timing.tcl

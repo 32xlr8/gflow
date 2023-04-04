@@ -58,7 +58,7 @@ gf_create_step -name quantus_pre_init_design_power '
 # CCL Commands before design initialized
 gf_create_step -name quantus_pre_init_design '
 
-    # Please choose one of option 1.*  and 2.*
+    # Choose one of option 1.*  and 2.*
 
     # Option 1.1: LEF to QRC layer mapping file (./block.files.gf)
     include "`$QUANTUS_DEF_LAYER_MAP_FILE -optional`"

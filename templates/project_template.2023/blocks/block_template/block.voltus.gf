@@ -228,14 +228,17 @@ gf_create_step -name voltus_pre_write_pgv_tech_only '
 
 # Commands before generating PGV models for standard cells
 gf_create_step -name voltus_pre_write_pgv_standard_cells '
+    set VOLTUS_PGV_SPICE_MODELS {`$VOLTUS_PGV_SPICE_MODELS`}
+    set VOLTUS_PGV_SPICE_CORNERS {`$VOLTUS_PGV_SPICE_CORNERS`}
+    set VOLTUS_PGV_SPICE_FILES {`$VOLTUS_PGV_SPICE_FILES`}
 
     # Standard cells PGV settings
     set_pg_library_mode \
         -extraction_tech_file $PGV_RC_CORNER_QRC_FILE \
         -temperature $PGV_RC_CORNER_TEMPERATURE \
-        -spice_models {`$VOLTUS_PGV_SPICE_MODELS`} \
-        -spice_corners {`$VOLTUS_PGV_SPICE_CORNERS`} \
-        -spice_subckts {`$VOLTUS_PGV_SPICE_FILES`} \
+        -spice_models $VOLTUS_PGV_SPICE_MODELS \
+        -spice_corners $VOLTUS_PGV_SPICE_CORNERS \
+        -spice_subckts $VOLTUS_PGV_SPICE_FILES \
         -power_pins $PGV_POWER_PINS_PAIRS \
         -ground_pins $PGV_GROUND_PINS_PAIRS \
         -cells_file ./in/$TASK_NAME.cells \
@@ -271,16 +274,21 @@ gf_create_step -name voltus_pre_write_pgv_standard_cells '
 
 # Commands before generating PGV models for macros
 gf_create_step -name voltus_pre_write_pgv_macros '
+    set GDS_FILES {`$GDS_FILES`}
+    set VOLTUS_PGV_SPICE_MODELS {`$VOLTUS_PGV_SPICE_MODELS`}
+    set VOLTUS_PGV_SPICE_CORNERS {`$VOLTUS_PGV_SPICE_CORNERS`}
+    set VOLTUS_PGV_SPICE_FILES {`$VOLTUS_PGV_SPICE_FILES`}
+    set VOLTUS_PGV_SPICE_SCALING {`$VOLTUS_PGV_SPICE_SCALING`}
 
     # Macro PGV settings
     set_pg_library_mode \
         -extraction_tech_file $PGV_RC_CORNER_QRC_FILE \
         -temperature $PGV_RC_CORNER_TEMPERATURE \
-        -stream_files [join {`$GDS_FILES`}] \
-        -spice_models {`$VOLTUS_PGV_SPICE_MODELS`} \
-        -spice_corners {`$VOLTUS_PGV_SPICE_CORNERS`} \
-        -spice_subckts {`$VOLTUS_PGV_SPICE_FILES`} \
-        -spice_subckts_xy_scaling {`$VOLTUS_PGV_SPICE_SCALING`} \
+        -stream_files [join $GDS_FILES] \
+        -spice_models $VOLTUS_PGV_SPICE_MODELS \
+        -spice_corners $VOLTUS_PGV_SPICE_CORNERS \
+        -spice_subckts $VOLTUS_PGV_SPICE_FILES \
+        -spice_subckts_xy_scaling $VOLTUS_PGV_SPICE_SCALING \
         -power_pins $PGV_POWER_PINS_PAIRS \
         -ground_pins $PGV_GROUND_PINS_PAIRS \
         -cells_file ./in/$TASK_NAME.cells \
@@ -347,13 +355,15 @@ gf_create_step -name voltus_run_report_power_static '
 
 # Commands before performing static rail analysis
 gf_create_step -name voltus_run_report_rail_static '
-    
+    set VOLTUS_PGV_LIBS {`$VOLTUS_PGV_LIBS`}
+    set VOLTUS_ICT_EM_RULE {`$VOLTUS_ICT_EM_RULE`}
+
     # Static rail analysis settings
     set_rail_analysis_mode \
         -extraction_tech_file $STATIC_RAIL_VIEW_QRC_FILE \
         -temperature $STATIC_RAIL_VIEW_TEMPERATURE \
-        -power_grid_libraries [join {`$VOLTUS_PGV_LIBS`}] \
-        -ict_em_models [join {`$VOLTUS_ICT_EM_RULE`}] \
+        -power_grid_libraries [join $VOLTUS_PGV_LIBS] \
+        -ict_em_models [join $VOLTUS_ICT_EM_RULE] \
         -accuracy hd -method static -ignore_shorts true
    
     # Power nets settings
@@ -429,13 +439,15 @@ gf_create_step -name voltus_run_report_power_dynamic '
 
 # Commands before performing dynamic rail analysis
 gf_create_step -name voltus_run_report_rail_dynamic '
+    set VOLTUS_PGV_LIBS {`$VOLTUS_PGV_LIBS`}
+    set VOLTUS_ICT_EM_RULE {`$VOLTUS_ICT_EM_RULE`}
 
     # Dynamic rail analysis settings
     set_rail_analysis_mode \
         -extraction_tech_file $DYNAMIC_RAIL_VIEW_QRC_FILE \
         -temperature $DYNAMIC_RAIL_VIEW_TEMPERATURE \
-        -power_grid_libraries [join {`$VOLTUS_PGV_LIBS`}] \
-        -ict_em_models [join {`$VOLTUS_ICT_EM_RULE`}] \
+        -power_grid_libraries [join $VOLTUS_PGV_LIBS] \
+        -ict_em_models [join $VOLTUS_ICT_EM_RULE] \
         -accuracy hd -method dynamic -ignore_shorts true -limit_number_of_steps false
    
     # # Optional GIF creation
@@ -471,6 +483,7 @@ gf_create_step -name voltus_run_report_rail_dynamic '
 
 # Commands before performing dynamic rail analysis
 gf_create_step -name voltus_run_signal_em '
+    set VOLTUS_ICT_EM_RULE {`$VOLTUS_ICT_EM_RULE`}
 
     # Signal EM analysis settings
     set_default_switching_activity -input_activity <PLACEHOLDER>0.2
@@ -479,6 +492,6 @@ gf_create_step -name voltus_run_signal_em '
 
     # Run analysis
     check_ac_limits \
-        -ict_em_models [join {`$VOLTUS_ICT_EM_RULE`}] \
+        -ict_em_models [join $VOLTUS_ICT_EM_RULE] \
         -method peak 
 '

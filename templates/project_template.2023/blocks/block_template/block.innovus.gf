@@ -1221,6 +1221,7 @@ gf_create_step -name innovus_post_init_design '
 
 # Commands before design placement
 gf_create_step -name innovus_pre_place '
+    set INNOVUS_PARTITION_DATABASES {`$INNOVUS_PARTITION_DATABASES -optional`}
 
     # # Read in ILM
     # set_db ilm_keep_flatten true
@@ -1422,7 +1423,7 @@ gf_create_step -name innovus_pre_place '
     # puts "write_db ./out/$TASK_NAME.place_opt_post_place.innovus.db" > place_opt_post_place.tcl
     
     # # Assemble blocks to run in flat mode
-    # foreach partition_db {`$INNOVUS_PARTITION_DATABASES -optional`} {
+    # foreach partition_db $INNOVUS_PARTITION_DATABASES {
     #     assemble_design -block_dir $partition_db
     # }
     # 
@@ -1587,6 +1588,7 @@ gf_create_step -name innovus_pre_route_opt_setup_hold '
 
 # Commands after post-route setup and hold optimization
 gf_create_step -name innovus_post_route_opt_setup_hold '
+    set INNOVUS_DFM_VIA_SWAP_SCRIPT {`$INNOVUS_DFM_VIA_SWAP_SCRIPT -optional`}
     
     # # Re-insert fillers by priority (post-route mode)
     # if {0} {
@@ -1603,10 +1605,12 @@ gf_create_step -name innovus_post_route_opt_setup_hold '
     # check_filler
     # # add_fillers -fill_gap -prefix FILLER
 
-    # # DFM via replacement
-    # eval_legacy [subst {
-        # source {`$INNOVUS_DFM_VIA_SWAP_SCRIPT -optional`}
-    # }]
+    # DFM via replacement
+    if {[file exists $INNOVUS_DFM_VIA_SWAP_SCRIPT]} {
+        eval_legacy [subst {
+            source {$INNOVUS_DFM_VIA_SWAP_SCRIPT}
+        }]
+    }
 '
 
 # Commands before open GUI for debug
@@ -1767,6 +1771,7 @@ gf_create_step -name innovus_design_reports_post_clock '
 
 # Post-route design stage reports
 gf_create_step -name innovus_design_reports_post_route '
+    set LOGICAL_NETLIST_EXCLUDE_CELLS {`$LOGICAL_NETLIST_EXCLUDE_CELLS -optional`}
 
     # Set of pre-place reports in simultaneous setup and hold mode
     `@innovus_time_design_late_early_summary`
@@ -1791,7 +1796,7 @@ gf_create_step -name innovus_design_reports_post_route '
     #     -edges noedge -interconnect all -no_derate \
     #     -version 3.0
     # write_netlist -top_module_first -top_module $::DESIGN_NAME \
-    #     -exclude_insts_of_cells [get_db [get_db base_cells {`$LOGICAL_NETLIST_EXCLUDE_CELLS -optional`}] .name] \
+    #     -exclude_insts_of_cells [get_db [get_db base_cells $LOGICAL_NETLIST_EXCLUDE_CELLS -optional] .name] \
     #     ./out/$::TASK_NAME.v
 
     # Write out RC factors for pre to post route correlation
@@ -1804,6 +1809,11 @@ gf_create_step -name innovus_design_reports_post_route '
 
 # Commands to create block-specific data
 gf_create_step -name innovus_physical_out_design '
+    set PHYSICAL_NETLIST_EXCLUDE_CELLS {`$PHYSICAL_NETLIST_EXCLUDE_CELLS -optional`}
+    set LOGICAL_NETLIST_EXCLUDE_CELLS {`$LOGICAL_NETLIST_EXCLUDE_CELLS -optional`}
+    set INNOVUS_GDS_UNITS {`$INNOVUS_GDS_UNITS`}
+    set INNOVUS_GDS_LAYER_MAP_FILE [join {`$INNOVUS_GDS_LAYER_MAP_FILE`}]
+    set GDS_FILES [join {`$GDS_FILES`}]
 
     ##################################################
     # Netlist manipulations
@@ -1827,7 +1837,7 @@ gf_create_step -name innovus_physical_out_design '
     write_netlist ./out/$TASK_NAME/$DESIGN_NAME.v.gz
     
     # Write physical netlist for LVS
-    set exclude_cells [get_db [get_db base_cells {`$PHYSICAL_NETLIST_EXCLUDE_CELLS -optional`}] .name]
+    set exclude_cells [get_db [get_db base_cells $PHYSICAL_NETLIST_EXCLUDE_CELLS] .name]
     if {[llength $exclude_cells] > 0} {
         write_netlist -keep_all_backslash -flatten_bus -exclude_leaf_cells \
             -exclude_insts_of_cells $exclude_cells  \
@@ -1842,7 +1852,7 @@ gf_create_step -name innovus_physical_out_design '
     }
 
     # Write logical netlist for STA
-    set exclude_cells [get_db [get_db base_cells {`$LOGICAL_NETLIST_EXCLUDE_CELLS -optional`}] .name]
+    set exclude_cells [get_db [get_db base_cells $LOGICAL_NETLIST_EXCLUDE_CELLS] .name]
     if {[llength $exclude_cells] > 0} {
         write_netlist -keep_all_backslash -flatten_bus -exclude_leaf_cells \
             -exclude_insts_of_cells $exclude_cells \
@@ -1884,9 +1894,9 @@ gf_create_step -name innovus_physical_out_design '
     
     # Write out GDS for LVS
     write_stream -mode ALL -output_macros -uniquify_cell_names -die_area_as_boundary \
-        -unit {`$INNOVUS_GDS_UNITS`} \
-        -map_file [join {`$INNOVUS_GDS_LAYER_MAP_FILE`}] \
-        -merge [join {`$GDS_FILES`}] \
+        -unit $INNOVUS_GDS_UNITS \
+        -map_file $INNOVUS_GDS_LAYER_MAP_FILE \
+        -merge $GDS_FILES \
         ./out/$TASK_NAME/$DESIGN_NAME.gds.gz
     
     # Write out hcell file and pin locations for LVS

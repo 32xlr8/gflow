@@ -55,6 +55,7 @@ gf_add_tool_commands -comment '#' -file "./tasks/$TASK_NAME/run.bash" '
 
 # TCL script initialization
 gf_add_tool_commands -comment '#' -file "./scripts/$TASK_NAME.tcl" '
+    set TASK_NAME {`$TASK_NAME`}
 
     # Unsorted list of mtime-file pairs
     set unsorted_files {}
@@ -84,12 +85,12 @@ gf_add_tool_commands -comment '#' -file "./scripts/$TASK_NAME.tcl" '
     # Write metrics to compare
     if {[llength $ids]} {
         catch {
-            report_metric -id $ids -format html -file ./reports/`$TASK_NAME`.html
-            puts {Html metrics written: ./reports/`$TASK_NAME`.html}
+            report_metric -id $ids -format html -file ./reports/$TASK_NAME.html
+            puts {Html metrics written: ./reports/$TASK_NAME.html}
         }
         catch {
-            report_metric -id $ids -format vivid -file ./reports/`$TASK_NAME`.vivid.html
-            puts {Vivid metrics written: ./reports/`$TASK_NAME`.vivid.html}
+            report_metric -id $ids -format vivid -file ./reports/$TASK_NAME.vivid.html
+            puts {Vivid metrics written: ./reports/$TASK_NAME.vivid.html}
         }
     } else {
         puts "ERROR: No metric files found"

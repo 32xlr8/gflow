@@ -45,7 +45,7 @@ gf_create_task -name Floorplan
 gf_use_innovus
 
 # Choose netlist if not chosen
-gf_choose_file_dir_task -variable INNOVUS_NETLIST_FILES -keep -prompt "Please select netlist:" -files '
+gf_choose_file_dir_task -variable INNOVUS_NETLIST_FILES -keep -prompt "Choose netlist:" -files '
     ../data/*.v.gz
     ../data/*.v
     ../data/*/*.v.gz
@@ -55,7 +55,7 @@ gf_choose_file_dir_task -variable INNOVUS_NETLIST_FILES -keep -prompt "Please se
 '
 
 # Choose floorplan if not chosen
-gf_choose_file_dir_task -variable INNOVUS_FLOORPLAN_FILE -keep -prompt "Please select floorplan (optional):" -files '
+gf_choose_file_dir_task -variable INNOVUS_FLOORPLAN_FILE -keep -prompt "Choose floorplan (optional):" -files '
     ../data/*.fp
     ../data/*.fp.gz
     ../data/*/*.fp
@@ -70,7 +70,7 @@ gf_spacer
 
 # Choose configuration file
 if [ "$TIMING_MODE" == "Y" ]; then
-    gf_choose_file_dir_task -variable INNOVUS_TIMING_CONFIG_FILE -keep -prompt "Please select timing configuration file:" -files '
+    gf_choose_file_dir_task -variable INNOVUS_TIMING_CONFIG_FILE -keep -prompt "Choose timing configuration file:" -files '
         ../data/*.timing.tcl
         ../data/*/*.timing.tcl
         ../work_*/*/out/ConfigBackend*.timing.tcl
@@ -96,11 +96,11 @@ gf_add_tool_commands '
     set POWER_NETS {`$POWER_NETS_CORE` `$POWER_NETS_OTHER -optional`}
     set GROUND_NETS {`$GROUND_NETS_CORE` `$GROUND_NETS_OTHER -optional`}
     set TIMING_MODE {`$TIMING_MODE`}
-    set TIMING_CONFIG_FILE {`$INNOVUS_TIMING_CONFIG_FILE -optional`}
+    set INNOVUS_TIMING_CONFIG_FILE {`$INNOVUS_TIMING_CONFIG_FILE -optional`}
     
     # Load configuration variables
     if {$TIMING_MODE == "Y"} {
-        source $TIMING_CONFIG_FILE
+        source $INNOVUS_TIMING_CONFIG_FILE
     }
 
     # Pre-load settings

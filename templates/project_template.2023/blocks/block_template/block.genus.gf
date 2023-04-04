@@ -92,9 +92,10 @@ gf_create_step -name genus_pre_read_libs '
 
 # Read RTL files
 gf_create_step -name genus_read_rtl '
+    set RTL_SEARCH_PATHS {`$RTL_SEARCH_PATHS -optional`}
 
     # Define directories containing HDL files
-    set_db init_hdl_search_path [join {`$RTL_SEARCH_PATHS -optional`}]
+    set_db init_hdl_search_path [join $RTL_SEARCH_PATHS]
 
     # RTL files defined in block.files.gf
     set RTL_FILES {`$RTL_FILES -optional`}

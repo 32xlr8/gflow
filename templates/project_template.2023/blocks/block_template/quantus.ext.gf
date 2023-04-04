@@ -42,7 +42,7 @@ gf_create_task -name Extraction
 gf_use_quantus_batch
 
 # Choose gconfig file
-gf_choose_file_dir_task -variable QUANTUS_CORNERS_CONFIG_FILE -keep -prompt "Please select corners configuration file:" -files '
+gf_choose_file_dir_task -variable QUANTUS_CORNERS_CONFIG_FILE -keep -prompt "Choose corners configuration file:" -files '
     ../data/*.timing.tcl
     ../data/*.power.tcl
     ../data/*/*.timing.tcl
@@ -52,7 +52,7 @@ gf_choose_file_dir_task -variable QUANTUS_CORNERS_CONFIG_FILE -keep -prompt "Ple
 '
 
 # Choose DEF file
-gf_choose_file_dir_task -variable QUANTUS_DEF_FILE -keep -prompt "Please select design DEF file:" -files '
+gf_choose_file_dir_task -variable QUANTUS_DEF_FILE -keep -prompt "Choose design DEF file:" -files '
     ../data/*.full.def.gz
     ../data/*/*.full.def.gz
     ../work_*/*/out/*/*.full.def.gz
@@ -68,12 +68,11 @@ if [ -n "$QUANTUS_DUMMY_TOP" -a -z "$QUANTUS_DUMMY_GDS" ]; then
     # Select dummy fill to use when required
     if [ "$USE_DUMMY_GDS" == "Y" ]; then
         gf_spacer
-        gf_choose_file_dir_task -variable QUANTUS_DUMMY_GDS -keep -prompt "Please select dummy fill to use:" -files '
+        gf_choose_file_dir_task -variable QUANTUS_DUMMY_GDS -keep -prompt "Choose dummy fill to use:" -files '
             ../work_*/*/out/Dummy*.gds.gz
         ' -want -active -task_to_file '$RUN/out/$TASK.gds.gz' -tasks '
             ../work_*/*/tasks/Dummy*
         '
-        gf_info "Metal fill GDS \e[32m$QUANTUS_DUMMY_GDS\e[0m selected"
     fi
 fi
 [[ "$USE_DUMMY_GDS" != "Y" ]] && QUANTUS_DUMMY_GDS=""
@@ -102,6 +101,7 @@ gf_add_tool_commands '
 
 # Configuration TCL commands
 gf_add_tool_commands -comment '#' -file "./scripts/$TASK_NAME.config.tcl" '
+    set TASK_NAME {`$TASK_NAME`}
     
     # Current design variables
     set LEF_FILES {`$CADENCE_TLEF_FILES` `$LEF_FILES`}
@@ -181,7 +181,7 @@ gf_add_tool_commands -comment '#' -file "./scripts/$TASK_NAME.config.tcl" '
         puts $FH "# Configuration"
         puts $FH ""
         puts $FH "set SPEF_DIR \"\[file dirname \[info script\]\]\""
-        puts $FH "set SPEF_TASK_NAME {`$TASK_NAME`}"
+        puts $FH "set SPEF_TASK_NAME {$TASK_NAME}"
         puts $FH ""
         puts $FH "# Design"
         puts $FH ""
@@ -197,7 +197,7 @@ gf_add_tool_commands -comment '#' -file "./scripts/$TASK_NAME.config.tcl" '
         puts $FH "}"
         puts $FH "set SPEF_FILES {"
         foreach spef_file $spef_files {
-            puts $FH "    {`$TASK_NAME`.$spef_file.gz}"
+            puts $FH "    {$TASK_NAME.$spef_file.gz}"
         }
         puts $FH "}"
 

@@ -41,13 +41,11 @@ gf_source "./block.calibre.gf"
 gf_create_task -name Fill
 gf_use_calibre_drc_batch
 
-# Select Innovus database to analyze from latest available if $DATABASE is empty
+# Select Innovus database to analyze from latest available if $INNOVUS_DATABASE is empty
 gf_spacer
-gf_choose_file_dir_task -variable DATA_OUT_TASK -keep -prompt "Please select data out task:" -want -tasks '
+gf_choose_file_dir_task -variable DATA_OUT_TASK -keep -prompt "Choose data out task:" -want -tasks '
     ../work_*/*/tasks/DataOutPhysical*
 ' 
-
-gf_info "Data out \e[32m$DATA_OUT_TASK\e[0m task selected"
 
 gf_add_shell_commands -init "
     rm -f ./out/$TASK_NAME.gds

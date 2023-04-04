@@ -42,9 +42,9 @@ gf_source "./block.innovus.gf"
 gf_create_task -name DataOutPhysical
 gf_use_innovus
 
-# Select Innovus database to analyze from latest available if $DATABASE is empty
+# Select Innovus database to analyze from latest available if $INNOVUS_DATABASE is empty
 gf_spacer
-gf_choose_file_dir_task -variable DATABASE -keep -prompt "Please select database or active task:" -dirs '
+gf_choose_file_dir_task -variable INNOVUS_DATABASE -keep -prompt "Choose database or active task:" -dirs '
     ../work_*/*/out/Route*.innovus.db
     ../work_*/*/out/Assemble*.innovus.db
     ../work_*/*/out/ECO*.innovus.db
@@ -54,16 +54,14 @@ gf_choose_file_dir_task -variable DATABASE -keep -prompt "Please select database
     ../work_*/*/tasks/Assemble*
 ' 
 
-gf_info "Innovus database \e[32m$DATABASE\e[0m selected"
-
 # TCL commands
 gf_add_tool_commands '
 
     # Current design variables
-    set DATABASE {`$DATABASE`}
+    set INNOVUS_DATABASE {`$INNOVUS_DATABASE`}
 
     # Read input Innovus database
-    read_db -no_timing $DATABASE
+    read_db -no_timing $INNOVUS_DATABASE
     
     # Top level design name
     set DESIGN_NAME [get_db current_design .name]
@@ -71,7 +69,7 @@ gf_add_tool_commands '
     # Remember database
     exec rm -Rf ./out/$TASK_NAME/
     exec mkdir ./out/$TASK_NAME/
-    exec ln -nsf $DATABASE ./out/$TASK_NAME/$DESIGN_NAME.innovus.db
+    exec ln -nsf $INNOVUS_DATABASE ./out/$TASK_NAME/$DESIGN_NAME.innovus.db
 
     # Add empty cell macros to add to GDS
     read_physical -add_lefs ./in/$TASK_NAME.empty_cells.lef
@@ -92,7 +90,6 @@ gf_add_shell_commands -post "
     md5sum ./out/$TASK_NAME/*.gds.gz > ./out/$TASK_NAME.gds.gz.md5sum
 "
 
-
 # Task summary
 gf_add_status_marks ^Writing
 gf_add_status_marks 'ERROR:' 'WARNING:' 'no such file' 'cannot access' ' not found '
@@ -108,9 +105,9 @@ gf_submit_task
 gf_create_task -name DataOutTiming
 gf_use_innovus
 
-# Select Innovus database to analyze from latest available if $DATABASE is empty
+# Select Innovus database to analyze from latest available if $INNOVUS_DATABASE is empty
 gf_spacer
-gf_choose_file_dir_task -variable DATABASE -keep -prompt "Please select database or active task:" -dirs '
+gf_choose_file_dir_task -variable INNOVUS_DATABASE -keep -prompt "Choose database or active task:" -dirs '
     ../work_*/*/out/Route*.innovus.db
     ../work_*/*/out/Assemble*.innovus.db
     ../work_*/*/out/ECO*.innovus.db
@@ -120,16 +117,14 @@ gf_choose_file_dir_task -variable DATABASE -keep -prompt "Please select database
     ../work_*/*/tasks/Assemble*
 ' 
 
-gf_info "Innovus database \e[32m$DATABASE\e[0m selected"
-
 # TCL commands
 gf_add_tool_commands '
 
     # Current design variables
-    set DATABASE {`$DATABASE`}
+    set INNOVUS_DATABASE {`$INNOVUS_DATABASE`}
 
     # Read input Innovus database
-    read_db $DATABASE
+    read_db $INNOVUS_DATABASE
     
     # Top level design name
     set DESIGN_NAME [get_db current_design .name]
@@ -137,7 +132,7 @@ gf_add_tool_commands '
     # Remember database
     exec rm -Rf ./out/$TASK_NAME/
     exec mkdir ./out/$TASK_NAME/
-    exec ln -nsf $DATABASE ./out/$TASK_NAME/$DESIGN_NAME.innovus.db
+    exec ln -nsf $INNOVUS_DATABASE ./out/$TASK_NAME/$DESIGN_NAME.innovus.db
 
     # Load common tool procedures
     source ./scripts/$TASK_NAME.procs.tcl

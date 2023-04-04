@@ -42,7 +42,7 @@ gf_set_flow_options -continue -incr -auto_close -hide
 ########################################
 
 # Choose available Innovus database
-gf_choose_file_dir_task -variable DATABASE -keep -prompt "Please select database to load:" -dirs '
+gf_choose_file_dir_task -variable INNOVUS_DATABASE -keep -prompt "Choose database to load:" -dirs '
     ../work_*/*/out/*.innovus.db
     ../work_*/*/out/*.ispatial.db
 '
@@ -64,7 +64,7 @@ gf_spacer
 gf_add_tool_commands '
 
     # Current design variables
-    set DATABASE {`$DATABASE`}
+    set INNOVUS_DATABASE {`$INNOVUS_DATABASE`}
     set TIMING_MODE {`$TIMING_MODE`}
 
     # Pre-load settings
@@ -72,9 +72,9 @@ gf_add_tool_commands '
 
     # Read latest available database
     if {$TIMING_MODE == "Y"} {
-        read_db $DATABASE
+        read_db $INNOVUS_DATABASE
     } else {
-        read_db -no_timing $DATABASE
+        read_db -no_timing $INNOVUS_DATABASE
     }
 
     # Top level design name

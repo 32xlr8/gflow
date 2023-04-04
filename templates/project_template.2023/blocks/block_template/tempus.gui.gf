@@ -45,7 +45,7 @@ gf_create_task -name DebugTempus
 gf_use_tempus
 
 # Choose available Innovus database
-gf_choose_file_dir_task -variable REF_TASK -keep -prompt "Please select reference STA task:" -tasks '
+gf_choose_file_dir_task -variable REF_TASK -keep -prompt "Choose reference STA task:" -tasks '
     ../work_*/*/tasks/STA*
 '
 gf_spacer
@@ -63,7 +63,7 @@ gf_add_shell_commands -init "
 "
 
 # Choose configuration file
-gf_choose_file_dir_task -variable TEMPUS_TIMING_CONFIG_FILE -keep -prompt "Please select timing configuration file:" -files '
+gf_choose_file_dir_task -variable TEMPUS_TIMING_CONFIG_FILE -keep -prompt "Choose timing configuration file:" -files '
     ../data/*.timing.tcl
     ../data/*/*.timing.tcl
     ../work_*/*/out/ConfigSignoff*.timing.tcl

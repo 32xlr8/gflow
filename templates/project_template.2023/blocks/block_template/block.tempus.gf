@@ -23,9 +23,6 @@
 
 gf_info "Loading block-specific Tempus steps ..."
 
-# Disable data out task by default
-gf_disable_task Data
-
 ################################################################################
 # Flow options
 ################################################################################
@@ -33,9 +30,21 @@ gf_disable_task Data
 # # Override all tasks resources
 # gf_set_task_options -cpu 8 -mem 15
 
+# # Override resources for interactive tasks
+# gf_set_task_options 'Debug*' -cpu 4 -mem 10
+
 # # Override resources for batch tasks
 # gf_set_task_options STA -cpu 8 -mem 15
 # gf_set_task_options TSO -cpu 8 -mem 15
+gf_set_task_options DataOutTiming -cpu 4 -mem 10
+
+# Limit simultaneous tasks count
+gf_set_task_options 'Report*' -parallel 1
+
+# # Disable not needed tasks
+# gf_set_task_options -disable STA
+# gf_set_task_options -disable TSO
+gf_set_task_options -disable DataOutTiming
 
 ################################################################################
 # Flow variables
@@ -65,6 +74,12 @@ ECO_SCENARIOS='
 ################################################################################
 # Flow steps
 ################################################################################
+
+# Tool-specific procedures
+gf_create_step -name tempus_procs_common '
+    `@gconfig_procs_ocv`
+    `@procs_stylus_db`
+'
 
 # Commands before reading design data
 gf_create_step -name tempus_pre_read_libs '
@@ -217,7 +232,7 @@ gf_create_step -name reports_sta_tempus '
     # gf_report_timing_summary
 
     # Write ECO timing DB
-    set_db opt_signoff_write_eco_opt_db ./out/$MOTHER_TASK_NAME.eco_db
+    set_db opt_signoff_write_eco_opt_db ./out/$TASK_NAME.eco_db
     write_eco_opt_db
 '
 

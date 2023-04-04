@@ -48,7 +48,7 @@ gf_choose -keep -variable PHYSICAL_MODE -keys YN -time 30 -default Y -prompt "Do
 
 # Choose floorplan for physical mode if not chosen
 if [ "$PHYSICAL_MODE" == "Y" ]; then
-    gf_choose_file_dir_task -variable GENUS_FLOORPLAN_FILE -keep -prompt "Please select floorplan:" -files '
+    gf_choose_file_dir_task -variable GENUS_FLOORPLAN_FILE -keep -prompt "Choose floorplan DEF file:" -files '
         ../data/*.fp.def
         ../data/*.fp.def.gz
         ../data/*/*.fp.def
@@ -56,13 +56,13 @@ if [ "$PHYSICAL_MODE" == "Y" ]; then
         ../work_*/*/out/*.fp.def
         ../work_*/*/out/*.fp.def.gz
     '
-    
+
     # Create floorplan files copy in the run directory
     [[ -n "$GENUS_FLOORPLAN_FILE" ]] && gf_save_files -copy $(dirname $GENUS_FLOORPLAN_FILE)/$(basename $GENUS_FLOORPLAN_FILE .gz)*
 fi
 
 # Choose configuration file
-gf_choose_file_dir_task -variable GENUS_TIMING_CONFIG_FILE -keep -prompt "Please select timing configuration file:" -files '
+gf_choose_file_dir_task -variable GENUS_TIMING_CONFIG_FILE -keep -prompt "Choose timing configuration file:" -files '
     ../data/*.timing.tcl
     ../data/*/*.timing.tcl
     ../work_*/*/out/ConfigFrontend*.timing.tcl
@@ -79,10 +79,10 @@ gf_add_tool_commands '
     set POWER_NETS {`$POWER_NETS_CORE` `$POWER_NETS_OTHER -optional`}
     set GROUND_NETS {`$GROUND_NETS_CORE` `$GROUND_NETS_OTHER -optional`}
     set FLOORPLAN_FILE {`$GENUS_FLOORPLAN_FILE -optional`}
-    set TIMING_CONFIG_FILE {`$GENUS_TIMING_CONFIG_FILE`}
+    set GENUS_TIMING_CONFIG_FILE {`$GENUS_TIMING_CONFIG_FILE`}
     
     # Load configuration variables
-    source $TIMING_CONFIG_FILE
+    source $GENUS_TIMING_CONFIG_FILE
 
     # Start metric collection
     `@collect_metrics`

@@ -42,12 +42,10 @@ gf_set_flow_options -continue -incr -auto_close -hide
 ########################################
 
 # Choose available GDS
-gf_choose_file_dir_task -variable GDS -keep -prompt "Please select GDS to load:" -files '
+gf_choose_file_dir_task -variable GDS -keep -prompt "Choose GDS to load:" -files '
     ../work_*/*/out/*.gds.gz
 '
 gf_spacer
-
-gf_info "File \e[32m$GDS\e[0m selected to load"
 
 ########################################
 # Calibre workbench interactive task

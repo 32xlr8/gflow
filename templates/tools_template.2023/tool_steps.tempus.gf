@@ -309,7 +309,7 @@ gf_create_step -name procs_tempus_read_data '
         ] .name] {
             set found_file {}
             foreach qrc_task_name $qrc_task_names {
-                set file ./out/$qrc_task_name.$corner.spef.gz
+                set file $qrc_task_name.$corner.spef.gz
                 if [file exists ${file}] {
                     if {$found_file != {}} {
                         puts "\033\[43m \033\[0m Several SPEF files found for RC corner $corner. Last $file used."

@@ -42,32 +42,29 @@ gf_create_task -name StaticPower
 gf_use_voltus
 
 # Choose configuration file
-gf_choose_file_dir_task -variable VOLTUS_POWER_CONFIG_FILE -keep -prompt "Please select power configuration file:" -files '
+gf_choose_file_dir_task -variable VOLTUS_POWER_CONFIG_FILE -keep -prompt "Choose power configuration file:" -files '
     ../data/*.timing.tcl
     ../data/*/*.timing.tcl
     ../work_*/*/out/ConfigSignoff*.power.tcl
 '
-gf_info "Power config file \e[32m$VOLTUS_POWER_CONFIG_FILE\e[0m selected"
 
 # Choose configuration file
-gf_choose_file_dir_task -variable VOLTUS_DATA_OUT_CONFIG_FILE -keep -prompt "Please select design configuration file:" -files '
+gf_choose_file_dir_task -variable VOLTUS_DATA_OUT_CONFIG_FILE -keep -prompt "Choose design configuration file:" -files '
     ../data/*.design.tcl
     ../data/*/*.design.tcl
     ../work_*/*/out/DataOutPhysical*.design.tcl
 ' -want -active -task_to_file '$RUN/out/$TASK.design.tcl' -tasks '
     ../work_*/*/tasks/DataOutPhysical*
 '
-gf_info "Design config file \e[32m$VOLTUS_DATA_OUT_CONFIG_FILE\e[0m selected"
 
 # Choose configuration file
-gf_choose_file_dir_task -variable VOLTUS_SPEF_CONFIG_FILE -keep -prompt "Please select SPEF configuration file:" -files '
+gf_choose_file_dir_task -variable VOLTUS_SPEF_CONFIG_FILE -keep -prompt "Choose SPEF configuration file:" -files '
     ../data/*.design.tcl
     ../data/*/*.design.tcl
     ../work_*/*/out/Extraction*.design.tcl
 ' -want -active -task_to_file '$RUN/out/$TASK.design.tcl' -tasks '
     ../work_*/*/tasks/Extraction*
 '
-gf_info "SPEF config file \e[32m$VOLTUS_SPEF_CONFIG_FILE\e[0m selected"
 
 # Select scenario to calculate power
 gf_choose -count 25 -keep -variable POWER_SCENARIO \
@@ -146,38 +143,34 @@ gf_use_voltus
 gf_want_tasks StaticPower -variable STATIC_POWER_TASK
 
 # Choose configuration file
-gf_choose_file_dir_task -variable VOLTUS_POWER_CONFIG_FILE -keep -prompt "Please select power configuration file:" -files '
+gf_choose_file_dir_task -variable VOLTUS_POWER_CONFIG_FILE -keep -prompt "Choose power configuration file:" -files '
     ../data/*.timing.tcl
     ../data/*/*.timing.tcl
     ../work_*/*/out/ConfigSignoff*.power.tcl
 '
-gf_info "Power config file \e[32m$VOLTUS_POWER_CONFIG_FILE\e[0m selected"
 
 # Choose configuration file
-gf_choose_file_dir_task -variable VOLTUS_DATA_OUT_CONFIG_FILE -keep -prompt "Please select design configuration file:" -files '
+gf_choose_file_dir_task -variable VOLTUS_DATA_OUT_CONFIG_FILE -keep -prompt "Choose design configuration file:" -files '
     ../data/*.design.tcl
     ../data/*/*.design.tcl
     ../work_*/*/out/DataOutPhysical*.design.tcl
 ' -want -active -task_to_file '$RUN/out/$TASK.design.tcl' -tasks '
     ../work_*/*/tasks/DataOutPhysical*
 '
-gf_info "Design config file \e[32m$VOLTUS_DATA_OUT_CONFIG_FILE\e[0m selected"
 
 # Choose configuration file
-gf_choose_file_dir_task -variable VOLTUS_SPEF_CONFIG_FILE -keep -prompt "Please select SPEF configuration file:" -files '
+gf_choose_file_dir_task -variable VOLTUS_SPEF_CONFIG_FILE -keep -prompt "Choose SPEF configuration file:" -files '
     ../data/*.design.tcl
     ../data/*/*.design.tcl
     ../work_*/*/out/Extraction*.design.tcl
 ' -want -active -task_to_file '$RUN/out/$TASK.design.tcl' -tasks '
     ../work_*/*/tasks/Extraction*
 '
-gf_info "SPEF config file \e[32m$VOLTUS_SPEF_CONFIG_FILE\e[0m selected"
 
 # Select PGV to analyze if empty
-gf_choose_file_dir_task -variable VOLTUS_PGV_LIBS -keep -prompt "Please select PGV libraries:" -dirs '
+gf_choose_file_dir_task -variable VOLTUS_PGV_LIBS -keep -prompt "Choose PGV libraries:" -dirs '
     ../work_*/*/out/TechPGV*/*.cl
 '
-gf_info "PGV libraries \e[32m$VOLTUS_PGV_LIBS\e[0m selected"
 
 # TCL commands
 gf_add_tool_commands '
@@ -225,7 +218,7 @@ gf_add_tool_commands '
    
     # Leave session open for debug
     gui_show
-    gui_set_power_rail_display -plot ivdd
+    gui_set_power_rail_display -plot ivdd -enable_voltage_sources true
 '
 
 # Separate Generic Config initialization script
@@ -252,32 +245,29 @@ gf_create_task -name DynamicPower
 gf_use_voltus
 
 # Choose configuration file
-gf_choose_file_dir_task -variable VOLTUS_POWER_CONFIG_FILE -keep -prompt "Please select power configuration file:" -files '
+gf_choose_file_dir_task -variable VOLTUS_POWER_CONFIG_FILE -keep -prompt "Choose power configuration file:" -files '
     ../data/*.timing.tcl
     ../data/*/*.timing.tcl
     ../work_*/*/out/ConfigSignoff*.power.tcl
 '
-gf_info "Power config file \e[32m$VOLTUS_POWER_CONFIG_FILE\e[0m selected"
 
 # Choose configuration file
-gf_choose_file_dir_task -variable VOLTUS_DATA_OUT_CONFIG_FILE -keep -prompt "Please select design configuration file:" -files '
+gf_choose_file_dir_task -variable VOLTUS_DATA_OUT_CONFIG_FILE -keep -prompt "Choose design configuration file:" -files '
     ../data/*.design.tcl
     ../data/*/*.design.tcl
     ../work_*/*/out/DataOutPhysical*.design.tcl
 ' -want -active -task_to_file '$RUN/out/$TASK.design.tcl' -tasks '
     ../work_*/*/tasks/DataOutPhysical*
 '
-gf_info "Design config file \e[32m$VOLTUS_DATA_OUT_CONFIG_FILE\e[0m selected"
 
 # Choose configuration file
-gf_choose_file_dir_task -variable VOLTUS_SPEF_CONFIG_FILE -keep -prompt "Please select SPEF configuration file:" -files '
+gf_choose_file_dir_task -variable VOLTUS_SPEF_CONFIG_FILE -keep -prompt "Choose SPEF configuration file:" -files '
     ../data/*.design.tcl
     ../data/*/*.design.tcl
     ../work_*/*/out/Extraction*.design.tcl
 ' -want -active -task_to_file '$RUN/out/$TASK.design.tcl' -tasks '
     ../work_*/*/tasks/Extraction*
 '
-gf_info "SPEF config file \e[32m$VOLTUS_SPEF_CONFIG_FILE\e[0m selected"
 
 # Select scenario to calculate power
 gf_choose -count 25 -keep -variable POWER_SCENARIO \
@@ -356,38 +346,34 @@ gf_use_voltus
 gf_want_tasks DynamicPower -variable DYNAMIC_POWER_TASK
 
 # Choose configuration file
-gf_choose_file_dir_task -variable VOLTUS_POWER_CONFIG_FILE -keep -prompt "Please select power configuration file:" -files '
+gf_choose_file_dir_task -variable VOLTUS_POWER_CONFIG_FILE -keep -prompt "Choose power configuration file:" -files '
     ../data/*.timing.tcl
     ../data/*/*.timing.tcl
     ../work_*/*/out/ConfigSignoff*.power.tcl
 '
-gf_info "Power config file \e[32m$VOLTUS_POWER_CONFIG_FILE\e[0m selected"
 
 # Choose configuration file
-gf_choose_file_dir_task -variable VOLTUS_DATA_OUT_CONFIG_FILE -keep -prompt "Please select design configuration file:" -files '
+gf_choose_file_dir_task -variable VOLTUS_DATA_OUT_CONFIG_FILE -keep -prompt "Choose design configuration file:" -files '
     ../data/*.design.tcl
     ../data/*/*.design.tcl
     ../work_*/*/out/DataOutPhysical*.design.tcl
 ' -want -active -task_to_file '$RUN/out/$TASK.design.tcl' -tasks '
     ../work_*/*/tasks/DataOutPhysical*
 '
-gf_info "Design config file \e[32m$VOLTUS_DATA_OUT_CONFIG_FILE\e[0m selected"
 
 # Choose configuration file
-gf_choose_file_dir_task -variable VOLTUS_SPEF_CONFIG_FILE -keep -prompt "Please select SPEF configuration file:" -files '
+gf_choose_file_dir_task -variable VOLTUS_SPEF_CONFIG_FILE -keep -prompt "Choose SPEF configuration file:" -files '
     ../data/*.design.tcl
     ../data/*/*.design.tcl
     ../work_*/*/out/Extraction*.design.tcl
 ' -want -active -task_to_file '$RUN/out/$TASK.design.tcl' -tasks '
     ../work_*/*/tasks/Extraction*
 '
-gf_info "SPEF config file \e[32m$VOLTUS_SPEF_CONFIG_FILE\e[0m selected"
 
 # Select PGV to analyze if empty
-gf_choose_file_dir_task -variable VOLTUS_PGV_LIBS -keep -prompt "Please select PGV libraries:" -dirs '
+gf_choose_file_dir_task -variable VOLTUS_PGV_LIBS -keep -prompt "Choose PGV libraries:" -dirs '
     ../work_*/*/out/TechPGV*/*.cl
 '
-gf_info "PGV libraries \e[32m$VOLTUS_PGV_LIBS\e[0m selected"
 
 # TCL commands
 gf_add_tool_commands '
@@ -435,7 +421,7 @@ gf_add_tool_commands '
 
     # Leave session open for debug
     gui_show
-    gui_set_power_rail_display -plot ivdd
+    gui_set_power_rail_display -plot ivdd -enable_voltage_sources true
 '
 
 # Separate Generic Config initialization script
@@ -462,32 +448,29 @@ gf_create_task -name SignalEM
 gf_use_voltus
 
 # Choose configuration file
-gf_choose_file_dir_task -variable VOLTUS_POWER_CONFIG_FILE -keep -prompt "Please select power configuration file:" -files '
+gf_choose_file_dir_task -variable VOLTUS_POWER_CONFIG_FILE -keep -prompt "Choose power configuration file:" -files '
     ../data/*.timing.tcl
     ../data/*/*.timing.tcl
     ../work_*/*/out/ConfigSignoff*.power.tcl
 '
-gf_info "Power config file \e[32m$VOLTUS_POWER_CONFIG_FILE\e[0m selected"
 
 # Choose configuration file
-gf_choose_file_dir_task -variable VOLTUS_DATA_OUT_CONFIG_FILE -keep -prompt "Please select design configuration file:" -files '
+gf_choose_file_dir_task -variable VOLTUS_DATA_OUT_CONFIG_FILE -keep -prompt "Choose design configuration file:" -files '
     ../data/*.design.tcl
     ../data/*/*.design.tcl
     ../work_*/*/out/DataOutPhysical*.design.tcl
 ' -want -active -task_to_file '$RUN/out/$TASK.design.tcl' -tasks '
     ../work_*/*/tasks/DataOutPhysical*
 '
-gf_info "Design config file \e[32m$VOLTUS_DATA_OUT_CONFIG_FILE\e[0m selected"
 
 # Choose configuration file
-gf_choose_file_dir_task -variable VOLTUS_SPEF_CONFIG_FILE -keep -prompt "Please select SPEF configuration file:" -files '
+gf_choose_file_dir_task -variable VOLTUS_SPEF_CONFIG_FILE -keep -prompt "Choose SPEF configuration file:" -files '
     ../data/*.design.tcl
     ../data/*/*.design.tcl
     ../work_*/*/out/Extraction*.design.tcl
 ' -want -active -task_to_file '$RUN/out/$TASK.design.tcl' -tasks '
     ../work_*/*/tasks/Extraction*
 '
-gf_info "SPEF config file \e[32m$VOLTUS_SPEF_CONFIG_FILE\e[0m selected"
 
 # TCL commands
 gf_add_tool_commands '

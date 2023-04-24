@@ -1,7 +1,7 @@
 #!../../gflow/bin/gflow
 
 ################################################################################
-# Generic Flow v5.0 (February 2023)
+# Generic Flow v5.1 (May 2023)
 ################################################################################
 #
 # Copyright 2011-2023 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
@@ -28,11 +28,10 @@
 ########################################
 
 # Project and block initialization scripts
-gf_source "../../project.common.gf"
-gf_source "../../project.genus.gf"
-gf_source "./block.common.gf"
-gf_source "./block.files.gf"
-gf_source "./block.genus.gf"
+gf_source -once "../../project.common.gf"
+gf_source -once "../../project.genus.gf"
+gf_source -once "./block.common.gf"
+gf_source -once "./block.genus.gf"
 
 # Basic flow script options
 gf_set_flow_options -continue -incr -auto_close -hide
@@ -41,7 +40,7 @@ gf_set_flow_options -continue -incr -auto_close -hide
 # Automatical database selection
 ########################################
 
-# Choose available Genus database
+# Genus design database
 gf_choose_file_dir_task -variable GENUS_DATABASE -keep -prompt "Choose database to load:" -files '
     ../work_*/*/out/*.genus.db
 '

@@ -1,5 +1,5 @@
 ################################################################################
-# Generic Flow v5.0 (February 2023)
+# Generic Flow v5.1 (May 2023)
 ################################################################################
 #
 # Copyright 2011-2023 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
@@ -1462,7 +1462,7 @@ gf_create_step -name innovus_procs_eco_common '
 # Data out steps
 ################################################################################
 
-# Write-out timing models procedure
+# Data out gift procedures
 gf_create_step -name innovus_procs_write_data '
   
     # Write out hcell file

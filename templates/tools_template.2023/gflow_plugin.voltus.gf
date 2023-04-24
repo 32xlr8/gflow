@@ -1,5 +1,5 @@
 ################################################################################
-# Generic Flow v5.0 (February 2023)
+# Generic Flow v5.1 (May 2023)
 ################################################################################
 #
 # Copyright 2011-2023 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
@@ -24,7 +24,7 @@
 gf_info "Loading Voltus plugin ..."
 
 ##################################################
-gf_help_section "Voltus Common UI plugin v5.0"
+gf_help_section "Voltus Common UI plugin v5.1"
 ##################################################
 
 ##################################################
@@ -77,7 +77,7 @@ function gf_use_voltus {
 
     # Status marks
     gf_add_success_marks 'Exiting Voltus' 'Ending.*Voltus'
-    gf_add_status_marks 'Run directory:' 'SPEF file:' 'QRC file:' 'MMMC file:'
+    gf_add_status_marks 'Run directory:' 'Analysis view:' 'RC corner:' 'SPEF file:'
     gf_add_status_marks 'Voltage Source.*%' 'Current Tap.*%'
     gf_add_status_marks 'annotated' 'disconnected nodes'
     gf_add_status_marks 'Total.*Power:' 'Total .* coverage:' 'Num Violations:' 'Instance.* IR Drop:'

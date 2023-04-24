@@ -1,5 +1,5 @@
 ################################################################################
-# Generic Flow v5.0 (February 2023)
+# Generic Flow v5.1 (May 2023)
 ################################################################################
 #
 # Copyright 2011-2023 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
@@ -24,7 +24,7 @@
 gf_info "Loading Innovus plugin ..."
 
 ##################################################
-gf_help_section "Innovus Common UI plugin v5.0"
+gf_help_section "Innovus Common UI plugin v5.1"
 ##################################################
 
 ##################################################

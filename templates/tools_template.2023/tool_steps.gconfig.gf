@@ -1,5 +1,5 @@
 ################################################################################
-# Generic Flow v5.0 (February 2023)
+# Generic Flow v5.1 (May 2023)
 ################################################################################
 #
 # Copyright 2011-2023 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
@@ -30,7 +30,7 @@ gf_create_step -name init_gconfig_mmmc '
     ##########################################################
 
     # Current OCV mode control switches
-    gconfig::define_switches -group "OCV libraries presets" -switches {aocv_libraries socv_libraries}
+    gconfig::define_switches -group "OCV libraries presets" -optional -switches {aocv_libraries socv_libraries}
     gconfig::define_switches -group "OCV derate factor presets" -required -switches {no_derates flat_derates vt_derates user_derates}
 
     # Variables storing files to use

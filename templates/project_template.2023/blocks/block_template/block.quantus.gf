@@ -1,5 +1,5 @@
 ################################################################################
-# Generic Flow v5.0 (February 2023)
+# Generic Flow v5.1 (May 2023)
 ################################################################################
 #
 # Copyright 2011-2023 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
@@ -45,14 +45,36 @@ gf_info "Loading block-specific Quantus steps ..."
 # Flow steps
 ################################################################################
 
-# CCL commands before parasitics extraction for timing analysis
-gf_create_step -name quantus_pre_init_design_timing '
-    # Reserved
-'
+# Corner configuration
+gf_create_step -name quantus_gconfig_design_settings '
+    <PLACEHOLDER> Review signoff settings for parasitics extraction
 
-# CCL commands before parasitics extraction for power analysis
-gf_create_step -name quantus_pre_init_design_power '
-    # Reserved
+    # Choose analysis view patterns:
+    # - {mode process voltage temperature rc_corner timing_check}
+    set RC_CORNERS {
+        {* * * 85 ct *}
+        
+        {* * * m40 cwt *} 
+        {* * * m40 rcwt *} 
+        
+        {* * * 125 cwt *}
+        {* * * 125 rcwt *} 
+
+        {* * * m40 cb *} 
+        {* * * m40 cw *} 
+        {* * * m40 rcb *} 
+        {* * * m40 rcw *} 
+        
+        {* * * 125 cb *} 
+        {* * * 125 cw *} 
+        {* * * 125 rcb *} 
+        {* * * 125 rcw *} 
+
+        {* * * 0 cb *} 
+        {* * * 0 cw *} 
+        {* * * 0 rcb *} 
+        {* * * 0 rcw *}
+    }
 '
 
 # CCL Commands before design initialized
@@ -60,7 +82,7 @@ gf_create_step -name quantus_pre_init_design '
 
     # Choose one of option 1.*  and 2.*
 
-    # Option 1.1: LEF to QRC layer mapping file (./block.files.gf)
+    # Option 1.1: LEF to QRC layer mapping file (./block.common.gf)
     include "`$QUANTUS_DEF_LAYER_MAP_FILE -optional`"
     
     # # Option 1.2: LEF to QRC manual layer mapping
@@ -80,7 +102,7 @@ gf_create_step -name quantus_pre_init_design '
     #     <PLACEHOLDER>LEF_layer QRC_layer \
     #     RV VIA8
 
-    # Option 2.1.1/2.2.1: LEF to GDS layer and metal fill mapping file (./block.files.gf)
+    # Option 2.1.1/2.2.1: LEF to GDS layer and metal fill mapping file (./block.common.gf)
     extraction_setup -stream_layer_map_file "`$QUANTUS_GDS_LAYER_MAP_FILE -optional`"
     
     # # Option 2.1.2: LEF to GDS manual layer mapping without DPT layers

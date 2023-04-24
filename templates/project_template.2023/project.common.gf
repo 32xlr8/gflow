@@ -1,5 +1,5 @@
 ################################################################################
-# Generic Flow v5.0 (February 2023)
+# Generic Flow v5.1 (May 2023)
 ################################################################################
 #
 # Copyright 2011-2023 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
@@ -21,13 +21,13 @@
 # Purpose:  Project-specific configuration and flow steps
 ################################################################################
 
-gf_info "Loading project-specific setup ..."
+gf_info "Loading project-specific common configuration ..."
 
 ########################################
 # Generic Flow command line options
 ########################################
 
-# Run in user-specific `
+# Run in user-specific directory
 gf_set_flow_options -dir ./work_$USER
 
 # Use new run directory name every day
@@ -104,22 +104,5 @@ gf_create_step -name init_shell_environment '
 # Load flow tool, technology and project settings
 ################################################################################
 
-# Load Stylus and Generic Config flow steps
-gf_source "../../tools/tool_steps.gconfig.gf"
-
-# Load technology-specific flow steps
-gf_source "../../technology.common.gf"
-
-################################################################################
-# Tool, technology and project configuration step
-################################################################################
-
-# Technology-specific configuration
-gf_create_step -name init_gconfig '
-    
-    # Initialize Generic Config 
-    source "../../../../../../gflow/bin/gconfig.tcl"
-
-    # Load MMMC procedures
-    `@init_gconfig_mmmc`
-'
+# Load project-specific Generic Config steps
+gf_source -once -once "../../project.gconfig.gf"

@@ -1,5 +1,5 @@
 ################################################################################
-# Generic Flow v5.0 (February 2023)
+# Generic Flow v5.1 (May 2023)
 ################################################################################
 #
 # Copyright 2011-2023 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
@@ -66,18 +66,67 @@ POWER_SCENARIOS='
 # Flow steps
 ################################################################################
 
+# MMMC and OCV settings
+gf_create_step -name voltus_gconfig_design_settings '
+    <PLACEHOLDER> Review signoff settings for power analysis
+    
+    # Choose analysis views patterns:
+    # - {mode process voltage temperature rc_corner timing_check}
+    #   - PGV_RC_CORNER - PGV generation extraction corner (worst RC parasitics)
+    #   - SIGNAL_SPEF_CORNER - Signal nets extraction corner (best RC parasitics)
+    #   - POWER_SPEF_CORNER - Power grid extraction corner (worst C parasitics)
+    #   - STATIC_POWER_VIEW - Static power analysis view (worst cells currents)
+    #   - DYNAMIC_POWER_VIEW - Dynamic power analysis view (worst cells currents)
+    #   - STATIC_RAIL_VIEW - Static rail analysis view (worst RC parasitics)
+    #   - DYNAMIC_RAIL_VIEW - Dynamic rail analysis view (worst RC parasitics)
+    #   - SIGNAL_EM_VIEW - Signal electromigration analysis view (worst cells currents, worst C parasitics)
+    
+    set PGV_RC_CORNER {* * * 125 rcw *}
+            
+    set SIGNAL_SPEF_CORNER {* * * m40 rcb *}
+    set POWER_SPEF_CORNER {* * * 125 cw *}
+
+    set STATIC_POWER_VIEW {func ff 1p100v 125 cw h}
+    set DYNAMIC_POWER_VIEW {func ff 1p100v 125 cw h}
+
+    set STATIC_RAIL_VIEW {func ss 0p900v 125 rcw h}
+    set DYNAMIC_RAIL_VIEW {func ss 0p900v 125 rcw h}
+
+    set SIGNAL_EM_VIEW {func ff 1p100v 125 cw h}
+
+    # Choose standard cell libraries:
+    # - nldm_libraries - NLDM (Liberty) + CDB (Celtic) files used for fast runtime
+    # - ecsm_libraries - ECSM (Liberty) + AOCV/SOCV files used for precise delay calculation
+    # - ccs_libraries - CCS (Liberty) + AOCV/SOCV files used for precise delay calculation
+    # - lvf_libraries - LVF (Liberty) files used for most precise delay calculation
+    # - ecsm_p_libraries - ECSM-P (Liberty) files used for precise power calculation
+    # - ccs_p_libraries - CCS-P (Liberty) files used for precise power calculation
+    gconfig::enable_switches ccs_p_libraries
+   
+    # Choose derating scenarios (additional variations):
+    # - flat_derates - used with NLDM (see process node documentation)
+    # - no_derates - zero derates (optimistic for prototyping mode)
+    # - user_derates - same as flat_derates, but user-specified values used (customize below)
+    # - vt_derates - used with ESCM/CCS if additional Voltage/Temparature derates required (see standard cell documentation, customize IR-drop below)
+    gconfig::enable_switches no_derates
+'
+
 # Commands after design initialized
 gf_create_step -name voltus_pre_init_variables '
     set DESIGN_NAME {`$DESIGN_NAME`}
 
-    # Global nets to analyze
-    set VOLTUS_POWER_NETS {VDD}
-    set VOLTUS_GROUND_NETS {VSS}
-
-    # Power/ground pins with voltage pairs
+    # Power/ground pins with voltage values pairs
     <PLACEHOLDER>
-    set PGV_POWER_PINS_PAIRS {VDD 0.000}
-    set PGV_GROUND_PINS_PAIRS {VSS 0}
+    set VOLTUS_POWER_NETS_PAIRS {
+        VDD 0.000
+    }
+    set VOLTUS_GROUND_NETS_PAIRS {
+        VSS 0
+    }
+    
+    # IR-drop thresholds
+    set IR_THRESHOLD_STATIC 0.015
+    set IR_THRESHOLD_DYNAMIC 0.050
 '
 
 # Commands after design initialized
@@ -85,13 +134,19 @@ gf_create_step -name voltus_post_init_variables '
 
     # Filler and decap cells for PGV
     <PLACEHOLDER>
-    set PGV_FILLER_CELLS [get_db base_cells .name FILL*BWP*]
-    set PGV_DECAP_CELLS [get_db base_cells .name DCAP*BWP*]
+    set PGV_FILLER_CELLS [get_db base_cells .name FILL*]
+    set PGV_DECAP_CELLS [get_db base_cells .name DCAP*]
+
+    # List of global nets to analyze taken from net pairs
+    set VOLTUS_POWER_NETS {}
+    set VOLTUS_GROUND_NETS {}
+    foreach {net value} $VOLTUS_POWER_NETS_PAIRS {lappend VOLTUS_POWER_NETS $net}
+    foreach {net value} $VOLTUS_GROUND_NETS_PAIRS {lappend VOLTUS_GROUND_NETS $net}
 '
 
 # Commands after design initialized
 gf_create_step -name voltus_post_init '
-    gf_paste_step voltus_post_init_variables
+    `@voltus_post_init_variables`
 
     # Library settings
     if {1} {
@@ -132,7 +187,6 @@ gf_create_step -name voltus_post_init '
         # set_db timing_socv_statistical_min_max_mode mean_and_three_sigma_bounded
         # set_db timing_report_enable_verbose_ssta_mode true
         # set_db delaycal_accuracy_level 3
-        # set_db timing_cppr_threshold_ps 3
         # set_db delaycal_socv_lvf_mode moments
         # set_db delaycal_socv_use_lvf_tables {delay slew constraint}
         # set_timing_derate 0 -sigma -cell_check -early [get_lib_cells *BWP*]
@@ -214,8 +268,8 @@ gf_create_step -name voltus_pre_write_pgv_tech_only '
         -decap_cells $PGV_DECAP_CELLS \
         -default_area_cap 0.01fF \
         -lef_layer_map ./in/$TASK_NAME.lef.map \
-        -extraction_tech_file $PGV_RC_CORNER_QRC_FILE \
-        -temperature $PGV_RC_CORNER_TEMPERATURE \
+        -extraction_tech_file [gconfig::get_files qrc -view $PGV_RC_CORNER] \
+        -temperature [gconfig::get temperature -view $PGV_RC_CORNER] \
         -current_distribution propagation \
         -cell_type techonly
 
@@ -234,13 +288,13 @@ gf_create_step -name voltus_pre_write_pgv_standard_cells '
 
     # Standard cells PGV settings
     set_pg_library_mode \
-        -extraction_tech_file $PGV_RC_CORNER_QRC_FILE \
-        -temperature $PGV_RC_CORNER_TEMPERATURE \
+        -extraction_tech_file [gconfig::get_files qrc -view $PGV_RC_CORNER] \
+        -temperature [gconfig::get temperature -view $PGV_RC_CORNER] \
         -spice_models $VOLTUS_PGV_SPICE_MODELS \
         -spice_corners $VOLTUS_PGV_SPICE_CORNERS \
         -spice_subckts $VOLTUS_PGV_SPICE_FILES \
-        -power_pins $PGV_POWER_PINS_PAIRS \
-        -ground_pins $PGV_GROUND_PINS_PAIRS \
+        -power_pins $VOLTUS_POWER_NETS_PAIRS \
+        -ground_pins $VOLTUS_GROUND_NETS \
         -cells_file ./in/$TASK_NAME.cells \
         -lef_layer_map ./in/$TASK_NAME.lef.map \
         -current_distribution propagation \
@@ -282,15 +336,15 @@ gf_create_step -name voltus_pre_write_pgv_macros '
 
     # Macro PGV settings
     set_pg_library_mode \
-        -extraction_tech_file $PGV_RC_CORNER_QRC_FILE \
-        -temperature $PGV_RC_CORNER_TEMPERATURE \
+        -extraction_tech_file [gconfig::get_files qrc -view $PGV_RC_CORNER] \
+        -temperature [gconfig::get temperature -view $PGV_RC_CORNER] \
         -stream_files [join $GDS_FILES] \
         -spice_models $VOLTUS_PGV_SPICE_MODELS \
         -spice_corners $VOLTUS_PGV_SPICE_CORNERS \
         -spice_subckts $VOLTUS_PGV_SPICE_FILES \
         -spice_subckts_xy_scaling $VOLTUS_PGV_SPICE_SCALING \
-        -power_pins $PGV_POWER_PINS_PAIRS \
-        -ground_pins $PGV_GROUND_PINS_PAIRS \
+        -power_pins $VOLTUS_POWER_NETS_PAIRS \
+        -ground_pins $VOLTUS_GROUND_NETS \
         -cells_file ./in/$TASK_NAME.cells \
         -lef_layer_map ./in/$TASK_NAME.lef.map \
         -stream_layer_map ./scripts/$TASK_NAME.connect.map \
@@ -360,20 +414,23 @@ gf_create_step -name voltus_run_report_rail_static '
 
     # Static rail analysis settings
     set_rail_analysis_mode \
-        -extraction_tech_file $STATIC_RAIL_VIEW_QRC_FILE \
-        -temperature $STATIC_RAIL_VIEW_TEMPERATURE \
+        -extraction_tech_file [gconfig::get_files qrc -view $STATIC_RAIL_VIEW] \
+        -temperature [gconfig::get temperature -view $STATIC_RAIL_VIEW] \
         -power_grid_libraries [join $VOLTUS_PGV_LIBS] \
         -ict_em_models [join $VOLTUS_ICT_EM_RULE] \
         -accuracy hd -method static -ignore_shorts true
    
     # Power nets settings
-    <PLACEHOLDER>
-    set_pg_net -net VDD -voltage 0.000 -threshold 0.000
-    set_pg_net -net VSS -voltage 0 -threshold 0.000
+    foreach {net value} $VOLTUS_POWER_NETS_PAIRS {
+        set_pg_nets -force -net $net -voltage $value -threshold [expr -$IR_THRESHOLD_STATIC+$value]
+    }
+    foreach {net value} $VOLTUS_GROUND_NETS_PAIRS {
+        set_pg_nets -force -net $net -voltage $value -threshold [expr $IR_THRESHOLD_STATIC+$value]
+    }
 
     # Option 1: Tap coordinates files generated in data out task
-    foreach net [list $VOLTUS_POWER_NETS $VOLTUS_GROUND_NETS] {
-        set_power_pads -format xy -net $net -file $CONFIG_DIR/$CONFIG_TASK_NAME/$DESIGN_NAME.$net.pp
+    foreach net [concat $VOLTUS_POWER_NETS $VOLTUS_GROUND_NETS] {
+        set_power_pads -format xy -net $net -file $DATA_OUT_DIR/$DESIGN_NAME.$net.pp
     }
     # # Option 2: Tap coordinates files specified manually
     # set_power_pads -format xy -net VDD -file /PATH/TO/VDD.pp
@@ -381,8 +438,8 @@ gf_create_step -name voltus_run_report_rail_static '
 
     # Power data
     set power_files {}
-    foreach net [list $VOLTUS_POWER_NETS $VOLTUS_GROUND_NETS] {
-        lappend power_files ./out/$POWER_TASK.power/static_${net}.ptiavg
+    foreach net [concat $VOLTUS_POWER_NETS $VOLTUS_GROUND_NETS] {
+        lappend power_files ./out/$STATIC_POWER_TASK.power/static_${net}.ptiavg
     }
     set_power_data -format current -scale 1 $power_files
 
@@ -444,8 +501,8 @@ gf_create_step -name voltus_run_report_rail_dynamic '
 
     # Dynamic rail analysis settings
     set_rail_analysis_mode \
-        -extraction_tech_file $DYNAMIC_RAIL_VIEW_QRC_FILE \
-        -temperature $DYNAMIC_RAIL_VIEW_TEMPERATURE \
+        -extraction_tech_file [gconfig::get_files qrc -view $DYNAMIC_RAIL_VIEW] \
+        -temperature [gconfig::get temperature -view $DYNAMIC_RAIL_VIEW] \
         -power_grid_libraries [join $VOLTUS_PGV_LIBS] \
         -ict_em_models [join $VOLTUS_ICT_EM_RULE] \
         -accuracy hd -method dynamic -ignore_shorts true -limit_number_of_steps false
@@ -454,13 +511,16 @@ gf_create_step -name voltus_run_report_rail_dynamic '
     #     -write_movies true \
    
     # Power nets settings
-    <PLACEHOLDER>
-    set_pg_net -net VDD -voltage 0.000 -threshold 0.000
-    set_pg_net -net VSS -voltage 0 -threshold 0.000
+    foreach {net value} $VOLTUS_POWER_NETS_PAIRS {
+        set_pg_nets -force -net $net -voltage $value -threshold [expr -$IR_THRESHOLD_DYNAMIC+$value]
+    }
+    foreach {net value} $VOLTUS_GROUND_NETS_PAIRS {
+        set_pg_nets -force -net $net -voltage $value -threshold [expr $IR_THRESHOLD_DYNAMIC+$value]
+    }
 
     # Option 1: Tap coordinates files generated in data out task
-    foreach net [list $VOLTUS_POWER_NETS $VOLTUS_GROUND_NETS] {
-        set_power_pads -format xy -net $net -file $CONFIG_DIR/$CONFIG_TASK_NAME/$DESIGN_NAME.$net.pp
+    foreach net [concat $VOLTUS_POWER_NETS $VOLTUS_GROUND_NETS] {
+        set_power_pads -format xy -net $net -file $DATA_OUT_DIR/$DESIGN_NAME.$net.pp
     }
     # # Option 2: Tap coordinates files specified manually
     # set_power_pads -format xy -net VDD -file /PATH/TO/VDD.pp
@@ -468,8 +528,8 @@ gf_create_step -name voltus_run_report_rail_dynamic '
 
     # Power data
     set power_files {}
-    foreach net [list $VOLTUS_POWER_NETS $VOLTUS_GROUND_NETS] {
-        lappend power_files ./out/$POWER_TASK.power/dynamic_${net}.ptiavg
+    foreach net [concat $VOLTUS_POWER_NETS $VOLTUS_GROUND_NETS] {
+        lappend power_files ./out/$DYNAMIC_POWER_TASK.power/dynamic_${net}.ptiavg
     }
     set_power_data -format current -scale 1 $power_files
 

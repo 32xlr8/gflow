@@ -1,5 +1,5 @@
 ################################################################################
-# Generic Flow v5.0 (February 2023)
+# Generic Flow v5.1 (May 2023)
 ################################################################################
 #
 # Copyright 2011-2023 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
@@ -20,8 +20,8 @@
 # Filename: templates/project_template.2023/blocks/block_template/block.genus.gf
 # Purpose:  Block-specific Genus configuration and flow steps
 ################################################################################
-# gf_source "../../project.modus.gf"
-# gf_source "./block.modus.gf"
+# gf_source -once "../../project.modus.gf"
+# gf_source -once "./block.modus.gf"
 
 gf_info "Loading block-specific Genus steps ..."
 
@@ -67,6 +67,71 @@ ELAB_DESIGN_NAME="$DESIGN_NAME"
 # Synthesis flow steps - ./genus.fe.gf, ./genus.ispatial.gf
 ################################################################################
 
+# MMMC and OCV settings
+gf_create_step -name genus_gconfig_design_settings '
+    <PLACEHOLDER> Review frontend settings for synthesis
+    
+    # Choose analysis views patterns:
+    # - {mode process voltage temperature rc_corner timing_check}
+    set MMMC_VIEWS {
+        {func ss 0p900v m40 cwt s}
+    }
+    
+    # Choose standard cell libraries:
+    # - nldm_libraries - NLDM (Liberty) + CDB (Celtic) files used for fast runtime
+    # - ecsm_libraries - ECSM (Liberty) + AOCV/SOCV files used for precise delay calculation
+    # -  - CCS (Liberty) + AOCV/SOCV files used for precise delay calculation
+    # - lvccs_librariesf_libraries - LVF (Liberty) files used for most precise delay calculation
+    gconfig::enable_switches nldm_libraries
+    
+    # Choose separate variation libraries (optional with ecsm_libraries or ccs_libraries):
+    # - aocv_libraries - AOCV (advanced, SBOCV)
+    # - socv_libraries - SOCV (statistical)
+    # gconfig::enable_switches aocv_libraries
+   
+    # Choose derating scenarios (additional variations):
+    # - flat_derates - used with NLDM (see process node documentation)
+    # - no_derates - zero derates (optimistic for prototyping mode)
+    # - user_derates - same as flat_derates, but user-specified values used (customize below)
+    # - vt_derates - used with ESCM/CCS if additional Voltage/Temparature derates required (see standard cell documentation, customize IR-drop below)
+    gconfig::enable_switches flat_derates
+
+    # # Set IR-drop value for voltage and temperature OCV derates (when vt_derate switch enabled)
+    # # It is recommended to set 40% of Static IR for setup and 80% for hold
+    # gconfig::add_section {
+    #     -when vt_derates {
+    #         -views {* * * * * s} {$voltage_drop <PLACEHOLDER>20}
+    #         -views {* * * * * h} {$voltage_drop <PLACEHOLDER>40}
+    #     }
+    # }
+
+    # # Set user-specific derate values (when user_derates switch enabled)
+    # gconfig::add_section {
+    #     -when user_derates {
+    #         -views {* * * * * s} {$cell_data +10.0}
+    #     }
+    # }
+    
+    # Toggle default uncertainty mode (reset all clocks uncertainty to default values):
+    # - default_uncertainty - use when SDC files do not contain set_clock_uncertainty commands
+    # gconfig::enable_switches default_uncertainty
+    #
+    # # Set PLL jitter value in ps
+    # gconfig::add_section {
+    #     -when default_uncertainty {
+    #         $jitter <PLACEHOLDER>25
+    #     }
+    # }
+    
+    # # Optional: set user-specific clock uncertainty values for all clocks
+    # gconfig::add_section {
+    #     -when default_uncertainty {
+    #         -views {* ss 0p900v * * *} {$process_uncertainty 0 $setup_uncertainty <PLACEHOLDER>100 $hold_uncertainty <PLACEHOLDER>50}
+    #         -views {* ff 1p100v * * *} {$process_uncertainty 0 $setup_uncertainty <PLACEHOLDER>100 $hold_uncertainty <PLACEHOLDER>50}
+    #     }
+    # }
+'
+
 # Commands before reading libraries
 gf_create_step -name genus_pre_read_libs '
 
@@ -97,10 +162,10 @@ gf_create_step -name genus_read_rtl '
     # Define directories containing HDL files
     set_db init_hdl_search_path [join $RTL_SEARCH_PATHS]
 
-    # RTL files defined in block.files.gf
+    # RTL files defined in block.common.gf
     set RTL_FILES {`$RTL_FILES -optional`}
 
-    # RTL files list defined in block.files.gf
+    # RTL files list defined in block.common.gf
     set RTL_FILES_LIST {`$RTL_FILES_LIST -optional`}
 
     # Read HDL settings
@@ -165,6 +230,8 @@ gf_create_step -name genus_post_elaborate '
 
 # Commands after design initialized
 gf_create_step -name genus_post_init_design '
+    <PLACEHOLDER> Review frontend settings for synthesis
+
     # set_db input_pragma_keyword {synopsys}
 
     # # Flop settings
@@ -240,6 +307,9 @@ gf_create_step -name genus_post_init_design '
     # set_dont_use *D19BWP* true
     # set_dont_use *D2?BWP* true
     # # set_dont_use *D3?BWP* true
+
+    # Remove dont use attribute for clock gating cell
+    set_db $gf_clock_gating_cell .dont_use false
 
     # # Force to map to scan flops
     # set_db current_design .dft_scan_map_mode force_all

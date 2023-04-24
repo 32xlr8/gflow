@@ -1,5 +1,5 @@
 ################################################################################
-# Generic Flow v5.0 (February 2023)
+# Generic Flow v5.1 (May 2023)
 ################################################################################
 #
 # Copyright 2011-2023 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
@@ -22,7 +22,7 @@
 ################################################################################
 
 # # Load Quantus if high effort extraction used
-# gf_source "../../project.quantus.gf"
+# gf_source -once "../../project.quantus.gf"
 
 gf_info "Loading block-specific Innovus steps ..."
 
@@ -72,6 +72,102 @@ gf_set_task_options -disable DataOutTiming
 # LDB_MODE=Y
 
 ################################################################################
+# Basic flow steps
+################################################################################
+
+# MMMC and OCV settings
+gf_create_step -name innovus_gconfig_design_settings '
+    <PLACEHOLDER> Review backend settings for implementation
+    
+    # Choose analysis views patterns:
+    # - {mode process voltage temperature rc_corner timing_check}
+    set MMMC_VIEWS {
+        {func ss 0p900v m40 rcwt s}
+        {func ss 0p900v 125 cwt s}
+        {func ff 1p100v m40 cw h}
+        {func ff 1p100v 125 cb h}
+    }
+    
+    # Choose standard cell libraries:
+    # - nldm_libraries - NLDM (Liberty) + CDB (Celtic) files used for fast runtime
+    # - ecsm_libraries - ECSM (Liberty) + AOCV/SOCV files used for precise delay calculation
+    # - ccs_libraries - CCS (Liberty) + AOCV/SOCV files used for precise delay calculation
+    # - lvf_libraries - LVF (Liberty) files used for most precise delay calculation
+    gconfig::enable_switches ecsm_libraries
+    
+    # Choose separate variation libraries (optional with ecsm_libraries or ccs_libraries):
+    # - aocv_libraries - AOCV (advanced, SBOCV)
+    # - socv_libraries - SOCV (statistical)
+    gconfig::enable_switches aocv_libraries
+   
+    # Choose derating scenarios (additional variations):
+    # - flat_derates - used with NLDM (see process node documentation)
+    # - no_derates - zero derates (optimistic for prototyping mode)
+    # - user_derates - same as flat_derates, but user-specified values used (customize below)
+    # - vt_derates - used with ESCM/CCS if additional Voltage/Temparature derates required (see standard cell documentation, customize IR-drop below)
+    gconfig::enable_switches vt_derates
+
+    # Set IR-drop value for voltage and temperature OCV derates (when vt_derate switch enabled)
+    # It is recommended to set 40% of Static IR for setup and 80% for hold
+    gconfig::add_section {
+        -when vt_derates {
+            -views {* * * * * s} {$voltage_drop <PLACEHOLDER>20}
+            -views {* * * * * h} {$voltage_drop <PLACEHOLDER>40}
+        }
+    }
+
+    # # Set user-specific derate values (when user_derates switch enabled)
+    # gconfig::add_section {
+    #     -when user_derates {
+    #         -views {* tt * * * s} {$cell_data +5.0 $cell_early -0.0 $cell_late +5.0}
+    #         -views {* tt * * * h} {$cell_data -5.0 $cell_early -5.0 $cell_late +0.0}
+    #         -views {* ss * * * s} {$cell_data +0.0 $cell_early -5.0 $cell_late +0.0}
+    #         -views {* ss * * * h} {$cell_data -5.0 $cell_early -5.0 $cell_late +0.0}
+    #         -views {* ff * * * h} {$cell_data -0.0 $cell_early -0.0 $cell_late +5.0}
+    #     }
+    # }
+    
+    # Toggle default uncertainty mode (reset all clocks uncertainty to default values):
+    # - default_uncertainty - use when SDC files do not contain set_clock_uncertainty commands
+    # gconfig::enable_switches default_uncertainty
+    #
+    # # Set PLL jitter value in ps
+    # gconfig::add_section {
+    #     -when default_uncertainty {
+    #         $jitter <PLACEHOLDER>25
+    #     }
+    # }
+    
+    # # Optional: set user-specific clock uncertainty values for all clocks
+    # gconfig::add_section {
+    #     -when default_uncertainty {
+    #         -views {* ss 0p900v * * *} {$process_uncertainty 0 $setup_uncertainty <PLACEHOLDER>100 $hold_uncertainty <PLACEHOLDER>50}
+    #         -views {* ff 1p100v * * *} {$process_uncertainty 0 $setup_uncertainty <PLACEHOLDER>100 $hold_uncertainty <PLACEHOLDER>50}
+    #     }
+    # }
+'
+
+# Tool-specific procedures
+gf_create_step -name innovus_procs_common '
+    `@gconfig_procs_ocv`
+    `@procs_stylus_db`
+    `@innovus_procs_db`
+    `@innovus_procs_fanin_fanout_magnify`
+    `@innovus_procs_add_buffers`
+    `@innovus_procs_align`
+    `@innovus_procs_copy_place`
+    `@innovus_procs_power_grid`
+    `@innovus_procs_objects`
+    `@innovus_procs_reports`
+
+    # Useful bindkeys
+    catch {gui_bind_key F7 -cmd "gf_select_similar_instances_by_index"}
+    catch {gui_bind_key Shift+F7 -cmd "gf_select_similar_instances_by_cell 1"}
+    catch {gui_bind_key Ctrl+Shift+F7 -cmd "gf_select_more_instances"}
+    catch {gui_bind_key Shift+F6 -cmd "gf_swap_bumps"}
+'
+
+################################################################################
 # Floorplanning flow steps - ./innovus.fp.gf, ./innovus.eco.gf
 ################################################################################
 
@@ -109,7 +205,6 @@ gf_create_step -name innovus_procs_interactive_design '
         # create_row -site bcoreExt -area [get_db current_design .core_bbox]
         init_core_rows
         split_row
-        
     }
 
     # # Fill narrow channels with placement blockages
@@ -356,7 +451,9 @@ gf_create_step -name innovus_procs_interactive_design '
         #     set_db edit_wire_layer_min M1
         #     set_db edit_wire_layer_max M1
         #     deselect_obj -all; select_routes -shapes followpin -layer M1
+        #     set_db edit_wire_drc_on false
         #     edit_duplicate_routes -layer_horizontal M2
+        #     reset_db edit_wire_drc_on
         #     # edit_update_route_width -width_horizontal 0.000
         #     # edit_resize_routes -keep_center_line 1 -direction y -side high -to 0.000
         #     reset_db edit_wire_shield_look_down_layers
@@ -569,7 +666,7 @@ gf_create_step -name innovus_procs_interactive_design '
         # add_power_mesh_colors
         
         # Show main window
-        gui_hide
+        gui_show
     }
 
     # Initialize IO rows
@@ -783,26 +880,6 @@ gf_create_step -name innovus_procs_interactive_design '
 # Implementation flow steps - ./innovus.be.gf, ./innovus.ispatial.gf
 ################################################################################
 
-# Tool-specific procedures
-gf_create_step -name innovus_procs_common '
-    `@gconfig_procs_ocv`
-    `@procs_stylus_db`
-    `@innovus_procs_db`
-    `@innovus_procs_fanin_fanout_magnify`
-    `@innovus_procs_add_buffers`
-    `@innovus_procs_align`
-    `@innovus_procs_copy_place`
-    `@innovus_procs_power_grid`
-    `@innovus_procs_objects`
-    `@innovus_procs_reports`
-
-    # Useful bindkeys
-    catch {gui_bind_key F7 -cmd "gf_select_similar_instances_by_index"}
-    catch {gui_bind_key Shift+F7 -cmd "gf_select_similar_instances_by_cell 1"}
-    catch {gui_bind_key Ctrl+Shift+F7 -cmd "gf_select_more_instances"}
-    catch {gui_bind_key Shift+F6 -cmd "gf_swap_bumps"}
-'
-
 # Commands before reading design data
 gf_create_step -name innovus_pre_read_libs '
 
@@ -855,7 +932,9 @@ gf_create_step -name innovus_connect_global_nets '
 
 # Commands after design initialization in physical mode
 gf_create_step -name innovus_post_init_design_physical_mode '
-    `@innovus_post_init_design_physical_mode_technology`
+    `@innovus_post_init_design_physical_mode_project`
+
+    <PLACEHOLDER> Review backend settings for floorplan
 
     # # Floorplan settings
     # set_db floorplan_initial_all_compatible_core_site_rows true
@@ -958,6 +1037,7 @@ gf_create_step -name innovus_post_init_design_physical_mode '
     set_db add_well_taps_top_tap_cell    [get_db [get_db base_cells <PLACEHOLDER>"BOUNDARY_PTAP*"] .name]
     set_db add_well_taps_cell            [get_db [get_db base_cells <PLACEHOLDER>"TAPCELL*"] .name]
     set_db add_well_taps_rule <PLACEHOLDER>25
+    set_db add_well_taps_in_row_offset <PLACEHOLDER>12
 
     # Precise well tap cells (see foundry recommendations)
     # set_db add_well_taps_disable_check_zone_at_boundary vdd
@@ -975,6 +1055,8 @@ gf_create_step -name innovus_post_init_design_physical_mode '
 # Commands after design initialization
 gf_create_step -name innovus_post_init_design '
     `@innovus_post_init_design_physical_mode`
+
+    <PLACEHOLDER> Review backend settings for implementation
 
     # Flow settings
     if {1} {
@@ -1059,7 +1141,6 @@ gf_create_step -name innovus_post_init_design '
         # set_db timing_report_enable_verbose_ssta_mode true
         # set_socv_reporting_nsigma_multiplier -setup 3 -hold 3
         # set_db delaycal_accuracy_level 3
-        # set_db timing_cppr_threshold_ps 3
         # set_db delaycal_socv_lvf_mode moments
         # set_db delaycal_socv_use_lvf_tables {delay slew constraint}
         # set_timing_derate 0 -sigma -cell_check -early [get_lib_cells *BWP*]
@@ -1101,6 +1182,12 @@ gf_create_step -name innovus_post_init_design '
         # # DPT settings
         # set_db place_detail_color_aware_legal true
         # set_db place_detail_use_check_drc true
+
+        # # Place IO pins automatically
+        # set_db place_global_place_io_pins true
+
+        # # For standard cells with pins without half-pitch offset
+        # set_db place_detail_allow_border_pin_abut true
 
         # Additional options
         set_db place_detail_swap_eeq_cells true
@@ -1233,17 +1320,17 @@ gf_create_step -name innovus_pre_place '
     # flatten_ilm
 
     # Clock tree cells
-    set_db cts_buffer_cells [join {
+    set_db cts_buffer_cells [get_db [get_db base_cells {
         <PLACEHOLDER>DCAP_CLOCK_BUFFER_CELL_NAME:DCCKB*LVT
-    }]
-    set_db cts_inverter_cells [join {
+    }] .name]
+    set_db cts_inverter_cells [get_db [get_db base_cells {
         <PLACEHOLDER>DCAP_CLOCK_INVERTER_CELL_NAME:DCCKN*LVT
-    }]
-    set_db cts_clock_gating_cells [join {
+    }] .name]
+    set_db cts_clock_gating_cells [get_db [get_db base_cells {
         <PLACEHOLDER>CLOCK_LATCH_HIGH_CELL_NAME:CKLHQ*LVT
         <PLACEHOLDER>CLOCK_LATCH_LOW_CELL_NAME:CKLNQ*LVT
-    }]
-    set_db cts_logic_cells [join {
+    }] .name]
+    set_db cts_logic_cells [get_db [get_db base_cells {
         <PLACEHOLDER>CLOCK_MUX_CELL_NAME:CKMUX2*LVT
         <PLACEHOLDER>CLOCK_NAND_CELL_NAME:CKND2*LVT
         <PLACEHOLDER>CLOCK_NOR_CELL_NAME:CKNR2*LVT
@@ -1251,13 +1338,13 @@ gf_create_step -name innovus_pre_place '
         <PLACEHOLDER>CLOCK_OR_CELL_NAME:CKOR2*LVT
         <PLACEHOLDER>CLOCK_XOR_CELL_NAME:CKXOR2*LVT
         <PLACEHOLDER>DCAP_CLOCK_INVERTER_CELL_NAME:DCCKN*
-    }]
+    }] .name]
 
     # Hold fixing cells
-    set_db opt_fix_hold_lib_cells [join {
+    set_db opt_fix_hold_lib_cells [get_db [get_db base_cells {
         <PLACEHOLDER>DATA_DELAY_CELL_NAME:DEL*
         <PLACEHOLDER>DATA_BUFFER_CELL_NAME:BUFF*
-    }]
+    }] .name]
 
     # NDR for clock routing
     create_route_rule -name CTS_LEAF -spacing_multiplier {<PLACEHOLDER>M4:<PLACEHOLDER>M8 2} -min_cut {<PLACEHOLDER>VIA1:<PLACEHOLDER>VIA7 2}
@@ -1613,20 +1700,95 @@ gf_create_step -name innovus_post_route_opt_setup_hold '
     }
 '
 
+################################################################################
+# Interactive flow steps - ./innovus.fp.gf, ./innovus.gui.gf, ./innovus.eco.gf
+################################################################################
+
+# Commands before interactive floorplanning
+gf_create_step -name innovus_pre_floorplan '
+    # Options to finish floorplan command
+    set_db finish_floorplan_active_objs {macro hard_blockage soft_blockage core}
+    set_preference InstanceText InstanceMaster
+    set_preference ShowNetNameWithLayerColor 1
+'
+
 # Commands before open GUI for debug
 gf_create_step -name innovus_pre_gui '
 
     # Dim physical cells
     set_layer_preference phyCell -color #555555
 
-    # # Highlight cells modified at different design stages
-    # gui_highlight -color "#30BB30" -pattern none [get_db insts -if .base_name==Place*]
-    # gui_highlight -color "#60DD60" -pattern none [get_db insts -if .base_name==Clock*]
-    # gui_highlight -color "#90FF90" -pattern none [get_db insts -if .base_name==Route*]
+    # # Hide metal layers
+    # set_layer_preference node_layer -is_visible 0
+    # get_db layers .name VIA* -foreach {set_layer_preference $object -is_visible 1}
 
-    # Highlight hold fixing cells
-    gui_highlight -color "#6060DD" [get_db insts *PHC*]
-    gui_highlight -color "#8080FF" [get_db insts -if .base_name==Route*PHC*]
+    # # Highlight cells modified at different design stages
+    # gui_highlight -pattern none -color "#30BB30" [get_db insts -if .base_name==Place*]
+    # gui_highlight -pattern none -color "#60DD60" [get_db insts -if .base_name==Clock*]
+    # gui_highlight -pattern none -color "#90FF90" [get_db insts -if .base_name==Route*]
+
+    # Highlight optimization cells
+    # gui_highlight -pattern none -color "#9090FF" [get_db insts *PHC*]
+    # gui_highlight -pattern none -color "#6060DD" [get_db insts -if .base_name==Clock*PHC*]
+
+    gui_highlight -pattern none -color "#FF3030" [get_db insts -if .base_name==Place*&&.base_cell.dont_use]
+    gui_highlight -pattern none -color "#FF6060" [get_db insts -if .base_name==Clock*&&.base_cell.dont_use]
+    gui_highlight -pattern none -color "#FF9090" [get_db insts -if .base_name==Route*&&.base_cell.dont_use]
+
+    gui_highlight -pattern none -color "#FF60FF" [get_db insts -if .base_name==Clock*PHC*&&.base_cell.dont_use]
+    gui_highlight -pattern none -color "#FF90FF" [get_db insts -if .base_name==Route*PHC*&&.base_cell.dont_use]
+
+    # Highlight physical cells
+    gui_highlight -pattern none -color "#3070FF" [get_db insts -if .base_name==LTIEL*]
+    gui_highlight -pattern none -color "#7030FF" [get_db insts -if .base_name==LTIEH*]
+    gui_highlight -pattern none -color "#406080" [get_db insts -if .base_name==WELL*]
+    gui_highlight -pattern none -color "#408060" [get_db insts -if .base_name==END*]
+'
+
+# Interactive ECO procedures
+gf_create_step -name innovus_procs_eco_design '
+    
+    # Tool-specific procedures
+    `@innovus_procs_eco_common`
+
+    # # Fix followpin vias between M1 and M2
+    # proc gf_fix_followpin_drc {} {
+    #     check_drc -range 1:2 -limit 1000000
+    #     route_eco -fix_drc
+    # }
+
+    # # Fix poly direction in pads
+    # proc gf_fix_io_ring {} {
+    #     set_db eco_honor_dont_use false
+    #     set_db eco_honor_dont_touch false
+    #     set_db eco_honor_fixed_status false
+    #     set_db eco_update_timing false
+    #     set_db eco_refine_place false
+    #     set_db eco_batch_mode true
+    #     
+    #     foreach pad [get_db insts -if .base_cell.site.class==pad] {
+    #         if {[lsearch -exact {r90 r270 mx90 my90} [get_db $pad .orient]] >= 0} {
+    #             if {[regexp {_V$} [get_db $pad .base_cell.name]]} {
+    #                 puts $pad
+    #                 gui_highlight $pad
+    #                 eco_update_cell -insts [get_db $pad .name] -cells [regsub {_V$} [get_db $pad .base_cell.name] {_H}]
+    #             }
+    #         } else {
+    #             if {[regexp {_H$} [get_db $pad .base_cell.name]]} {
+    #                 puts $pad
+    #                 gui_highlight $pad
+    #                 eco_update_cell -insts [get_db $pad .name] -cells [regsub {_H$} [get_db $pad .base_cell.name] {_V}]
+    #             }
+    #         }
+    #     }
+    #     
+    #     set_db eco_batch_mode false
+    #     reset_db eco_honor_dont_use
+    #     reset_db eco_honor_dont_touch
+    #     reset_db eco_honor_fixed_status 
+    #     reset_db eco_update_timing 
+    #     reset_db eco_refine_place
+    # }
 '
 
 ################################################################################
@@ -1679,64 +1841,6 @@ gf_create_step -name innovus_concurrent_macro_placement '
     # 
     # # Finalize rows, physical instances and power grid and save floorplan
     # gf_finish_floorplan
-'
-
-################################################################################
-# ECO flow steps - ./innovus.fp.gf, ./innovus.eco.gf
-################################################################################
-
-# Interactive ECO procedures
-gf_create_step -name innovus_procs_eco_design '
-    
-    # Tool-specific procedures
-    `@innovus_procs_eco_common`
-
-    # # Fix followpin vias between M1 and M2
-    # proc gf_fix_followpin_drc {} {
-    #     check_drc -range 1:2 -limit 1000000
-    #     route_eco -fix_drc
-    # }
-
-    # # Fix poly direction in pads
-    # proc gf_fix_io_ring {} {
-    #     set_db eco_honor_dont_use false
-    #     set_db eco_honor_dont_touch false
-    #     set_db eco_honor_fixed_status false
-    #     set_db eco_update_timing false
-    #     set_db eco_refine_place false
-    #     set_db eco_batch_mode true
-    #     
-    #     foreach pad [get_db insts -if .base_cell.site.class==pad] {
-    #         if {[lsearch -exact {r90 r270 mx90 my90} [get_db $pad .orient]] >= 0} {
-    #             if {[regexp {_V$} [get_db $pad .base_cell.name]]} {
-    #                 puts $pad
-    #                 gui_highlight $pad
-    #                 eco_update_cell -insts [get_db $pad .name] -cells [regsub {_V$} [get_db $pad .base_cell.name] {_H}]
-    #             }
-    #         } else {
-    #             if {[regexp {_H$} [get_db $pad .base_cell.name]]} {
-    #                 puts $pad
-    #                 gui_highlight $pad
-    #                 eco_update_cell -insts [get_db $pad .name] -cells [regsub {_H$} [get_db $pad .base_cell.name] {_V}]
-    #             }
-    #         }
-    #     }
-    #     
-    #     set_db eco_batch_mode false
-    #     reset_db eco_honor_dont_use
-    #     reset_db eco_honor_dont_touch
-    #     reset_db eco_honor_fixed_status 
-    #     reset_db eco_update_timing 
-    #     reset_db eco_refine_place
-    # }
-'
-
-# Commands before interactive floorplanning
-gf_create_step -name innovus_pre_floorplan '
-    # Options to finish floorplan command
-    set_db finish_floorplan_active_objs {macro soft_blockage core}
-    set_preference InstanceText InstanceMaster
-    set_preference ShowNetNameWithLayerColor 1
 '
 
 ################################################################################
@@ -1905,34 +2009,6 @@ gf_create_step -name innovus_physical_out_design '
     
     # Write current sources coordinates for power grid analysis
     gf_write_current_sources_locations ./out/$TASK_NAME/$DESIGN_NAME <PLACEHOLDER>10.0
-
-    # Output configuration file
-    set FH [open "./out/$TASK_NAME.design.tcl" w]
-    
-        puts $FH "# Configuration"
-        puts $FH ""
-        puts $FH "set CONFIG_DIR \"\[file dirname \[info script\]\]\""
-        puts $FH "set CONFIG_TASK_NAME {$TASK_NAME}"
-        puts $FH ""
-        puts $FH "# Design"
-        puts $FH ""
-        puts $FH "set DESIGN_NAME {$DESIGN_NAME}"
-        puts $FH ""
-        puts $FH "set NETLIST_FILE \"\$CONFIG_DIR/$TASK_NAME/$DESIGN_NAME.v.gz\""
-        puts $FH "set NETLIST_LVS_FILE \"\$CONFIG_DIR/$TASK_NAME/$DESIGN_NAME.physical.v.gz\""
-        puts $FH "set NETLIST_STA_FILE \"\$CONFIG_DIR/$TASK_NAME/$DESIGN_NAME.logical.v.gz\""
-        puts $FH ""
-        puts $FH "set LEF_FILE \"\$CONFIG_DIR/$TASK_NAME/$DESIGN_NAME.lef\""
-        puts $FH "set LEF_TOP_LAYER {$top_layer}\n"
-        puts $FH ""
-        puts $FH "set DEF_FILE \"\$CONFIG_DIR/$TASK_NAME/$DESIGN_NAME.full.def.gz\""
-        puts $FH "set DEF_STA_FILE \"\$CONFIG_DIR/$TASK_NAME/$DESIGN_NAME.lite.def.gz\""
-        puts $FH ""
-        puts $FH "set HCELL_FILE \"\$CONFIG_DIR/$TASK_NAME/$DESIGN_NAME.hcell\""
-        puts $FH "set PINS_FILE \"\$CONFIG_DIR/$TASK_NAME/$DESIGN_NAME.pins\""
-        puts $FH "set TAPS_FILE_BASE \"\$CONFIG_DIR/$TASK_NAME/$DESIGN_NAME\""
-        
-    close $FH
 '
 
 # Commands to create block-specific timing files
@@ -2007,26 +2083,6 @@ gf_create_step -name innovus_timing_out_design '
             -output_loads {<PLACEHOLDER>0.000, 0.010, 0.025, 0.050, 0.100, 0.200, 0.500} \
             -view $view ./out/$TASK_NAME/$DESIGN_NAME.$view.lib
     }
-
-    # Output configuration file
-    set FH [open "./out/$TASK_NAME.design.tcl" w]
-    
-        puts $FH "# Configuration"
-        puts $FH ""
-        puts $FH "set CONFIG_DIR \"\[file dirname \[info script\]\]\""
-        puts $FH "set CONFIG_TASK_NAME {$TASK_NAME}"
-        puts $FH ""
-        puts $FH "# Design"
-        puts $FH ""
-        puts $FH "set DESIGN_NAME {$DESIGN_NAME}"
-        puts $FH ""
-        puts $FH "set LIB_FILES {"
-        foreach view $merged_views {
-            puts $FH "    $TASK_NAME/$DESIGN_NAME.$view.lib"
-        }
-        puts $FH "}"
-        
-    close $FH
 '
 
 # Empty cells LEF for StreamOut

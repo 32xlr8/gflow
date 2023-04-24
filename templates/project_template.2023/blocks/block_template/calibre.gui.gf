@@ -1,7 +1,7 @@
 #!../../gflow/bin/gflow
 
 ################################################################################
-# Generic Flow v5.0 (February 2023)
+# Generic Flow v5.1 (May 2023)
 ################################################################################
 #
 # Copyright 2011-2023 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
@@ -28,11 +28,10 @@
 ########################################
 
 # Project and block initialization scripts
-gf_source "../../project.common.gf"
-gf_source "../../project.calibre.gf"
-gf_source "./block.common.gf"
-gf_source "./block.files.gf"
-gf_source "./block.calibre.gf"
+gf_source -once "../../project.common.gf"
+gf_source -once "../../project.calibre.gf"
+gf_source -once "./block.common.gf"
+gf_source -once "./block.calibre.gf"
 
 # Basic flow script options
 gf_set_flow_options -continue -incr -auto_close -hide
@@ -55,7 +54,7 @@ gf_create_task -name DebugCalibre
 
 # Ask user if need to open DRC/LVS results
 gf_spacer
-gf_choose -variable START_RVE -keys YN -time 30 -default N -prompt "Do you want to start RVE (Y/N)?"
+gf_choose -variable START_RVE -keys YN -time 30 -default N -prompt "Start RVE (Y/N)?"
 gf_spacer
 
 # Load GDS

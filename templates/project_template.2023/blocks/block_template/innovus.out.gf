@@ -1,7 +1,7 @@
 #!../../gflow/bin/gflow
 
 ################################################################################
-# Generic Flow v5.0 (February 2023)
+# Generic Flow v5.1 (May 2023)
 ################################################################################
 #
 # Copyright 2011-2023 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
@@ -28,11 +28,10 @@
 ########################################
 
 # Project and block initialization scripts
-gf_source "../../project.common.gf"
-gf_source "../../project.innovus.gf"
-gf_source "./block.common.gf"
-gf_source "./block.files.gf"
-gf_source "./block.innovus.gf"
+gf_source -once "../../project.common.gf"
+gf_source -once "../../project.innovus.gf"
+gf_source -once "./block.common.gf"
+gf_source -once "./block.innovus.gf"
 
 ########################################
 # Innovus data out
@@ -42,14 +41,16 @@ gf_source "./block.innovus.gf"
 gf_create_task -name DataOutPhysical
 gf_use_innovus
 
-# Select Innovus database to analyze from latest available if $INNOVUS_DATABASE is empty
+# Innovus design database
 gf_spacer
 gf_choose_file_dir_task -variable INNOVUS_DATABASE -keep -prompt "Choose database or active task:" -dirs '
     ../work_*/*/out/Route*.innovus.db
     ../work_*/*/out/Assemble*.innovus.db
+    ../work_*/*/out/InnovusTSO*.innovus.db
     ../work_*/*/out/ECO*.innovus.db
 ' -want -active -task_to_file '$RUN/out/$TASK.innovus.db' -tasks '
     ../work_*/*/tasks/Route*
+    ../work_*/*/tasks/InnovusTSO*
     ../work_*/*/tasks/ECO*
     ../work_*/*/tasks/Assemble*
 ' 
@@ -105,14 +106,16 @@ gf_submit_task
 gf_create_task -name DataOutTiming
 gf_use_innovus
 
-# Select Innovus database to analyze from latest available if $INNOVUS_DATABASE is empty
+# Innovus design database
 gf_spacer
 gf_choose_file_dir_task -variable INNOVUS_DATABASE -keep -prompt "Choose database or active task:" -dirs '
     ../work_*/*/out/Route*.innovus.db
     ../work_*/*/out/Assemble*.innovus.db
+    ../work_*/*/out/InnovusTSO*.innovus.db
     ../work_*/*/out/ECO*.innovus.db
 ' -want -active -task_to_file '$RUN/out/$TASK.innovus.db' -tasks '
     ../work_*/*/tasks/Route*
+    ../work_*/*/tasks/InnovusTSO*
     ../work_*/*/tasks/ECO*
     ../work_*/*/tasks/Assemble*
 ' 

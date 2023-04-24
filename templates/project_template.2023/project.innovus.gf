@@ -1,5 +1,5 @@
 ################################################################################
-# Generic Flow v5.0 (February 2023)
+# Generic Flow v5.1 (May 2023)
 ################################################################################
 #
 # Copyright 2011-2023 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
@@ -22,10 +22,9 @@
 ################################################################################
 
 # Load tool plugin, tool and technology steps to use in GF scripts
-gf_source "../../tools/tool_steps.stylus.gf"
-gf_source "../../tools/gflow_plugin.innovus.gf"
-gf_source "../../tools/tool_steps.innovus.gf"
-gf_source "../../technology.innovus.gf"
+gf_source -once "../../tools/tool_steps.stylus.gf"
+gf_source -once "../../tools/gflow_plugin.innovus.gf"
+gf_source -once "../../tools/tool_steps.innovus.gf"
 
 gf_info "Loading project-specific Innovus steps ..."
 
@@ -41,4 +40,13 @@ gf_create_step -name init_innovus_environment '
     # # Path to the libraries in case they are missing in Linux
     # export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:<PLACEHOLDER>/PATH_TO_INNOVUS/tools/lib64"
     # export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:<PLACEHOLDER>/PATH_TO_INNOVUS/tools/lib"
+'
+
+# Project-specific tool environment
+gf_create_step -name innovus_post_init_design_physical_mode_project '
+
+    # Process related settings
+    set_db design_process_node <PLACEHOLDER>
+    # set_db design_tech_node <PLACEHOLDER>
+    set_db route_design_process_node <PLACEHOLDER>
 '

@@ -1,5 +1,5 @@
 ################################################################################
-# Generic Flow v5.0 (February 2023)
+# Generic Flow v5.1 (May 2023)
 ################################################################################
 #
 # Copyright 2011-2023 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
@@ -22,9 +22,8 @@
 ################################################################################
 
 # Load tool plugin, tool and technology steps to use in GF scripts
-gf_source "../../tools/gflow_plugin.calibre.gf"
-gf_source "../../tools/tool_steps.calibre.gf"
-gf_source "../../technology.calibre.gf"
+gf_source -once "../../tools/gflow_plugin.calibre.gf"
+gf_source -once "../../tools/tool_steps.calibre.gf"
 
 gf_info "Loading project-specific Calibre settings ..."
 

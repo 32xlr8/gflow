@@ -17,71 +17,37 @@
 # limitations under the License.
 #
 ################################################################################
-# Filename: templates/tools_template.2023/gflow_plugin.genus.gf
-# Purpose:  Generic Flow Genus plugin
+# Filename: templates/tools_template.2023/gflow_plugin.gconfig.gf
+# Purpose:  Generic Config plugin
 ################################################################################
 
-gf_info "Loading Genus plugin ..."
+gf_info "Loading generic Config plugin ..."
 
 ##################################################
-gf_help_section "Genus Common UI plugin v5.1"
+gf_help_section "Generic Config plugin v5.1"
 ##################################################
 
 ##################################################
-# Genus in interactive mode preset
+# Generic Config preset
 ##################################################
 gf_help_command '
     {gf_use_genus}
-    Genus with GUI task preset.
+    Generic Config task extension preset.
 '
-function gf_use_genus {
-    gf_check_task_name
-
-    # Shell commands to run
-    gf_set_task_command "bash run.bash"
-    gf_add_tool_commands -comment '#' -file "./tasks/$TASK_NAME/run.bash" '
-        `@init_shell_environment`
-        `@init_genus_environment`
-        `@init_modus_environment -optional`
-        `@init_innovus_environment -optional`
-        
-        # Dump environment variables
-        env > ./reports/`$TASK_NAME`.env
-
-        # Run the tool
-        genus -files ./scripts/`$TASK_NAME`.tcl
-    '
+function gf_use_gconfig {
 
     # TCL script initialization
-    gf_add_tool_commands -comment '#' -file "./scripts/$TASK_NAME.tcl" '
-        # Current task variables
-        set RUN_INDEX {`$GF_RUN_INDEX`}
-        set MOTHER_TASK_NAME {`$MOTHER_TASK_NAME -optional`}
+    gf_add_tool_commands -comment '#' -file "./scripts/$TASK_NAME.gconfig.tcl" '
         set TASK_NAME {`$TASK_NAME`}
-        
-        # Generic Flow directories
-        set GF_ROOT {`$GF_ROOT`}
-        set GF_SCRIPT_DIR {`$GF_SCRIPT_DIR`}
-        
-        # Interactive aliases
-        alias man {exec /usr/bin/man > /dev/tty}
-        alias less {exec /usr/bin/less > /dev/tty}
-        alias vi {exec /usr/bin/vim > /dev/tty}
+
+        # Initialize Generic Config 
+        source "../../../../../../gflow/bin/gconfig.tcl"
+
+        # Load MMMC procedures
+        `@init_gconfig_mmmc`
     '
 
-    # Multi-CPU mode
-    if [ -n "$GF_TASK_CPU" ]; then
-        gf_add_tool_commands '
-            set_db / .max_cpus_per_server `$GF_TASK_CPU`
-        '
-    fi
-
-    # Success marks
-    gf_add_success_marks 'Normal exit'
-
-    # Failed marks
-    gf_add_failed_marks 'Stack trace' 'terminated by user' 'FATAL ERROR' 'Abnormal exit'
-    gf_add_failed_marks 'No valid licenses'
+    gf_add_status_marks 'ERROR:' 'WARNING:' 'no such file' 'cannot access' ' not found '
 }
 
 ##################################################

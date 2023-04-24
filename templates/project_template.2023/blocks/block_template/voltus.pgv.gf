@@ -1,7 +1,7 @@
 #!../../gflow/bin/gflow
 
 ################################################################################
-# Generic Flow v5.0 (February 2023)
+# Generic Flow v5.1 (May 2023)
 ################################################################################
 #
 # Copyright 2011-2023 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
@@ -28,11 +28,10 @@
 ########################################
 
 # Project and block initialization scripts
-gf_source "../../project.common.gf"
-gf_source "../../project.voltus.gf"
-gf_source "./block.common.gf"
-gf_source "./block.files.gf"
-gf_source "./block.voltus.gf"
+gf_source -once "../../project.common.gf"
+gf_source -once "../../project.voltus.gf"
+gf_source -once "./block.common.gf"
+gf_source -once "./block.voltus.gf"
 
 ########################################
 # Tech only PGV generation
@@ -41,22 +40,17 @@ gf_source "./block.voltus.gf"
 gf_create_task -name TechPGV
 gf_use_voltus
 
-# Choose configuration file
-gf_choose_file_dir_task -variable VOLTUS_POWER_CONFIG_FILE -keep -prompt "Choose power configuration file:" -files '
-    ../data/*.timing.tcl
-    ../data/*/*.timing.tcl
-    ../work_*/*/out/ConfigSignoff*.power.tcl
-'
-
 # TCL commands
 gf_add_tool_commands '
 
     # Current design variables
     set LEF_FILES {`$CADENCE_TLEF_FILES` `$LEF_FILES`}
-    set POWER_CONFIG_FILE {`$VOLTUS_POWER_CONFIG_FILE`}
 
-    # Load configuration variables
-    source $POWER_CONFIG_FILE
+    # Use separate Generic Config script
+    source ./scripts/$TASK_NAME.gconfig.tcl
+
+    # Design variables
+    `@voltus_pre_init_variables`
 
     # Read physical data
     read_physical -lefs $LEF_FILES
@@ -68,13 +62,22 @@ gf_add_tool_commands '
     `@voltus_pre_write_pgv_tech_only`
 
     # Print info
-    puts "QRC file: {$PGV_RC_CORNER_TEMPERATURE $PGV_RC_CORNER_QRC_FILE}"
+    puts "RC corner: {$PGV_RC_CORNER}"
         
     # Write out library
     write_pg_library -out_dir ./out/$TASK_NAME
     
     # Exit interactive session
     exit
+'
+
+# Generic Config MMMC generation
+gf_use_gconfig
+gf_add_tool_commands '
+    `@gconfig_project_settings`
+    `@gconfig_settings_common`
+    `@gconfig_cadence_mmmc_files`
+    `@voltus_gconfig_design_settings`
 '
 
 # Layer map file
@@ -94,22 +97,17 @@ gf_submit_task
 gf_create_task -name CellsPGV
 gf_use_voltus
 
-# Choose configuration file
-gf_choose_file_dir_task -variable VOLTUS_POWER_CONFIG_FILE -keep -prompt "Choose power configuration file:" -files '
-    ../data/*.timing.tcl
-    ../data/*/*.timing.tcl
-    ../work_*/*/out/ConfigSignoff*.power.tcl
-'
-
 # TCL commands
 gf_add_tool_commands '
 
     # Current design variables
     set LEF_FILES {`$CADENCE_TLEF_FILES` `$LEF_FILES`}
-    set POWER_CONFIG_FILE {`$VOLTUS_POWER_CONFIG_FILE`}
 
-    # Load configuration variables
-    source $POWER_CONFIG_FILE
+    # Use separate Generic Config script
+    source ./scripts/$TASK_NAME.gconfig.tcl
+
+    # Design variables
+    `@voltus_pre_init_variables`
 
     # Read physical data
     read_physical -lefs [join $LEF_FILES]
@@ -121,13 +119,22 @@ gf_add_tool_commands '
     `@voltus_pre_write_pgv_standard_cells`
 
     # Print info
-    puts "QRC file: {$PGV_RC_CORNER_TEMPERATURE $PGV_RC_CORNER_QRC_FILE}"
+    puts "RC corner: {$PGV_RC_CORNER}"
 
     # Write out library
     write_pg_library -out_dir ./out/$TASK_NAME
     
     # Exit interactive session
     exit
+'
+
+# Generic Config MMMC generation
+gf_use_gconfig
+gf_add_tool_commands '
+    `@gconfig_project_settings`
+    `@gconfig_settings_common`
+    `@gconfig_cadence_mmmc_files`
+    `@voltus_gconfig_design_settings`
 '
 
 # Additional files
@@ -147,27 +154,17 @@ gf_submit_task
 gf_create_task -name MacrosPGV
 gf_use_voltus
 
-# Choose configuration file
-gf_choose_file_dir_task -variable VOLTUS_POWER_CONFIG_FILE -keep -prompt "Choose power configuration file:" -files '
-    ../data/*.timing.tcl
-    ../data/*/*.timing.tcl
-    ../work_*/*/out/ConfigSignoff*.power.tcl
-'
-
 # TCL commands
 gf_add_tool_commands '
 
     # Current design variables
     set LEF_FILES {`$CADENCE_TLEF_FILES` `$LEF_FILES`}
-    set GDS_FILES {`$GDS_FILES`}
-    set SPICE_MODELS {`$VOLTUS_PGV_SPICE_MODELS`}
-    set SPICE_CORNERS {`$VOLTUS_PGV_SPICE_CORNERS`}
-    set SPICE_SCALING {`$VOLTUS_PGV_SPICE_SCALING`}
-    set SPICE_FILES {`$VOLTUS_PGV_SPICE_FILES`}
-    set POWER_CONFIG_FILE {`$VOLTUS_POWER_CONFIG_FILE`}
 
-    # Load configuration variables
-    source $POWER_CONFIG_FILE
+    # Use separate Generic Config script
+    source ./scripts/$TASK_NAME.gconfig.tcl
+
+    # Design variables
+    `@voltus_pre_init_variables`
 
     # Read physical data
     read_physical -lefs [join $LEF_FILES]
@@ -182,13 +179,22 @@ gf_add_tool_commands '
     `@init_block_voltus_pgv_macros`
 
     # Print info
-    puts "QRC file: {$PGV_RC_CORNER_TEMPERATURE $PGV_RC_CORNER_QRC_FILE}"
+    puts "RC corner: {$PGV_RC_CORNER}"
 
     # Write out library
     write_pg_library -out_dir ./out/$TASK_NAME
     
     # Exit interactive session
     exit
+'
+
+# Generic Config MMMC generation
+gf_use_gconfig
+gf_add_tool_commands '
+    `@gconfig_project_settings`
+    `@gconfig_settings_common`
+    `@gconfig_cadence_mmmc_files`
+    `@voltus_gconfig_design_settings`
 '
 
 # Additional files

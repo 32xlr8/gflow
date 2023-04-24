@@ -1,7 +1,7 @@
 #!../../gflow/bin/gflow
 
 ################################################################################
-# Generic Flow v5.0 (February 2023)
+# Generic Flow v5.1 (May 2023)
 ################################################################################
 #
 # Copyright 2011-2023 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
@@ -28,11 +28,10 @@
 ########################################
 
 # Project and block initialization scripts
-gf_source "../../project.common.gf"
-gf_source "../../project.tempus.gf"
-gf_source "./block.common.gf"
-gf_source "./block.files.gf"
-gf_source "./block.tempus.gf"
+gf_source -once "../../project.common.gf"
+gf_source -once "../../project.tempus.gf"
+gf_source -once "./block.common.gf"
+gf_source -once "./block.tempus.gf"
 
 # Basic flow script options
 gf_set_flow_options -continue -incr -auto_close -hide
@@ -44,7 +43,7 @@ gf_set_flow_options -continue -incr -auto_close -hide
 gf_create_task -name DebugTempus
 gf_use_tempus
 
-# Choose available Innovus database
+# Innovus design database
 gf_choose_file_dir_task -variable REF_TASK -keep -prompt "Choose reference STA task:" -tasks '
     ../work_*/*/tasks/STA*
 '
@@ -61,13 +60,6 @@ gf_add_shell_commands -init "
         ln -nsf \$spef ./out/
     done
 "
-
-# Choose configuration file
-gf_choose_file_dir_task -variable TEMPUS_TIMING_CONFIG_FILE -keep -prompt "Choose timing configuration file:" -files '
-    ../data/*.timing.tcl
-    ../data/*/*.timing.tcl
-    ../work_*/*/out/ConfigSignoff*.timing.tcl
-'
 
 # TCL commands
 gf_add_tool_commands '
@@ -115,7 +107,7 @@ gf_add_tool_commands '
     redirect ./reports/$TASK_NAME.derate.rpt {report_timing_derate}
     
     # Initialize tool environment
-    `@tempus_post_init_design_technology`
+    `@tempus_post_init_design_project`
     `@tempus_post_init_design`
 
     # Read parasitics

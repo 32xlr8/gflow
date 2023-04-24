@@ -1,5 +1,5 @@
 ################################################################################
-# Generic Flow v5.0 (February 2023)
+# Generic Flow v5.1 (May 2023)
 ################################################################################
 #
 # Copyright 2011-2023 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
@@ -24,7 +24,7 @@
 gf_info "Loading Tempus plugin ..."
 
 ##################################################
-gf_help_section "Tempus Common UI plugin v5.0"
+gf_help_section "Tempus Common UI plugin v5.1"
 ##################################################
 
 ##################################################
@@ -47,7 +47,7 @@ function gf_use_tempus {
         env > ./reports/`$TASK_NAME`.env
 
         # Run the tool
-        tempus -stylus -files ./scripts/`$TASK_NAME`.tcl
+        tempus -stylus '$@' -files ./scripts/`$TASK_NAME`.tcl
     '
 
     # TCL script initialization
@@ -115,7 +115,7 @@ function gf_use_tempus_batch {
         env > ./reports/`$TASK_NAME`.env
 
         # Run the tool
-        tempus -stylus -batch -no_gui -files ./scripts/`$TASK_NAME`.tcl
+        tempus -stylus -batch -no_gui '$@' -files ./scripts/`$TASK_NAME`.tcl
     '
 
     # TCL script initialization

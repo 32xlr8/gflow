@@ -19,8 +19,8 @@
 # limitations under the License.
 #
 ################################################################################
-# Filename: templates/project_template.2023/blocks/block_template/tempus.sta.gf
-# Purpose:  Batch signoff STA flow
+# Filename: templates/project_template.2023/blocks/block_template/tempus.tso.gf
+# Purpose:  Batch signoff ECO flow
 ################################################################################
 
 ########################################
@@ -34,11 +34,11 @@ gf_source -once "./block.common.gf"
 gf_source -once "./block.tempus.gf"
 
 ########################################
-# Tempus STA
+# Tempus ECO
 ########################################
 
-gf_create_task -name STA
-gf_use_tempus
+gf_create_task -name TempusTSO
+gf_use_tempus -eco
 
 # Design data directory
 gf_choose_file_dir_task -variable DATA_OUT_DIR -keep -prompt "Choose design data directory:" -dirs '
@@ -54,19 +54,31 @@ gf_choose_file_dir_task -variable SPEF_OUT_DIR -keep -prompt "Choose SPEF direct
     ../work_*/*/tasks/Extraction*
 '
 
+# Choose configuration file
+gf_choose_file_dir_task -variable ECO_DB_DIR -keep -prompt "Choose Tempus ECO directory:" -dirs '
+    ../work_*/*/out/STA*.tempus.eco.db
+' -want -active -task_to_file '$RUN/out/$TASK.tempus.eco.db' -tasks '
+    ../work_*/*/tasks/STA*
+'
+
+# Choose scenario
+gf_choose -keep -variable ECO_SCENARIO -message "Which ECO scenario to run?" -variants "$(echo "$ECO_SCENARIOS" | sed -e 's|^\s\+||g; s|\s\+$||g;')" -count 25
+
 # TCL commands
 gf_add_tool_commands '
 
     # Current design variables
     set LEF_FILES {`$CADENCE_TLEF_FILES` `$LEF_FILES`}
 
-    set DESIGN_NAME {`$DESIGN_NAME`} 
+    set DESIGN_NAME {`$DESIGN_NAME`}
     set POWER_NETS {`$POWER_NETS_CORE` `$POWER_NETS_OTHER -optional`}
     set GROUND_NETS {`$GROUND_NETS_CORE` `$GROUND_NETS_OTHER -optional`}
 
     set DATA_OUT_DIR {`$DATA_OUT_DIR`}
     set SPEF_OUT_DIR {`$SPEF_OUT_DIR`}
-    
+    set ECO_DB_DIR {`$ECO_DB_DIR`}
+
+    set ECO_SCENARIO {`$ECO_SCENARIO`}
     set IGNORE_IO_TIMING {`$IGNORE_IO_TIMING`}
 
     # Start metric collection
@@ -90,19 +102,15 @@ gf_add_tool_commands '
 
     # Read physical information defined in project config
     read_physical -lefs [join $LEF_FILES]
-    
+
     # Load netlist
     read_netlist $DATA_OUT_DIR/$DESIGN_NAME.v.gz -top $DESIGN_NAME
     
+    # Load physical data
+    read_def $DATA_OUT_DIR/$DESIGN_NAME.lite.def.gz
+    
     # Initialize design with MMMC configuration
     init_design
-    
-    # Load OCV configuration
-    redirect -tee ./reports/$TASK_NAME.ocv.rpt {
-        reset_timing_derate
-        source ./in/$TASK_NAME.ocv.tcl
-    }
-    redirect ./reports/$TASK_NAME.derate.rpt {report_timing_derate}
     
     # Initialize tool environment
     `@tempus_post_init_design_project`
@@ -111,25 +119,28 @@ gf_add_tool_commands '
     # Read parasitics
     gf_read_parasitics $SPEF_OUT_DIR/$DESIGN_NAME
     
-    # Path groups for analysis
-    if {[catch create_basic_path_groups]} {
-        set registers [all_registers]
-        group_path -name reg2reg -from $registers -to $registers
-    }
+    # Init cells allowed for ECO
+    `@init_cells_tempus`
 
-    # Switch to propagated clocks mode
-    if {$IGNORE_IO_TIMING == "Y"} {
-        set_interactive_constraint_mode [get_db [get_db constraint_modes -if {.is_setup||.is_hold}] .name]
-        reset_propagated_clock [get_clocks *] 
-        set_propagated_clock [get_clocks *] 
-        set_interactive_constraint_mode {}
-    } else {
-        update_io_latency
-    }
-
-    # Timing analysis
-    `@reports_sta_tempus`
+    # Read ECO timing DB
+    set_db opt_signoff_read_eco_opt_db $ECO_DB_DIR
     
+    # Multiple ECO in the same session
+    set_db opt_signoff_allow_multiple_incremental true
+    
+    # Do not optimize interface paths
+    if {$IGNORE_IO_TIMING == "Y"} {
+        set_db opt_signoff_optimize_core_only true
+    }
+        
+    # Accumulated ECO scripts    
+    rm -f ./out/$TASK_NAME.eco_innovus.tcl
+    rm -f ./out/$TASK_NAME.eco_tempus.tcl
+    set ECO_COUNT 0
+
+    # Perform ECO operations in given order
+    `@run_opt_signoff`
+
     # Report collected metrics
     `@report_metrics`
         
@@ -168,37 +179,8 @@ gf_add_tool_commands -comment '#' -file ./scripts/$TASK_NAME.procs.tcl '
     `@procs_tempus_read_data`
 '
 
-# # Postprocess timing summary file
-# gf_add_shell_commands -post '
-    # cat ./reports/$TASK_NAME/timing.summary | perl -e '"'"'
-        # my $view = "";
-        # my $type = "";
-        # while (<STDIN>) {
-            # if (/View:(\w+)/) {
-                # $view = $1;
-                # $type = "";
-                # print "  | $view\n";
-            # } elsif ($view ne "") {
-                # if (/GroupType:(\w+)/) {
-                    # $type = $1;
-                # } elsif ($type ne "") {
-                    # s/\s+/ /g;
-                    # if (s/[-\d\.]+:[-\d\.]+:[-\d\.]+\s+[-\d\.]+:[-\d\.]+:[-\d\.]+\s+[-\d\.]+:[-\d\.]+:[-\d\.]+\s+([-\d\.]+):([-\d\.]+):([-\d\.]+)\s+[-\d\.]+:[-\d\.]+:[-\d\.]+\s+/sprintf("%7s:%-7s:%-10s", $1, $2, $3)/ge) {
-                        # # print "  | ".sprintf("%-10s", $type)." $_\n";
-                        # print "  | $_\n";
-                    # }
-                # }
-            # }
-        # }
-    # '"'"'
-# '
-
 # Failed if some files not found
 gf_add_failed_marks '^\*\*ERROR:.\+file.\+not'
-
-# # Print summary
-# gf_add_status_marks '(Group|View) : '  'Check : .*[1-9\-]' 
-# gf_add_status_marks -1 +1 '^# (SETUP|HOLD|DRV)' '^  \|'
 
 # Run task
 gf_submit_task

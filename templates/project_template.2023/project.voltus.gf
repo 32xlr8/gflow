@@ -1,5 +1,5 @@
 ################################################################################
-# Generic Flow v5.0 (February 2023)
+# Generic Flow v5.1 (May 2023)
 ################################################################################
 #
 # Copyright 2011-2023 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
@@ -22,10 +22,9 @@
 ################################################################################
 
 # Load tool plugin, tool and technology steps to use in GF scripts
-gf_source "../../tools/tool_steps.stylus.gf"
-gf_source "../../tools/gflow_plugin.voltus.gf"
-gf_source "../../tools/tool_steps.voltus.gf"
-gf_source "../../technology.voltus.gf"
+gf_source -once "../../tools/tool_steps.stylus.gf"
+gf_source -once "../../tools/gflow_plugin.voltus.gf"
+gf_source -once "../../tools/tool_steps.voltus.gf"
 
 gf_info "Loading project-specific Voltus steps ..."
 
@@ -41,4 +40,12 @@ gf_create_step -name init_voltus_environment '
     # # Path to the libraries in case they are missing in Linux
     # export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:<PLACEHOLDER>/PATH_TO_SSV/tools/lib64"
     # export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:<PLACEHOLDER>/PATH_TO_SSV/tools/lib"
+'
+
+# Project-specific tool environment
+gf_create_step -name voltus_post_init_design_project '
+
+    # Process related settings
+    set_db design_process_node <PLACEHOLDER>
+
 '

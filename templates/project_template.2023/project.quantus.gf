@@ -1,5 +1,5 @@
 ################################################################################
-# Generic Flow v5.0 (February 2023)
+# Generic Flow v5.1 (May 2023)
 ################################################################################
 #
 # Copyright 2011-2023 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
@@ -22,9 +22,8 @@
 ################################################################################
 
 # Load tool plugin, tool and technology steps to use in GF scripts
-gf_source "../../tools/gflow_plugin.quantus.gf"
-gf_source "../../tools/tool_steps.quantus.gf"
-gf_source "../../technology.quantus.gf"
+gf_source -once "../../tools/gflow_plugin.quantus.gf"
+gf_source -once "../../tools/tool_steps.quantus.gf"
 
 gf_info "Loading project-specific Quantus steps ..."
 
@@ -40,4 +39,30 @@ gf_create_step -name init_quantus_environment '
     # # Path to the libraries in case they are missing in Linux
     # export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:<PLACEHOLDER>/PATH_TO_EXT/tools/lib64"
     # export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:<PLACEHOLDER>/PATH_TO_EXT/tools/lib"
+'
+
+# Project-specific tool environment
+gf_create_step -name quantus_pre_init_design_project '
+
+    # Cross-coupling mode required for SI
+    extract \
+        -selection all \
+        -type rc_coupled
+
+    # Filtering options
+    filter_coupling_cap \
+        -total_cap_threshold 0.0 \
+        -coupling_cap_threshold_absolute 0.1 \
+        -coupling_cap_threshold_relative 1.0 \
+        -cap_filtering_mode absolute_and_relative
+
+    # Parasitics reduction
+    parasitic_reduction -enable_reduction false
+    
+    # Process scale factor
+    extraction_setup \
+        -layout_scale <PLACEHOLDER>1.0
+
+    extraction_setup \
+        -promote_pin_pad logical
 '

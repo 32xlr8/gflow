@@ -1,7 +1,7 @@
 #!../../gflow/bin/gflow
 
 ################################################################################
-# Generic Flow v5.0 (February 2023)
+# Generic Flow v5.1 (May 2023)
 ################################################################################
 #
 # Copyright 2011-2023 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
@@ -28,11 +28,10 @@
 ########################################
 
 # Project and block initialization scripts
-gf_source "../../project.common.gf"
-gf_source "../../project.voltus.gf"
-gf_source "./block.common.gf"
-gf_source "./block.files.gf"
-gf_source "./block.voltus.gf"
+gf_source -once "../../project.common.gf"
+gf_source -once "../../project.voltus.gf"
+gf_source -once "./block.common.gf"
+gf_source -once "./block.voltus.gf"
 
 ########################################
 # Static power calculation
@@ -41,28 +40,17 @@ gf_source "./block.voltus.gf"
 gf_create_task -name StaticPower
 gf_use_voltus
 
-# Choose configuration file
-gf_choose_file_dir_task -variable VOLTUS_POWER_CONFIG_FILE -keep -prompt "Choose power configuration file:" -files '
-    ../data/*.timing.tcl
-    ../data/*/*.timing.tcl
-    ../work_*/*/out/ConfigSignoff*.power.tcl
-'
-
-# Choose configuration file
-gf_choose_file_dir_task -variable VOLTUS_DATA_OUT_CONFIG_FILE -keep -prompt "Choose design configuration file:" -files '
-    ../data/*.design.tcl
-    ../data/*/*.design.tcl
-    ../work_*/*/out/DataOutPhysical*.design.tcl
-' -want -active -task_to_file '$RUN/out/$TASK.design.tcl' -tasks '
+# Design data directory
+gf_choose_file_dir_task -variable DATA_OUT_DIR -keep -prompt "Choose design data directory:" -dirs '
+    ../work_*/*/out/DataOutPhysical*
+' -want -active -task_to_file '$RUN/out/$TASK' -tasks '
     ../work_*/*/tasks/DataOutPhysical*
 '
 
-# Choose configuration file
-gf_choose_file_dir_task -variable VOLTUS_SPEF_CONFIG_FILE -keep -prompt "Choose SPEF configuration file:" -files '
-    ../data/*.design.tcl
-    ../data/*/*.design.tcl
-    ../work_*/*/out/Extraction*.design.tcl
-' -want -active -task_to_file '$RUN/out/$TASK.design.tcl' -tasks '
+# SPEF directory
+gf_choose_file_dir_task -variable SPEF_OUT_DIR -keep -prompt "Choose SPEF directory:" -dirs '
+    ../work_*/*/out/Extraction*
+' -want -active -task_to_file '$RUN/out/$TASK' -tasks '
     ../work_*/*/tasks/Extraction*
 '
 
@@ -78,33 +66,29 @@ gf_add_tool_commands '
     set LEF_FILES {`$CADENCE_TLEF_FILES` `$LEF_FILES`}
 
     set DESIGN_NAME {`$DESIGN_NAME`} 
-
     set POWER_SCENARIO {`$POWER_SCENARIO`}
     
-    set POWER_CONFIG_FILE {`$VOLTUS_POWER_CONFIG_FILE`}
-    set DATA_OUT_CONFIG_FILE {`$VOLTUS_DATA_OUT_CONFIG_FILE`}
-    set SPEF_CONFIG_FILE {`$VOLTUS_SPEF_CONFIG_FILE`}
+    set DATA_OUT_DIR {`$DATA_OUT_DIR`}
+    set SPEF_OUT_DIR {`$SPEF_OUT_DIR`}
 
-    # Load configuration variables
-    source $POWER_CONFIG_FILE
-    source $DATA_OUT_CONFIG_FILE
-    source $SPEF_CONFIG_FILE
+    # Use separate Generic Config script
+    source ./scripts/$TASK_NAME.gconfig.tcl
 
     # Design variables
     `@voltus_pre_init_variables`
 
     # Load MMMC configuration
-    puts "MMMC file: $STATIC_POWER_VIEW_MMMC_FILE"
-    read_mmmc $STATIC_POWER_VIEW_MMMC_FILE
+    puts "Analysis view: {$STATIC_POWER_VIEW}"
+    read_mmmc ./in/$TASK_NAME.mmmc.tcl
     
     # Load design files
     read_physical -lefs [join $LEF_FILES]
-    read_netlist $NETLIST_FILE -top $DESIGN_NAME
-    read_def $DEF_FILE -skip_signal_nets 
+    read_netlist $DATA_OUT_DIR/$DESIGN_NAME.v.gz -top $DESIGN_NAME
+    read_def $DATA_OUT_DIR/$DESIGN_NAME.full.def.gz -skip_signal_nets 
 
     # Design initialization
     init_design
-    `@voltus_post_init_design_technology`
+    `@voltus_post_init_design_project`
     `@voltus_post_init_variables`
     
     # Switch to propagated mode    
@@ -112,9 +96,9 @@ gf_add_tool_commands '
     set_propagated_clock [get_clocks *]
     
     # Read parasitics
-    if {[file exists [set SPEF_FILE $SPEF_DIR/$SPEF_TASK_NAME.$POWER_SPEF_CORNER.spef.gz]]} {
+    if {[file exists [set SPEF_FILE $SPEF_OUT_DIR/$DESIGN_NAME.[gconfig::get extract_corner_name -view $STATIC_POWER_VIEW].spef.gz]]} {
         puts "SPEF file: $SPEF_FILE"
-        read_spef $SPEF_FILE
+        read_spef -extended -keep_star_node_location $SPEF_FILE
     } else {
         puts "\033\[41m \033\[0m SPEF file $SPEF_FILE not found"
         suspend
@@ -125,6 +109,30 @@ gf_add_tool_commands '
 
     # Close interactive session
     exit
+'
+
+# Generic Config MMMC generation
+gf_use_gconfig
+gf_add_tool_commands '
+    `@gconfig_project_settings`
+    `@gconfig_settings_common`
+    `@gconfig_cadence_mmmc_files`
+    `@voltus_gconfig_design_settings`
+    
+    # Print out summary
+    gconfig::show_variables
+    gconfig::show_switches
+
+    # Generate timing configuration
+    try {
+        gconfig::get_mmmc_commands -views [list $STATIC_POWER_VIEW] -dump_to_file ./in/$TASK_NAME.mmmc.tcl
+
+    # Suspend on error
+    } on error {result options} {
+        exec rm -f ./in/$TASK_NAME.mmmc.tcl
+        puts "\033\[41;31m \033\[0m $result"
+        suspend
+    }
 '
 
 # Run task
@@ -142,29 +150,11 @@ gf_use_voltus
 # Want for extraction and power analysis to complete
 gf_want_tasks StaticPower -variable STATIC_POWER_TASK
 
-# Choose configuration file
-gf_choose_file_dir_task -variable VOLTUS_POWER_CONFIG_FILE -keep -prompt "Choose power configuration file:" -files '
-    ../data/*.timing.tcl
-    ../data/*/*.timing.tcl
-    ../work_*/*/out/ConfigSignoff*.power.tcl
-'
-
-# Choose configuration file
-gf_choose_file_dir_task -variable VOLTUS_DATA_OUT_CONFIG_FILE -keep -prompt "Choose design configuration file:" -files '
-    ../data/*.design.tcl
-    ../data/*/*.design.tcl
-    ../work_*/*/out/DataOutPhysical*.design.tcl
-' -want -active -task_to_file '$RUN/out/$TASK.design.tcl' -tasks '
+# Design data directory
+gf_choose_file_dir_task -variable DATA_OUT_DIR -keep -prompt "Choose design data directory:" -dirs '
+    ../work_*/*/out/DataOutPhysical*
+' -want -active -task_to_file '$RUN/out/$TASK' -tasks '
     ../work_*/*/tasks/DataOutPhysical*
-'
-
-# Choose configuration file
-gf_choose_file_dir_task -variable VOLTUS_SPEF_CONFIG_FILE -keep -prompt "Choose SPEF configuration file:" -files '
-    ../data/*.design.tcl
-    ../data/*/*.design.tcl
-    ../work_*/*/out/Extraction*.design.tcl
-' -want -active -task_to_file '$RUN/out/$TASK.design.tcl' -tasks '
-    ../work_*/*/tasks/Extraction*
 '
 
 # Select PGV to analyze if empty
@@ -177,36 +167,30 @@ gf_add_tool_commands '
 
     # Current design variables
     set LEF_FILES {`$CADENCE_TLEF_FILES` `$LEF_FILES`}
+    set DATA_OUT_DIR {`$DATA_OUT_DIR`}
     set VOLTUS_PGV_LIBS [join {`$VOLTUS_PGV_LIBS`}]
 
     set DESIGN_NAME {`$DESIGN_NAME`} 
-    set POWER_TASK {`$STATIC_POWER_TASK`}
-    
-    set POWER_CONFIG_FILE {`$VOLTUS_POWER_CONFIG_FILE`}
-    set DATA_OUT_CONFIG_FILE {`$VOLTUS_DATA_OUT_CONFIG_FILE`}
-    set SPEF_CONFIG_FILE {`$VOLTUS_SPEF_CONFIG_FILE`}
+    set STATIC_POWER_TASK {`$STATIC_POWER_TASK`}
 
-    # Load configuration variables
-    source $POWER_CONFIG_FILE
-    source $DATA_OUT_CONFIG_FILE
-    source $SPEF_CONFIG_FILE
+    # Use separate Generic Config script
+    source ./scripts/$TASK_NAME.gconfig.tcl
 
     # Design variables
     `@voltus_pre_init_variables`
 
     # Load MMMC configuration
-    puts "QRC file: {$STATIC_RAIL_VIEW_TEMPERATURE $STATIC_RAIL_VIEW_QRC_FILE}"
-    puts "MMMC file: $STATIC_RAIL_VIEW_MMMC_FILE"
-    read_mmmc $STATIC_RAIL_VIEW_MMMC_FILE
-    
+    puts "Analysis view: {$STATIC_RAIL_VIEW}"
+    read_mmmc ./in/$TASK_NAME.mmmc.tcl
+
     # Load design files
     read_physical -lefs [join $LEF_FILES]
-    read_netlist $NETLIST_FILE -top $DESIGN_NAME
-    read_def $DEF_FILE -skip_signal_nets 
+    read_netlist $DATA_OUT_DIR/$DESIGN_NAME.v.gz -top $DESIGN_NAME
+    read_def $DATA_OUT_DIR/$DESIGN_NAME.full.def.gz -skip_signal_nets 
 
     # Design initialization
     init_design
-    `@voltus_post_init_design_technology`
+    `@voltus_post_init_design_project`
     `@voltus_post_init_variables`
 
     # Switch to propagated mode    
@@ -221,17 +205,28 @@ gf_add_tool_commands '
     gui_set_power_rail_display -plot ivdd -enable_voltage_sources true
 '
 
-# Separate Generic Config initialization script
-gf_add_tool_commands -comment '#' -file ./scripts/$TASK_NAME.gconfig.tcl '
-    `@init_gconfig`
-
-    `@gconfig_technology_settings`
+# Generic Config MMMC generation
+gf_use_gconfig
+gf_add_tool_commands '
+    `@gconfig_project_settings`
     `@gconfig_settings_common`
-
     `@gconfig_cadence_mmmc_files`
+    `@voltus_gconfig_design_settings`
     
-    # Generate MMMC configuration
-    gconfig::get_mmmc_commands -views [list $ANALYSIS_VIEW] -dump_to_file ./scripts/$TASK_NAME.mmmc.tcl
+    # Print out summary
+    gconfig::show_variables
+    gconfig::show_switches
+
+    # Generate timing configuration
+    try {
+        gconfig::get_mmmc_commands -views [list $STATIC_RAIL_VIEW] -dump_to_file ./in/$TASK_NAME.mmmc.tcl
+
+    # Suspend on error
+    } on error {result options} {
+        exec rm -f ./in/$TASK_NAME.mmmc.tcl
+        puts "\033\[41;31m \033\[0m $result"
+        suspend
+    }
 '
 
 # Run task
@@ -244,28 +239,17 @@ gf_submit_task
 gf_create_task -name DynamicPower
 gf_use_voltus
 
-# Choose configuration file
-gf_choose_file_dir_task -variable VOLTUS_POWER_CONFIG_FILE -keep -prompt "Choose power configuration file:" -files '
-    ../data/*.timing.tcl
-    ../data/*/*.timing.tcl
-    ../work_*/*/out/ConfigSignoff*.power.tcl
-'
-
-# Choose configuration file
-gf_choose_file_dir_task -variable VOLTUS_DATA_OUT_CONFIG_FILE -keep -prompt "Choose design configuration file:" -files '
-    ../data/*.design.tcl
-    ../data/*/*.design.tcl
-    ../work_*/*/out/DataOutPhysical*.design.tcl
-' -want -active -task_to_file '$RUN/out/$TASK.design.tcl' -tasks '
+# Design data directory
+gf_choose_file_dir_task -variable DATA_OUT_DIR -keep -prompt "Choose design data directory:" -dirs '
+    ../work_*/*/out/DataOutPhysical*
+' -want -active -task_to_file '$RUN/out/$TASK' -tasks '
     ../work_*/*/tasks/DataOutPhysical*
 '
 
-# Choose configuration file
-gf_choose_file_dir_task -variable VOLTUS_SPEF_CONFIG_FILE -keep -prompt "Choose SPEF configuration file:" -files '
-    ../data/*.design.tcl
-    ../data/*/*.design.tcl
-    ../work_*/*/out/Extraction*.design.tcl
-' -want -active -task_to_file '$RUN/out/$TASK.design.tcl' -tasks '
+# SPEF directory
+gf_choose_file_dir_task -variable SPEF_OUT_DIR -keep -prompt "Choose SPEF directory:" -dirs '
+    ../work_*/*/out/Extraction*
+' -want -active -task_to_file '$RUN/out/$TASK' -tasks '
     ../work_*/*/tasks/Extraction*
 '
 
@@ -281,33 +265,29 @@ gf_add_tool_commands '
     set LEF_FILES {`$CADENCE_TLEF_FILES` `$LEF_FILES`}
 
     set DESIGN_NAME {`$DESIGN_NAME`} 
-
     set POWER_SCENARIO {`$POWER_SCENARIO`}
     
-    set POWER_CONFIG_FILE {`$VOLTUS_POWER_CONFIG_FILE`}
-    set DATA_OUT_CONFIG_FILE {`$VOLTUS_DATA_OUT_CONFIG_FILE`}
-    set SPEF_CONFIG_FILE {`$VOLTUS_SPEF_CONFIG_FILE`}
+    set DATA_OUT_DIR {`$DATA_OUT_DIR`}
+    set SPEF_OUT_DIR {`$SPEF_OUT_DIR`}
 
-    # Load configuration variables
-    source $POWER_CONFIG_FILE
-    source $DATA_OUT_CONFIG_FILE
-    source $SPEF_CONFIG_FILE
+    # Use separate Generic Config script
+    source ./scripts/$TASK_NAME.gconfig.tcl
 
     # Design variables
     `@voltus_pre_init_variables`
 
     # Load MMMC configuration
-    puts "MMMC file: $DYNAMIC_POWER_VIEW_MMMC_FILE"
-    read_mmmc $DYNAMIC_POWER_VIEW_MMMC_FILE
+    puts "Analysis view: {$DYNAMIC_POWER_VIEW}"
+    read_mmmc ./in/$TASK_NAME.mmmc.tcl
     
     # Load design files
     read_physical -lefs [join $LEF_FILES]
-    read_netlist $NETLIST_FILE -top $DESIGN_NAME
-    read_def $DEF_FILE -skip_signal_nets 
+    read_netlist $DATA_OUT_DIR/$DESIGN_NAME.v.gz -top $DESIGN_NAME
+    read_def $DATA_OUT_DIR/$DESIGN_NAME.full.def.gz -skip_signal_nets 
 
     # Design initialization
     init_design
-    `@voltus_post_init_design_technology`
+    `@voltus_post_init_design_project`
     `@voltus_post_init_variables`
 
     # Switch to propagated mode    
@@ -315,9 +295,9 @@ gf_add_tool_commands '
     set_propagated_clock [get_clocks *]
     
     # Read parasitics
-    if {[file exists [set SPEF_FILE $SPEF_DIR/$SPEF_TASK_NAME.$POWER_SPEF_CORNER.spef.gz]]} {
+    if {[file exists [set SPEF_FILE $SPEF_OUT_DIR/$DESIGN_NAME.[gconfig::get extract_corner_name -view $DYNAMIC_POWER_VIEW].spef.gz]]} {
         puts "SPEF file: $SPEF_FILE"
-        read_spef $SPEF_FILE
+        read_spef -extended -keep_star_node_location $SPEF_FILE
     } else {
         puts "\033\[41m \033\[0m SPEF file $SPEF_FILE not found"
         suspend
@@ -328,6 +308,30 @@ gf_add_tool_commands '
 
     # Close interactive session
     exit
+'
+
+# Generic Config MMMC generation
+gf_use_gconfig
+gf_add_tool_commands '
+    `@gconfig_project_settings`
+    `@gconfig_settings_common`
+    `@gconfig_cadence_mmmc_files`
+    `@voltus_gconfig_design_settings`
+    
+    # Print out summary
+    gconfig::show_variables
+    gconfig::show_switches
+
+    # Generate timing configuration
+    try {
+        gconfig::get_mmmc_commands -views [list $DYNAMIC_POWER_VIEW] -dump_to_file ./in/$TASK_NAME.mmmc.tcl
+
+    # Suspend on error
+    } on error {result options} {
+        exec rm -f ./in/$TASK_NAME.mmmc.tcl
+        puts "\033\[41;31m \033\[0m $result"
+        suspend
+    }
 '
 
 # Run task
@@ -345,29 +349,11 @@ gf_use_voltus
 # Want for extraction and power analysis to complete
 gf_want_tasks DynamicPower -variable DYNAMIC_POWER_TASK
 
-# Choose configuration file
-gf_choose_file_dir_task -variable VOLTUS_POWER_CONFIG_FILE -keep -prompt "Choose power configuration file:" -files '
-    ../data/*.timing.tcl
-    ../data/*/*.timing.tcl
-    ../work_*/*/out/ConfigSignoff*.power.tcl
-'
-
-# Choose configuration file
-gf_choose_file_dir_task -variable VOLTUS_DATA_OUT_CONFIG_FILE -keep -prompt "Choose design configuration file:" -files '
-    ../data/*.design.tcl
-    ../data/*/*.design.tcl
-    ../work_*/*/out/DataOutPhysical*.design.tcl
-' -want -active -task_to_file '$RUN/out/$TASK.design.tcl' -tasks '
+# Design data directory
+gf_choose_file_dir_task -variable DATA_OUT_DIR -keep -prompt "Choose design data directory:" -dirs '
+    ../work_*/*/out/DataOutPhysical*
+' -want -active -task_to_file '$RUN/out/$TASK' -tasks '
     ../work_*/*/tasks/DataOutPhysical*
-'
-
-# Choose configuration file
-gf_choose_file_dir_task -variable VOLTUS_SPEF_CONFIG_FILE -keep -prompt "Choose SPEF configuration file:" -files '
-    ../data/*.design.tcl
-    ../data/*/*.design.tcl
-    ../work_*/*/out/Extraction*.design.tcl
-' -want -active -task_to_file '$RUN/out/$TASK.design.tcl' -tasks '
-    ../work_*/*/tasks/Extraction*
 '
 
 # Select PGV to analyze if empty
@@ -380,36 +366,30 @@ gf_add_tool_commands '
 
     # Current design variables
     set LEF_FILES {`$CADENCE_TLEF_FILES` `$LEF_FILES`}
+    set DATA_OUT_DIR {`$DATA_OUT_DIR`}
     set VOLTUS_PGV_LIBS [join {`$VOLTUS_PGV_LIBS`}]
 
     set DESIGN_NAME {`$DESIGN_NAME`} 
-    set POWER_TASK {`$DYNAMIC_POWER_TASK`}
-    
-    set POWER_CONFIG_FILE {`$VOLTUS_POWER_CONFIG_FILE`}
-    set DATA_OUT_CONFIG_FILE {`$VOLTUS_DATA_OUT_CONFIG_FILE`}
-    set SPEF_CONFIG_FILE {`$VOLTUS_SPEF_CONFIG_FILE`}
+    set DYNAMIC_POWER_TASK {`$DYNAMIC_POWER_TASK`}
 
-    # Load configuration variables
-    source $POWER_CONFIG_FILE
-    source $DATA_OUT_CONFIG_FILE
-    source $SPEF_CONFIG_FILE
+    # Use separate Generic Config script
+    source ./scripts/$TASK_NAME.gconfig.tcl
 
     # Design variables
     `@voltus_pre_init_variables`
 
     # Load MMMC configuration
-    puts "QRC file: {$DYNAMIC_RAIL_VIEW_TEMPERATURE $DYNAMIC_RAIL_VIEW_QRC_FILE}"
-    puts "MMMC file: $DYNAMIC_RAIL_VIEW_MMMC_FILE"
-    read_mmmc $DYNAMIC_RAIL_VIEW_MMMC_FILE
-    
+    puts "Analysis view: {$DYNAMIC_RAIL_VIEW}"
+    read_mmmc ./in/$TASK_NAME.mmmc.tcl
+
     # Load design files
     read_physical -lefs [join $LEF_FILES]
-    read_netlist $NETLIST_FILE -top $DESIGN_NAME
-    read_def $DEF_FILE -skip_signal_nets 
+    read_netlist $DATA_OUT_DIR/$DESIGN_NAME.v.gz -top $DESIGN_NAME
+    read_def $DATA_OUT_DIR/$DESIGN_NAME.full.def.gz -skip_signal_nets 
 
     # Design initialization
     init_design
-    `@voltus_post_init_design_technology`
+    `@voltus_post_init_design_project`
     `@voltus_post_init_variables`
 
     # Switch to propagated mode    
@@ -424,17 +404,28 @@ gf_add_tool_commands '
     gui_set_power_rail_display -plot ivdd -enable_voltage_sources true
 '
 
-# Separate Generic Config initialization script
-gf_add_tool_commands -comment '#' -file ./scripts/$TASK_NAME.gconfig.tcl '
-    `@init_gconfig`
-
-    `@gconfig_technology_settings`
+# Generic Config MMMC generation
+gf_use_gconfig
+gf_add_tool_commands '
+    `@gconfig_project_settings`
     `@gconfig_settings_common`
-
     `@gconfig_cadence_mmmc_files`
+    `@voltus_gconfig_design_settings`
     
-    # Generate MMMC configuration
-    gconfig::get_mmmc_commands -views [list $ANALYSIS_VIEW] -dump_to_file ./scripts/$TASK_NAME.mmmc.tcl
+    # Print out summary
+    gconfig::show_variables
+    gconfig::show_switches
+
+    # Generate timing configuration
+    try {
+        gconfig::get_mmmc_commands -views [list $DYNAMIC_RAIL_VIEW] -dump_to_file ./in/$TASK_NAME.mmmc.tcl
+
+    # Suspend on error
+    } on error {result options} {
+        exec rm -f ./in/$TASK_NAME.mmmc.tcl
+        puts "\033\[41;31m \033\[0m $result"
+        suspend
+    }
 '
 
 # Run task
@@ -447,29 +438,23 @@ gf_submit_task
 gf_create_task -name SignalEM
 gf_use_voltus
 
-# Choose configuration file
-gf_choose_file_dir_task -variable VOLTUS_POWER_CONFIG_FILE -keep -prompt "Choose power configuration file:" -files '
-    ../data/*.timing.tcl
-    ../data/*/*.timing.tcl
-    ../work_*/*/out/ConfigSignoff*.power.tcl
-'
-
-# Choose configuration file
-gf_choose_file_dir_task -variable VOLTUS_DATA_OUT_CONFIG_FILE -keep -prompt "Choose design configuration file:" -files '
-    ../data/*.design.tcl
-    ../data/*/*.design.tcl
-    ../work_*/*/out/DataOutPhysical*.design.tcl
-' -want -active -task_to_file '$RUN/out/$TASK.design.tcl' -tasks '
+# Design data directory
+gf_choose_file_dir_task -variable DATA_OUT_DIR -keep -prompt "Choose design data directory:" -dirs '
+    ../work_*/*/out/DataOutPhysical*
+' -want -active -task_to_file '$RUN/out/$TASK' -tasks '
     ../work_*/*/tasks/DataOutPhysical*
 '
 
-# Choose configuration file
-gf_choose_file_dir_task -variable VOLTUS_SPEF_CONFIG_FILE -keep -prompt "Choose SPEF configuration file:" -files '
-    ../data/*.design.tcl
-    ../data/*/*.design.tcl
-    ../work_*/*/out/Extraction*.design.tcl
-' -want -active -task_to_file '$RUN/out/$TASK.design.tcl' -tasks '
+# SPEF directory
+gf_choose_file_dir_task -variable SPEF_OUT_DIR -keep -prompt "Choose SPEF directory:" -dirs '
+    ../work_*/*/out/Extraction*
+' -want -active -task_to_file '$RUN/out/$TASK' -tasks '
     ../work_*/*/tasks/Extraction*
+'
+
+# Select PGV to analyze if empty
+gf_choose_file_dir_task -variable VOLTUS_PGV_LIBS -keep -prompt "Choose PGV libraries:" -dirs '
+    ../work_*/*/out/TechPGV*/*.cl
 '
 
 # TCL commands
@@ -477,33 +462,30 @@ gf_add_tool_commands '
 
     # Current design variables
     set LEF_FILES {`$CADENCE_TLEF_FILES` `$LEF_FILES`}
+    set DATA_OUT_DIR {`$DATA_OUT_DIR`}
+    set SPEF_OUT_DIR {`$SPEF_OUT_DIR`}
+    set VOLTUS_PGV_LIBS [join {`$VOLTUS_PGV_LIBS`}]
 
     set DESIGN_NAME {`$DESIGN_NAME`} 
-    
-    set POWER_CONFIG_FILE {`$VOLTUS_POWER_CONFIG_FILE`}
-    set DATA_OUT_CONFIG_FILE {`$VOLTUS_DATA_OUT_CONFIG_FILE`}
-    set SPEF_CONFIG_FILE {`$VOLTUS_SPEF_CONFIG_FILE`}
 
-    # Load configuration variables
-    source $POWER_CONFIG_FILE
-    source $DATA_OUT_CONFIG_FILE
-    source $SPEF_CONFIG_FILE
+    # Use separate Generic Config script
+    source ./scripts/$TASK_NAME.gconfig.tcl
 
     # Design variables
     `@voltus_pre_init_variables`
 
     # Load MMMC configuration
-    puts "MMMC file: $SIGNAL_EM_VIEW_MMMC_FILE"
-    read_mmmc $SIGNAL_EM_VIEW_MMMC_FILE
-    
+    puts "Analysis view: {$SIGNAL_EM_VIEW}"
+    read_mmmc ./in/$TASK_NAME.mmmc.tcl
+
     # Load design files
     read_physical -lefs [join $LEF_FILES]
-    read_netlist $NETLIST_FILE -top $DESIGN_NAME
-    read_def $DEF_FILE -skip_signal_nets 
+    read_netlist $DATA_OUT_DIR/$DESIGN_NAME.v.gz -top $DESIGN_NAME
+    read_def $DATA_OUT_DIR/$DESIGN_NAME.full.def.gz -skip_signal_nets 
 
     # Design initialization
     init_design
-    `@voltus_post_init_design_technology`
+    `@voltus_post_init_design_project`
     `@voltus_post_init_variables`
 
     # Switch to propagated mode    
@@ -511,9 +493,9 @@ gf_add_tool_commands '
     set_propagated_clock [get_clocks *]
     
     # Read parasitics
-    if {[file exists [set SPEF_FILE $SPEF_DIR/$SPEF_TASK_NAME.$SIGNAL_SPEF_CORNER.spef.gz]]} {
+    if {[file exists [set SPEF_FILE $SPEF_OUT_DIR/$DESIGN_NAME.[gconfig::get extract_corner_name -view $SIGNAL_EM_VIEW].spef.gz]]} {
         puts "SPEF file: $SPEF_FILE"
-        read_spef $SPEF_FILE
+        read_spef -extended -keep_star_node_location $SPEF_FILE
     } else {
         puts "\033\[41m \033\[0m SPEF file $SPEF_FILE not found"
         suspend
@@ -526,19 +508,29 @@ gf_add_tool_commands '
     gui_show
 '
 
-# Separate Generic Config initialization script
-gf_add_tool_commands -comment '#' -file ./scripts/$TASK_NAME.gconfig.tcl '
-    `@init_gconfig`
-
-    `@gconfig_technology_settings`
+# Generic Config MMMC generation
+gf_use_gconfig
+gf_add_tool_commands '
+    `@gconfig_project_settings`
     `@gconfig_settings_common`
-
     `@gconfig_cadence_mmmc_files`
+    `@voltus_gconfig_design_settings`
     
-    # Generate MMMC configuration
-    gconfig::get_mmmc_commands -views [list $ANALYSIS_VIEW] -dump_to_file ./scripts/$TASK_NAME.mmmc.tcl
-'
+    # Print out summary
+    gconfig::show_variables
+    gconfig::show_switches
 
+    # Generate timing configuration
+    try {
+        gconfig::get_mmmc_commands -views [list $SIGNAL_EM_VIEW] -dump_to_file ./in/$TASK_NAME.mmmc.tcl
+
+    # Suspend on error
+    } on error {result options} {
+        exec rm -f ./in/$TASK_NAME.mmmc.tcl
+        puts "\033\[41;31m \033\[0m $result"
+        suspend
+    }
+'
 # Run task
 gf_add_status_marks 'No such file'
 gf_add_failed_marks 'No such file'

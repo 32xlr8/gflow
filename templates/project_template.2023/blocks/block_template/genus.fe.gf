@@ -1,7 +1,7 @@
 #!../../gflow/bin/gflow
 
 ################################################################################
-# Generic Flow v5.0 (February 2023)
+# Generic Flow v5.1 (May 2023)
 ################################################################################
 #
 # Copyright 2011-2023 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
@@ -28,13 +28,12 @@
 ########################################
 
 # Project and block initialization scripts
-gf_source "../../project.common.gf"
-gf_source "../../project.genus.gf"
-# gf_source "../../project.innovus.gf"
-gf_source "./block.common.gf"
-gf_source "./block.files.gf"
-gf_source "./block.genus.gf"
-# gf_source "./block.innovus.gf"
+gf_source -once "../../project.common.gf"
+gf_source -once "../../project.genus.gf"
+# gf_source -once "../../project.innovus.gf"
+gf_source -once "./block.common.gf"
+gf_source -once "./block.genus.gf"
+# gf_source -once "./block.innovus.gf"
 
 ########################################
 # Genus generic synthesis
@@ -44,9 +43,9 @@ gf_create_task -name SynGen
 gf_use_genus
 
 # Choose between logical/physical mode 
-gf_choose -keep -variable PHYSICAL_MODE -keys YN -time 30 -default Y -prompt "Do you want to run physical synthesis (Y/N)?"
+gf_choose -keep -variable PHYSICAL_MODE -keys YN -time 30 -default Y -prompt "Run physical synthesis (Y/N)?"
 
-# Choose floorplan for physical mode if not chosen
+# Floorplan DEF for Genus
 if [ "$PHYSICAL_MODE" == "Y" ]; then
     gf_choose_file_dir_task -variable GENUS_FLOORPLAN_FILE -keep -prompt "Choose floorplan DEF file:" -files '
         ../data/*.fp.def
@@ -61,13 +60,6 @@ if [ "$PHYSICAL_MODE" == "Y" ]; then
     [[ -n "$GENUS_FLOORPLAN_FILE" ]] && gf_save_files -copy $(dirname $GENUS_FLOORPLAN_FILE)/$(basename $GENUS_FLOORPLAN_FILE .gz)*
 fi
 
-# Choose configuration file
-gf_choose_file_dir_task -variable GENUS_TIMING_CONFIG_FILE -keep -prompt "Choose timing configuration file:" -files '
-    ../data/*.timing.tcl
-    ../data/*/*.timing.tcl
-    ../work_*/*/out/ConfigFrontend*.timing.tcl
-'
-
 # TCL commands
 gf_add_tool_commands '
 
@@ -79,10 +71,9 @@ gf_add_tool_commands '
     set POWER_NETS {`$POWER_NETS_CORE` `$POWER_NETS_OTHER -optional`}
     set GROUND_NETS {`$GROUND_NETS_CORE` `$GROUND_NETS_OTHER -optional`}
     set FLOORPLAN_FILE {`$GENUS_FLOORPLAN_FILE -optional`}
-    set GENUS_TIMING_CONFIG_FILE {`$GENUS_TIMING_CONFIG_FILE`}
     
-    # Load configuration variables
-    source $GENUS_TIMING_CONFIG_FILE
+    # Use separate Generic Config script
+    source ./scripts/$TASK_NAME.gconfig.tcl
 
     # Start metric collection
     `@collect_metrics`
@@ -91,7 +82,7 @@ gf_add_tool_commands '
     `@genus_pre_read_libs`
 
     # Load MMMC configuration
-    read_mmmc $MMMC_FILE
+    read_mmmc ./in/$TASK_NAME.mmmc.tcl
 
     # Initialize power and ground nets
     set_db init_power_nets [join $POWER_NETS]
@@ -109,7 +100,7 @@ gf_add_tool_commands '
  
     # Design initialization
     init_design -top $DESIGN_NAME
-    `@genus_post_init_design_technology`
+    `@genus_post_init_design_project`
     `@genus_post_init_design`
 
     # Read floorplan
@@ -135,7 +126,7 @@ gf_add_tool_commands '
     # # Load OCV configuration
     # redirect -tee ./reports/$TASK_NAME.ocv.rpt {
     #     reset_timing_derate
-    #     source $OCV_FILE
+    #     source ./in/$TASK_NAME.ocv.tcl
     # }
     
     # Write Genus database
@@ -166,6 +157,31 @@ gf_add_tool_commands '
     exit
 '
 
+# Generic Config MMMC generation
+gf_use_gconfig
+gf_add_tool_commands '
+    `@gconfig_project_settings`
+    `@gconfig_settings_common`
+    `@gconfig_cadence_mmmc_files`
+    `@genus_gconfig_design_settings`
+    
+    # Print out summary
+    gconfig::show_variables
+    gconfig::show_switches
+
+    # Generate timing configuration
+    try {
+        gconfig::get_ocv_commands -views $MMMC_VIEWS -dump_to_file ./in/$TASK_NAME.ocv.tcl
+        gconfig::get_mmmc_commands -views $MMMC_VIEWS -dump_to_file ./in/$TASK_NAME.mmmc.tcl
+
+    # Suspend on error
+    } on error {result options} {
+        exec rm -f ./in/$TASK_NAME.ocv.tcl ./in/$TASK_NAME.mmmc.tcl
+        puts "\033\[41;31m \033\[0m $result"
+        suspend
+    }
+'
+
 # Task marks
 gf_add_status_marks Error ' successful .* failed '
 gf_add_failed_marks 'ERROR:.\+No files'
@@ -182,7 +198,7 @@ gf_create_task -name SynMap -mother SynGen
 gf_use_genus
 
 # Choose between logical/physical mode 
-gf_choose -keep -variable PHYSICAL_MODE -keys YN -time 30 -default Y -prompt "Do you want to run physical synthesis (Y/N)?"
+gf_choose -keep -variable PHYSICAL_MODE -keys YN -time 30 -default Y -prompt "Run physical synthesis (Y/N)?"
 
 # TCL commands
 gf_add_tool_commands '
@@ -231,7 +247,7 @@ gf_create_task -name SynOpt -mother SynMap
 gf_use_genus
 
 # Choose between logical/physical mode 
-gf_choose -keep -variable PHYSICAL_MODE -keys YN -time 30 -default Y -prompt "Do you want to run physical synthesis (Y/N)?"
+gf_choose -keep -variable PHYSICAL_MODE -keys YN -time 30 -default Y -prompt "Run physical synthesis (Y/N)?"
 
 # TCL commands
 gf_add_tool_commands '

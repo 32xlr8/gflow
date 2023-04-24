@@ -1,7 +1,7 @@
 #!../../gflow/bin/gflow
 
 ################################################################################
-# Generic Flow v5.0 (February 2023)
+# Generic Flow v5.1 (May 2023)
 ################################################################################
 #
 # Copyright 2011-2023 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
@@ -28,11 +28,10 @@
 ########################################
 
 # Project and block initialization scripts
-gf_source "../../project.common.gf"
-gf_source "../../project.innovus.gf"
-gf_source "./block.common.gf"
-gf_source "./block.files.gf"
-gf_source "./block.innovus.gf"
+gf_source -once "../../project.common.gf"
+gf_source -once "../../project.innovus.gf"
+gf_source -once "./block.common.gf"
+gf_source -once "./block.innovus.gf"
 
 # Continue in existing directory and restart tasks
 gf_set_flow_options -silent

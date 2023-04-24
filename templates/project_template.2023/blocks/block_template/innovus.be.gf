@@ -1,7 +1,7 @@
 #!../../gflow/bin/gflow
 
 ################################################################################
-# Generic Flow v5.0 (February 2023)
+# Generic Flow v5.1 (May 2023)
 ################################################################################
 #
 # Copyright 2011-2023 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
@@ -28,14 +28,13 @@
 ########################################
 
 # Project and block initialization scripts
-gf_source "../../project.common.gf"
-gf_source "../../project.innovus.gf"
-gf_source "./block.common.gf"
-gf_source "./block.files.gf"
-gf_source "./block.innovus.gf"
+gf_source -once "../../project.common.gf"
+gf_source -once "../../project.innovus.gf"
+gf_source -once "./block.common.gf"
+gf_source -once "./block.innovus.gf"
 
 # # Quantus required if high effort extraction used
-# gf_source "../../project.quantus.gf"
+# gf_source -once "../../project.quantus.gf"
 
 ########################################
 # Innovus initialization and placement
@@ -44,7 +43,7 @@ gf_source "./block.innovus.gf"
 gf_create_task -name Place
 gf_use_innovus
 
-# Choose netlist if not chosen
+# Netlist to implement
 gf_choose_file_dir_task -variable INNOVUS_NETLIST_FILES -keep -prompt 'Choose netlist to implement:' -files '
     ../data/*.v
     ../data/*.v.gz
@@ -57,7 +56,7 @@ gf_choose_file_dir_task -variable INNOVUS_NETLIST_FILES -keep -prompt 'Choose ne
     ../work_*/*/tasks/SynOpt*
 '
 
-# Choose floorplan if not chosen
+# Innovus floorplan
 gf_choose_file_dir_task -variable INNOVUS_FLOORPLAN_FILE -keep -prompt "Choose floorplan:" -files '
     ../data/*.fp
     ../data/*/*.fp
@@ -66,13 +65,6 @@ gf_choose_file_dir_task -variable INNOVUS_FLOORPLAN_FILE -keep -prompt "Choose f
 
 # Check netlist and floorplan are ready
 gf_check_files "$INNOVUS_FLOORPLAN_FILE"* "$INNOVUS_NETLIST_FILES"
-
-# Choose configuration file
-gf_choose_file_dir_task -variable INNOVUS_TIMING_CONFIG_FILE -keep -prompt "Choose timing configuration file:" -files '
-    ../data/*.timing.tcl
-    ../data/*/*.timing.tcl
-    ../work_*/*/out/ConfigBackend*.timing.tcl
-'
 
 # Save input files
 gf_add_shell_commands -init '
@@ -96,19 +88,18 @@ gf_add_tool_commands '
     set DESIGN_NAME {`$DESIGN_NAME`}
     set POWER_NETS {`$POWER_NETS_CORE` `$POWER_NETS_OTHER -optional`}
     set GROUND_NETS {`$GROUND_NETS_CORE` `$GROUND_NETS_OTHER -optional`}
-    set INNOVUS_TIMING_CONFIG_FILE {`$INNOVUS_TIMING_CONFIG_FILE`}
     
-    # Load configuration variables
-    source $INNOVUS_TIMING_CONFIG_FILE
-
     # Load common tool procedures
     source ./scripts/$TASK_NAME.procs.tcl
+
+    # Use separate Generic Config script
+    source ./scripts/$TASK_NAME.gconfig.tcl
 
     # Pre-load settings
     `@innovus_pre_read_libs`
 
     # Load MMMC configuration
-    read_mmmc $MMMC_FILE
+    read_mmmc ./in/$TASK_NAME.mmmc.tcl
 
     # Initialize power and ground nets
     set_db init_power_nets [join $POWER_NETS]
@@ -174,7 +165,7 @@ gf_add_tool_commands '
     # Load OCV configuration
     redirect -tee ./reports/$TASK_NAME.ocv.rpt {
         reset_timing_derate
-        source $OCV_FILE
+        source ./in/$TASK_NAME.ocv.tcl
     }
     redirect ./reports/$TASK_NAME.derate.rpt {report_timing_derate}
 
@@ -210,6 +201,31 @@ gf_add_tool_commands '
 
     # Close interactive session
     exit
+'
+
+# Generic Config MMMC generation
+gf_use_gconfig
+gf_add_tool_commands '
+    `@gconfig_project_settings`
+    `@gconfig_settings_common`
+    `@gconfig_cadence_mmmc_files`
+    `@innovus_gconfig_design_settings`
+    
+    # Print out summary
+    gconfig::show_variables
+    gconfig::show_switches
+
+    # Generate timing configuration
+    try {
+        gconfig::get_ocv_commands -views $MMMC_VIEWS -dump_to_file ./in/$TASK_NAME.ocv.tcl
+        gconfig::get_mmmc_commands -views $MMMC_VIEWS -dump_to_file ./in/$TASK_NAME.mmmc.tcl
+
+    # Suspend on error
+    } on error {result options} {
+        exec rm -f ./in/$TASK_NAME.ocv.tcl ./in/$TASK_NAME.mmmc.tcl
+        puts "\033\[41;31m \033\[0m $result"
+        suspend
+    }
 '
 
 # Common tool procedures
@@ -334,10 +350,10 @@ gf_add_tool_commands '
 
     # Stage-specific Innovus options    
     `@innovus_post_route`
-    
+
     # Write Innovus database
     write_db ./out/$TASK_NAME.intermediate.innovus.db
-    
+
     # Stage-specific Innovus options    
     `@innovus_pre_route_opt_setup_hold`
 

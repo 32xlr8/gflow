@@ -46,7 +46,8 @@ gf_set_task_options DataOutPhysical -cpu 1 -mem 10
 gf_set_task_options DataOutTiming -cpu 4 -mem 10
 
 # Limit simultaneous tasks count
-gf_set_task_options 'Report*' -parallel 1
+gf_set_task_options 'Report*' -group Reports -parallel 1
+# gf_set_task_options Place Clock Route -group Heavy -parallel 1
 
 # # Disable not needed tasks
 # gf_set_task_options -disable Place

@@ -39,7 +39,8 @@ gf_info "Loading block-specific Tempus steps ..."
 gf_set_task_options DataOutTiming -cpu 4 -mem 10
 
 # Limit simultaneous tasks count
-gf_set_task_options 'Report*' -parallel 1
+gf_set_task_options 'Report*' -group Reports -parallel 1
+# gf_set_task_options STA TSO -group Heavy -parallel 1
 
 # # Disable not needed tasks
 # gf_set_task_options -disable STA

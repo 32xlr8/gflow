@@ -21,6 +21,9 @@
 # Purpose:  Block-specific Calibre configuration and flow steps
 ################################################################################
 
+# # Limit simultaneous tasks count
+# gf_set_task_options 'Fill*' DRC LVS -group Heavy -parallel 1
+
 # Tasks to run
 gf_set_task_options -disable *
 gf_set_task_options -enable Fill*

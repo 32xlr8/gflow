@@ -43,7 +43,7 @@ gf_create_task -name SynGen
 gf_use_genus
 
 # Choose between logical/physical mode 
-gf_choose -keep -variable PHYSICAL_MODE -keys YN -time 30 -default Y -prompt "Run physical synthesis (Y/N)?"
+gf_choose -keep -variable PHYSICAL_MODE -keys YN -time 30 -default N -prompt "Run physical synthesis (Y/N)?"
 
 # Floorplan DEF for Genus
 if [ "$PHYSICAL_MODE" == "Y" ]; then
@@ -198,7 +198,7 @@ gf_create_task -name SynMap -mother SynGen
 gf_use_genus
 
 # Choose between logical/physical mode 
-gf_choose -keep -variable PHYSICAL_MODE -keys YN -time 30 -default Y -prompt "Run physical synthesis (Y/N)?"
+gf_choose -keep -variable PHYSICAL_MODE -keys YN -time 30 -default N -prompt "Run physical synthesis (Y/N)?"
 
 # TCL commands
 gf_add_tool_commands '
@@ -250,7 +250,7 @@ gf_create_task -name SynOpt -mother SynMap
 gf_use_genus
 
 # Choose between logical/physical mode 
-gf_choose -keep -variable PHYSICAL_MODE -keys YN -time 30 -default Y -prompt "Run physical synthesis (Y/N)?"
+gf_choose -keep -variable PHYSICAL_MODE -keys YN -time 30 -default N -prompt "Run physical synthesis (Y/N)?"
 
 # TCL commands
 gf_add_tool_commands '

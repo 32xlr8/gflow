@@ -42,7 +42,8 @@ gf_info "Loading block-specific Genus steps ..."
 gf_set_task_options 'Report*' -cpu 4 -mem 10
 
 # Limit simultaneous tasks count
-gf_set_task_options 'Report*' -parallel 1
+gf_set_task_options 'Report*' -group Reports -parallel 1
+# gf_set_task_options SynGen SynMap SynOpt -group Heavy -parallel 1
 
 # # Disable not needed tasks
 # gf_set_task_options -disable SynGen
@@ -80,8 +81,8 @@ gf_create_step -name genus_gconfig_design_settings '
     # Choose standard cell libraries:
     # - nldm_libraries - NLDM (Liberty) + CDB (Celtic) files used for fast runtime
     # - ecsm_libraries - ECSM (Liberty) + AOCV/SOCV files used for precise delay calculation
-    # -  - CCS (Liberty) + AOCV/SOCV files used for precise delay calculation
-    # - lvccs_librariesf_libraries - LVF (Liberty) files used for most precise delay calculation
+    # - ccs_libraries - CCS (Liberty) + AOCV/SOCV files used for precise delay calculation
+    # - lvf_libraries - LVF (Liberty) files used for most precise delay calculation
     gconfig::enable_switches nldm_libraries
     
     # Choose separate variation libraries (optional with ecsm_libraries or ccs_libraries):

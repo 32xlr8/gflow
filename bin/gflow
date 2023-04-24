@@ -3814,17 +3814,10 @@ function gf_create_task {
     gf_reset_task
 
     # Current task variables
-    # GF_TASK_CPU=1
-    # GF_TASK_MEM=1
     GF_TASK_MSG=
     GF_TASK_COMMENT=
 
-    # Task group parallel start
-    local gf_task_group=
-    local gf_parallel_count=
-
     # Parse command line
-    # GF_NEED_RESTART=
     local gf_need_mother=
     local gf_info_message=
     local gf_fatal_message=
@@ -3847,7 +3840,6 @@ function gf_create_task {
                         print "$bases[$#bases]\n";
                     '
                     MOTHER_TASK_NAME=$(cat "$GF_I_RUN_DIR/tasks/run.info" | perl -e "$gf_perl_script")
-                    # gf_debug gf_perl_script
                     gf_debug MOTHER_TASK_NAME
                 fi
             ;;
@@ -3862,8 +3854,6 @@ function gf_create_task {
             "-cpu" )
                 if [[ $1 =~ ^[1-9][0-9]*$ ]]; then
                     GF_TASK_OPTIONS_LOCAL+="gf_set_task_option>2>*>-cpu"$'\n'"$1"$'\n'
-                    # GF_TASK_CPU="$1"
-                    # GF_TASK_MSG+="$(gf_info "CPU usage is ${GFC7}${GF_TASK_CPU}${GFC0}.")\n"
                     shift
                 elif [ -z "$1" ]; then
                     gf_fatal "Option ${GFH7}$key${GFC0} value is empty."
@@ -3874,8 +3864,6 @@ function gf_create_task {
             "-mem" )
                 if [[ $1 =~ ^[1-9][0-9]*$ ]]; then
                     GF_TASK_OPTIONS_LOCAL+="gf_set_task_option>2>*>-mem"$'\n'"$1"$'\n'
-                    # GF_TASK_MEM="$1"
-                    # GF_TASK_MSG+="$(gf_info "MEM usage is ${GFC7}${GF_TASK_MEM}G${GFC0}.")\n"
                     shift
                 elif [ -z "$1" ]; then
                     gf_fatal "Option ${GFH7}$key${GFC0} value is empty."
@@ -3885,7 +3873,6 @@ function gf_create_task {
             ;;
             "-local" )
                 GF_TASK_OPTIONS_LOCAL+="gf_set_task_option>2>*>-grid"$'\n'""$'\n'
-                # GF_GRID_MODE=
                 gf_info_message="Task will be executed at local host"
             ;;
             "-sge" )
@@ -3893,7 +3880,6 @@ function gf_create_task {
                     gf_fatal_message="SGE mode cannot be activated. No path to ${GFH7}qsub${GFC0} command."
                 else
                     GF_TASK_OPTIONS_LOCAL+="gf_set_task_option>2>*>-grid"$'\n'"sge"$'\n'
-                    # GF_GRID_MODE=SGE
                     gf_info_message="Task will be executed in SGE"
                 fi
             ;;
@@ -3902,7 +3888,6 @@ function gf_create_task {
                     gf_fatal_message="LSF mode cannot be activated. No path to ${GFH7}bsub${GFC0} command."
                 else
                     GF_TASK_OPTIONS_LOCAL+="gf_set_task_option>2>*>-grid"$'\n'"lsf"$'\n'
-                    # GF_GRID_MODE=LSF
                     gf_info_message="Task will be executed in LSF"
                 fi
             ;;
@@ -3916,7 +3901,7 @@ function gf_create_task {
             ;;
             "-group" )
                 if [[ $1 =~ ^[a-zA-Z0-9_]+$ ]]; then
-                    gf_task_group="$1"
+                    GF_TASK_OPTIONS_LOCAL+="gf_set_task_option>2>*>-group"$'\n'"$1"$'\n'
                 else
                     gf_fatal "Option ${GFH7}$key${GFC0} value ${GFH1}$1${GFC0} contains non-alphanumeric characters."
                 fi
@@ -3924,7 +3909,7 @@ function gf_create_task {
             ;;
             "-parallel" )
                 if [[ $1 =~ ^[0-9]+$ ]]; then
-                    gf_parallel_count="$1"
+                    GF_TASK_OPTIONS_LOCAL+="gf_set_task_option>2>*>-parallel"$'\n'"$1"$'\n'
                 else
                     gf_fatal "Option ${GFH7}$key${GFC0} value ${GFH1}$1${GFC0} should be a positive number."
                 fi
@@ -3932,21 +3917,12 @@ function gf_create_task {
             ;;
             "-restart" )
                 GF_TASK_OPTIONS_LOCAL+="gf_set_task_option>2>*>-restart_mode"$'\n'"R"$'\n'
-                # if [ -z "$GF_NEED_RESTART_GLOBAL" ]; then
-                    # GF_NEED_RESTART=R
-                # fi
             ;;
             "-incr" )
                 GF_TASK_OPTIONS_LOCAL+="gf_set_task_option>2>*>-restart_mode"$'\n'"I"$'\n'
-                # if [ -z "$GF_NEED_RESTART_GLOBAL" ]; then
-                    # GF_NEED_RESTART=I
-                # fi
             ;;
             "-skip" )
                 GF_TASK_OPTIONS_LOCAL+="gf_set_task_option>2>*>-restart_mode"$'\n'"S"$'\n'
-                # if [ -z "$GF_NEED_RESTART_GLOBAL" ]; then
-                    # GF_NEED_RESTART=S
-                # fi
             ;;
             -* )
                 gf_fatal "Incorrect ${GFH7}$key${GFC0} option."
@@ -4045,30 +4021,6 @@ function gf_create_task {
         # Print task info messages
         echo -n "$GF_TASK_MSG"; GF_TASK_MSG=
 
-        # Wait tasks with parallel count
-        if [ -n "$gf_parallel_count" ]; then
-            local gf_perl_script='
-                my $count = "'"$gf_parallel_count"'";
-                my @tasks;
-                while (<STDIN>) {
-                    push @tasks, $1 if (/^(\S+)='"$gf_task_group"'$/);
-                }
-                print $tasks[$#tasks-$count+1]."\n" if ($#tasks-$count+1 >= 0);
-            '
-            local gf_wait_task="$(echo -e "$GF_TASK_GROUPS" | perl -e "$gf_perl_script")"
-            # gf_debug gf_perl_script
-            gf_debug gf_wait_task
-
-            if [ -n "$gf_wait_task" ]; then
-                if [ -z "$gf_task_group" ]; then
-                    gf_info "Task will wait for ${GFC4}$gf_wait_task${GFC0} (parallel limit ${GFC7}$gf_parallel_count${GFC0})."
-                else
-                    gf_info "Task will wait for ${GFC4}$gf_wait_task${GFC0} (parallel limit ${GFC7}$gf_parallel_count${GFC0} in ${GFC7}$gf_task_group${GFC0} group)."
-                fi
-                GF_WAIT_TASKS+="WAIT=$(echo $gf_wait_task)=\$GF_I_RUN_DIR/tasks/run.info"$'\n'
-            fi
-        fi
-
         # Mother task should be correct
         if [ -n "$MOTHER_TASK_NAME" ]; then
 
@@ -4117,6 +4069,50 @@ function gf_create_task {
                 gf_info "Option ${GFH7}-mother_last${GFC0} ignored for the first task."
             else
                 gf_fatal "Task mother specified as ${GFH1}-mother_last${GFC0} is not defined."
+            fi
+        fi
+
+        # Parallel tasks control
+        local gf_task_group="$(echo "$GF_TASK_OPTIONS$GF_TASK_OPTIONS_LOCAL" | perl -e "$gf_get_task_option_perl" "$GF_TASK_BASE" '-group')"
+        local gf_parallel_count="$(echo "$GF_TASK_OPTIONS$GF_TASK_OPTIONS_LOCAL" | perl -e "$gf_get_task_option_perl" "$GF_TASK_BASE" '-parallel')"
+
+        # Wait tasks with parallel count
+        if [ -n "$gf_parallel_count" ]; then
+            local gf_perl_script='
+                my $count = "'"$gf_parallel_count"'";
+                my @tasks;
+                while (<STDIN>) {
+                    push @tasks, $1 if (/^(\S+)='"$gf_task_group"'$/);
+                }
+                print $tasks[$#tasks-$count+1]."\n" if ($#tasks-$count+1 >= 0);
+            '
+            local gf_wait_task="$(echo -e "$GF_TASK_GROUPS" | perl -e "$gf_perl_script")"
+            # gf_debug gf_perl_script
+            gf_debug gf_wait_task
+
+            if [ -n "$gf_wait_task" ]; then
+                if [ -z "$gf_task_group" ]; then
+                    gf_info "Task will wait for ${GFC4}$gf_wait_task${GFC0} (parallel limit ${GFC7}$gf_parallel_count${GFC0})."
+                else
+                    gf_info "Task will wait for ${GFC4}$gf_wait_task${GFC0} (parallel limit ${GFC7}$gf_parallel_count${GFC0} in ${GFC7}$gf_task_group${GFC0} group)."
+                fi
+
+                if [ -z "$(echo "$(echo $gf_wait_task)"$'\n'"\$GF_I_RUN_DIR/tasks/run.info"$'\n'"$GF_WAIT_TASKS" | perl -e '
+                    my $task = "";
+                    my $info = "";
+                    while (<STDIN>) {
+                        s/\n$//;
+                        if ($task eq "") {
+                            $task = $_;
+                        } elsif ($info eq "") {
+                            $info = $_;
+                        } elsif (/^WA[IN]T=([^=]+)=(.+)$/) {
+                            print 1 if (($1 eq $task) && ($2 eq $info));
+                        }
+                    }
+                ')" ]; then 
+                    GF_WAIT_TASKS+="WAIT=$(echo $gf_wait_task)=\$GF_I_RUN_DIR/tasks/run.info"$'\n'
+                fi
             fi
         fi
 

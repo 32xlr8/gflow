@@ -29,12 +29,13 @@ gf_info "Loading block-specific Voltus steps ..."
 # # Override resources for tasks
 gf_set_task_options '*PGV' -cpu 1 -mem 15
 # gf_set_task_options 'Debug*' -cpu 4 -mem 10
-# gf_set_task_options *Power -cpu 8 -mem 15
-# gf_set_task_options *Rail -cpu 8 -mem 15
+# gf_set_task_options '*Power' -cpu 8 -mem 15
+# gf_set_task_options '*Rail' -cpu 8 -mem 15
 # gf_set_task_options SignalEM -cpu 8 -mem 15
 
 # Limit simultaneous tasks count
-gf_set_task_options '*PGV' -parallel 1
+gf_set_task_options '*PGV' -group PGV -parallel 1
+# gf_set_task_options '*Power' '*Rail' SignalEM -group Heavy -parallel 1
 
 # Disable not needed PGV generation tasks
 # gf_set_task_options -disable TechPGV

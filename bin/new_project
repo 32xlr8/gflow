@@ -1,7 +1,7 @@
 #!/bin/bash
 
 ################################################################################
-# Generic Flow v5.0 (February 2023)
+# Generic Flow v5.1 (May 2023)
 ################################################################################
 #
 # Copyright 2011-2023 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
@@ -383,16 +383,6 @@ for tool in gconfig $GF_TOOLS; do
         $GF_PROJECT_DIR/../*/tools/tool_steps.$tool.*gf
         $GF_PROJECT_DIR/gflow/templates/*/tool_steps.$tool.*gf
         $GF_REF_PROJECT_DIR/tools/tool_steps.$tool.*gf
-    "
-done
-
-# Copy technology-specific scripts
-# mkdir -p "$GF_PROJECT_DIR"/technology
-for tool in common $GF_TOOLS; do
-    update_file 1 "$GF_PROJECT_DIR" "technology.$tool.gf" "
-        $GF_PROJECT_DIR/../*/technology.$tool.*gf
-        $GF_PROJECT_DIR/gflow/templates/*/technology.$tool.*gf
-        $GF_REF_PROJECT_DIR/technology.$tool.*gf
     "
 done
 

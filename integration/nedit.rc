@@ -1,5 +1,5 @@
 ################################################################################
-# Generic Flow v5.0 (February 2023)
+# Generic Flow v5.1 (May 2023)
 ################################################################################
 #
 # Copyright 2011-2023 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
@@ -199,8 +199,7 @@ nedit.highlightPatterns: Generic Flow:1:0{\n\
         DVar1:"\\$([-*@#?$!0-9]|[a-zA-Z_][0-9a-zA-Z_]*)":::GFDVar:DContent:\n\
         SVar2:"\\$\\{":"}":"\\n":GFSVar:SContent:\n\
         DVar2:"\\$\\{":"}":"\\n":GFDVar:DContent:\n\
-        SStep:"(?<=(^|\\s)gf_paste_step\\s)(\\s*\\w+)\\s*$":::GFSStep:SContent:\n\
-        DStep:"(?<=(^|\\s)gf_paste_step\\s)(\\s*\\w+)\\s*$":::GFDStep:DContent:\n\
+        SStep:"(`[@\\$][^`]+(`|$))":::GFSStep:SContent:\n\
         File:"(?<![\\./\\w])[\\./\\w]*/[\\./\\w]+(?![\\./\\w])":::GFFile::\n\
         SFile:"(?<![\\./\\w])[\\./\\w]*/[\\./\\w]+(?![\\./\\w])":::GFSFile:SContent:\n\
         DFile:"(?<![\\./\\w])[\\./\\w]*/[\\./\\w]+(?![\\./\\w])":::GFDFile:DContent:\n\
@@ -247,8 +246,7 @@ nedit.styles: \
     GFVar:#007700:Bold\n\
     GFSVar:#007700/#FFFFF0:Plain\n\
     GFDVar:#007700/#F5F5FF:Bold\n\
-    GFSStep:#007700/#FFFFF0:Bold\n\
-    GFDStep:#007700/#F5F5FF:Bold\n\
+    GFSStep:#007700/#F0FFF0:Bold\n\
     GFFile:#777700:Plain\n\
     GFSFile:#777700/#FFFFF0:Plain\n\
     GFDFile:#777700/#F5F5FF:Plain\n\
@@ -306,7 +304,7 @@ nedit.boldItalicHighlightFont: -dec-terminal-bold-o-normal--14-140-75-75-c-80-is
 nedit.textFgColor: black
 nedit.textBgColor: rgb:ff/ff/ff
 nedit.selectFgColor: black
-nedit.selectBgColor: rgb:cc/cc/cc
+nedit.selectBgColor: rgb:ff/ff/77
 nedit.hiliteFgColor: white
 nedit.hiliteBgColor: red
 nedit.lineNoFgColor: black

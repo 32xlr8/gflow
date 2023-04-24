@@ -1,7 +1,7 @@
 #!/bin/bash
 
 ################################################################################
-# Generic Flow v5.0 (February 2023)
+# Generic Flow v5.1 (May 2023)
 ################################################################################
 #
 # Copyright 2011-2023 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
@@ -24,7 +24,7 @@
 ################################################################################
 
 ##################################################
-GF_TITLE="Generic Flow v5.0 (February 2023)"
+GF_TITLE="Generic Flow v5.1 (May 2023)"
 ##################################################
 
 # Generic Flow binary
@@ -4305,74 +4305,105 @@ gf_help_section "Additional GF script commands"
 ##################################################
 
 gf_help_command '
-    {gf_source} <file> ...
+    {gf_source} [-once] <file>
     Source external {file} in Generic Flow environment.
     File path can be relative to current directory, root script path or current script path.
     Content of the {file} will be saved in $GF_RUN_DIR/scripts/*.sources.gf files.
+    Option {-once} prevents loading the same file twice.
 '
 function gf_source {
     eval "$(gf_update_function)"
     local gf_parent_last_file_content="$GF_LAST_FILE_CONTENT"
 
+    local gf_once=0
     local gf_file=
-    for gf_file in $@; do
-        local gf_file_full_name=$(gf_full_path "$gf_file")
-        local gf_file_short_name=$(gf_get_short_path "$gf_file_full_name")
-
-        # Save values for sensitive global variables
-        local gf_parent_source_file="$GF_SOURCE_FILE"
-        local gf_parent_func_name_source="$GF_FUNC_NAME"
-
-        # Update current help section
-        gf_help_section "User script"
-
-        # Update global variables
-        GF_SOURCE_FILE="$gf_file_full_name"
-        GF_FUNC_NAME="${FUNCNAME[0]}"
-
-        # Load file content
-        gf_load_file_content "$gf_file"
-        local gf_status="$GF_LAST_FILE_STATUS"
-        local gf_content="$GF_LAST_FILE_CONTENT"
-        GF_FUNC_NAME="$(basename "$gf_file")"
-
-        # Update line number offset and evaluate content
-        local gf_last_file="$GF_LAST_FILE"
-        eval "local GF_LINENO=$((LINENO-1)); $gf_content"
-        GF_LAST_FILE="$gf_last_file"
-
-        # Save content and show messages in normal mode only
-        GF_FUNC_NAME="${FUNCNAME[0]}"
-        if [ -z "$GF_PRELOAD_MODE" ]; then
-
-            # Save file content
-            gf_save_file_content "$gf_file" "$gf_last_file" "$gf_content"
-
-            # Show messages
-            if [ "$gf_status" == "IU" ]; then
-                gf_info "File ${GFC7}$gf_file${GFC0} loaded.\n"
-
-            elif [ "$gf_status" == "IS" ]; then
-                gf_info "File ${GFC6}$gf_file${GFC0} reused.\n"
-
-            elif [ "$gf_status" == "ESIU" ]; then
-                gf_warning "File ${GFC7}$gf_file${GFC0} loaded, not reused.\n"
-
-            elif [ "$gf_status" == "EUIS" ]; then
-                gf_warning "File ${GFC6}$gf_file${GFC0} reused, not loaded.\n"
-
-            elif [ "$gf_status" == "ES" ]; then
-                gf_error "File ${GFH6}$gf_file${GFC0} not found to reuse.\n"
-
-            elif [ "$gf_status" == "EU" ]; then
-                gf_error "File ${GFH7}$gf_file${GFC0} not found.\n"
-            fi
-        fi
-
-        # Restore saved global variables
-        GF_SOURCE_FILE="$gf_parent_source_file"
-        GF_FUNC_NAME="$gf_parent_func_name_source"
+    while [ $# -gt 0 ]; do
+        key="$1"; shift
+        case "$key" in
+            "-once" )
+                gf_once=1
+            ;;
+            -* )
+                gf_fatal "Incorrect ${GFH7}$key${GFC0} option."
+            ;;
+            * )
+                if [ -z "$gf_file" ]; then
+                    gf_file="$key"
+                else
+                    gf_fatal "Incorrect ${GFH7}$key${GFC0} option."
+                fi
+            ;;
+        esac
     done
+
+    # Source file
+    if [ -n "$gf_file" ]; then
+        local gf_file_full_name=$(gf_full_path "$gf_file")
+
+        local gf_file_used="$(echo "$GF_SOURCED_SCRIPTS" | grep -Fx -- "$gf_file_full_name" || :)"
+        if [ -z "$gf_file_used" -o "$gf_once" == "0" ]; then
+            GF_SOURCED_SCRIPTS+="$gf_file_full_name"$'\n'
+
+            local gf_file_short_name=$(gf_get_short_path "$gf_file_full_name")
+            gf_debug gf_file_full_name gf_file_short_name
+
+            # Save values for sensitive global variables
+            local gf_parent_source_file="$GF_SOURCE_FILE"
+            local gf_parent_func_name_source="$GF_FUNC_NAME"
+
+            # Update current help section
+            gf_help_section "User script"
+
+            # Update global variables
+            GF_SOURCE_FILE="$gf_file_full_name"
+            GF_FUNC_NAME="${FUNCNAME[0]}"
+
+            # Load file content
+            gf_load_file_content "$gf_file"
+            local gf_status="$GF_LAST_FILE_STATUS"
+            local gf_content="$GF_LAST_FILE_CONTENT"
+            GF_FUNC_NAME="$(basename "$gf_file")"
+
+            # Update line number offset and evaluate content
+            local gf_last_file="$GF_LAST_FILE"
+            eval "local GF_LINENO=$((LINENO-1)); $gf_content"
+            GF_LAST_FILE="$gf_last_file"
+
+            # Save content and show messages in normal mode only
+            GF_FUNC_NAME="${FUNCNAME[0]}"
+            if [ -z "$GF_PRELOAD_MODE" ]; then
+
+                # Save file content
+                gf_save_file_content "$gf_file" "$gf_last_file" "$gf_content"
+
+                # Show messages
+                if [ "$gf_status" == "IU" ]; then
+                    gf_info "File ${GFC7}$gf_file${GFC0} loaded.\n"
+
+                elif [ "$gf_status" == "IS" ]; then
+                    gf_info "File ${GFC6}$gf_file${GFC0} reused.\n"
+
+                elif [ "$gf_status" == "ESIU" ]; then
+                    gf_warning "File ${GFC7}$gf_file${GFC0} loaded, not reused.\n"
+
+                elif [ "$gf_status" == "EUIS" ]; then
+                    gf_warning "File ${GFC6}$gf_file${GFC0} reused, not loaded.\n"
+
+                elif [ "$gf_status" == "ES" ]; then
+                    gf_error "File ${GFH6}$gf_file${GFC0} not found to reuse.\n"
+
+                elif [ "$gf_status" == "EU" ]; then
+                    gf_error "File ${GFH7}$gf_file${GFC0} not found.\n"
+                fi
+            fi
+
+            # Restore saved global variables
+            GF_SOURCE_FILE="$gf_parent_source_file"
+            GF_FUNC_NAME="$gf_parent_func_name_source"
+        else
+            gf_info "Already loaded ${GFC7}$gf_file${GFC0} skipped."
+        fi
+    fi
 
     GF_LAST_FILE_CONTENT="$gf_parent_last_file_content"
     eval "$(gf_revert_function)"
@@ -5941,7 +5972,7 @@ function gf_expand_content {
             # Replace flow steps
             $content =~ s/([^\S\n]*)(?![^\\]\\)\`gf_paste_steps?\s+([^\`\n]+)\`/paste_step($1,$2,$stack)/gme;
             $content =~ s/^([^\S\n]*)(?![^\\]\\)\`\@(\w[^\`\n]*)\`[^\n\S]*$/paste_step($1,$2,$stack)/gme;
-            $content =~ s/^([^\S\n]*)gf_paste_step\s+(((-optional|-exclude\s+\S+)\s+)?\S+(\s+(-optional|-exclude\s+\S+))?)[^\n\S]*$/paste_step($1,$2,$stack)/gme;
+            # $content =~ s/^([^\S\n]*)gf_paste_step\s+(((-optional|-exclude\s+\S+)\s+)?\S+(\s+(-optional|-exclude\s+\S+))?)[^\n\S]*$/paste_step($1,$2,$stack)/gme;
 
             print "gf_error \"Not finalized '${GFH7}'$1'${GFC0}' command.\"\n" if ($content =~ /[^\S\n]*(?![^\\]\\)\`((\@|gf_paste_step)[^\`\n]+)\n/);
 
@@ -8018,7 +8049,9 @@ function gf_load_options {
             local gf_perl_script='
                 '"$gf_parse_gf_script"'
                 foreach (@commands) {
-                    s/^(\s*)(gf_source|source|\.)(\s)/$1."gf_preload".$3/e;
+                    if (s/^(\s*)(gf_source|source|\.)(\s)/$1."gf_preload".$3/e) {
+                        s/\s+-once\b//g;
+                    }
                     print if (/^\s*(gf_set_flow_options|gf_use_options|gf_use_option|gf_preload|gf_save_source)\s/);
                 }
             '
@@ -8101,7 +8134,9 @@ function gf_preload_script {
                     '"$gf_parse_gf_script"'
                     foreach (@commands) {
                         s/^(\s*)(gf_fatal)(\s)/$1."gf_error".$3/e;
-                        s/^(\s*)(gf_source|source|\.)(\s)/$1."gf_preload".$3/e;
+                        if (s/^(\s*)(gf_source|source|\.)(\s)/$1."gf_preload".$3/e) {
+                            s/\s+-once\b//g;
+                        }
                         print if (/^\s*(gf_preload|gf_warning|gf_error)\s/ || /^\s*\w+=[^\s]/);
                     }
                 '
@@ -8309,7 +8344,9 @@ function gf_show_script_info {
                 local gf_perl_script='
                     '"$gf_parse_gf_script"'
                     foreach (@commands) {
-                        s/^(\s*)(gf_source|source|\.)(\s)/$1."gf_filter_script".$3/e;
+                        if (s/^(\s*)(gf_source|source|\.)(\s)/$1."gf_filter_script".$3/e) {
+                            s/\s+-once\b//g;
+                        }
                         s/^(\s*)(gf_save_source)(\s)/$1."gf_filter_file".$3/e;
                         print if (/^\s*(gf_filter_script|gf_filter_file)\s/ || /^\s*\w+=[^\s]/);
                     }
@@ -9854,9 +9891,9 @@ if [ -n "$GF_HELP_MODE" ]; then
 
     # Interactive help mode
     if [ -e "$GF_SCRIPT" ]; then
-        gf_set_window_title "Interactive help ($GF_SCRIPT_NAME) - Generic Flow v5.0 (February 2023)" "GF help ($GF_SCRIPT_NAME)"
+        gf_set_window_title "Interactive help ($GF_SCRIPT_NAME) - Generic Flow v5.1 (May 2023)" "GF help ($GF_SCRIPT_NAME)"
     else
-        gf_set_window_title "Interactive help - Generic Flow v5.0 (February 2023)" "GF help"
+        gf_set_window_title "Interactive help - Generic Flow v5.1 (May 2023)" "GF help"
     fi
     gf_show_cursor
     echo
@@ -9876,7 +9913,7 @@ elif [ -n "$GF_INTERACTIVE_MODE" -o -z "$GF_SCRIPT" ]; then
     trap -- SIGHUP
     trap 'gf_restore_title' EXIT
     gf_show_cursor
-    gf_set_window_title "Generic Flow Utilities v5.0 (February 2023)" "GF utilities"
+    gf_set_window_title "Generic Flow Utilities v5.1 (May 2023)" "GF utilities"
 
     # Environment initialization
     export PATH="$GF_UTILS:$(gf_full_path "$GF_BIN/.."):${PATH}"

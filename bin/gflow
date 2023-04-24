@@ -806,6 +806,28 @@ gf_grep_file_perl='
     }
 '
 
+# Transform task to file script
+gf_task_to_file_pattern_perl='
+    my $result = "";
+    my $task = "";
+    my $run = "";
+    my $line = 0;
+    while (<STDIN>) {
+        $line++;
+        if ($line == 1) {
+            s/\n$//;
+            $task = $_; $task =~ s|^.*/tasks/||;
+            $run = $_; $run =~ s|/tasks/.*?$||;
+        } else {
+            s:\$\{(task|task_name)\}:$task:i;
+            s:\$(task|task_name)\b:$task:i;
+            s:\$\{(run|run_dir)\}:$run:i;
+            s:\$(run|run_dir)\b:$run:i;
+            print "$_\n";
+        }
+    }
+'
+
 # Exclude files matching EXCLUDE patterns
 function gf_exclude_files {
     echo ":::EXCLUDE:::"$'\n^\s*$\n'"$2"$'\n'":::CONTENT:::"$'\n'"$1" | perl -e "$gf_exclude_lines_perl"
@@ -1612,7 +1634,8 @@ function gf_choose_file_dir_task_bash {
     [[ ! -e "$gf_relative_dir" ]] && gf_relative_dir=.
 
     # Update variable if not defined
-    if [ -z "$(eval "echo \$$gf_variable")" -o -z "$gf_keep" ]; then
+    local current_value="$(eval "echo \$$gf_variable")"
+    if [ -z "$current_value" -o -z "$gf_keep" ]; then
 
         # Available files and directories
         local gf_variants=
@@ -1777,28 +1800,9 @@ function gf_choose_file_dir_task_bash {
                 $gf_wait_cmd -exact "$gf_internal_result"
             fi
 
-            # gf_task_to_file_pattern
+            # Transform task to file based on the pattern
             if [ -n "$gf_task_to_file_pattern" ]; then
-                gf_internal_result="$(echo "$gf_internal_result"$'\n'"$gf_task_to_file_pattern" | perl -e '
-                    my $result = "";
-                    my $task = "";
-                    my $run = "";
-                    my $line = 0;
-                    while (<STDIN>) {
-                        $line++;
-                        if ($line == 1) {
-                            s/\n$//;
-                            $task = $_; $task =~ s|^.*/tasks/||;
-                            $run = $_; $run =~ s|/tasks/.*?$||;
-                        } else {
-                            s:\$\{(task|task_name)\}:$task:i;
-                            s:\$(task|task_name)\b:$task:i;
-                            s:\$\{(run|run_dir)\}:$run:i;
-                            s:\$(run|run_dir)\b:$run:i;
-                            print "$_\n";
-                        }
-                    }
-                ')"
+                gf_internal_result="$(echo "$gf_internal_result"$'\n'"$gf_task_to_file_pattern" | perl -e "$gf_task_to_file_pattern_perl")"
             fi
         fi
 
@@ -1807,9 +1811,19 @@ function gf_choose_file_dir_task_bash {
     
     # Wait/want for active task chosen earlier
     elif [ -n "$gf_keep" ]; then
+    
+        # Interactively chosen earlier task
         local last_value="$(echo "$GF_CHOSEN_VARS" | sed -ne "s|^$gf_variable=||p" | tail -1)"
         if [ -n "$last_value" -a -n "$gf_wait_cmd" -a -e "$last_value/run" ]; then
             $gf_wait_cmd -exact "$last_value"
+        
+        # User-specified path to the task
+        elif [ -z "$last_value" -a -n "$current_value" -a -e "$current_value/run" -a -n "$gf_task_to_file_pattern" ]; then
+            GF_CHOSEN_VARS+="$gf_variable=$current_value"$'\n'
+            $gf_wait_cmd -exact "$current_value"
+
+            # Set internal variable
+            eval "$gf_variable='$(echo "$current_value"$'\n'"$gf_task_to_file_pattern" | perl -e "$gf_task_to_file_pattern_perl")'"
         fi
     fi
     GF_IS_SPACE=0
@@ -3660,6 +3674,7 @@ function gf_check_task_running_or_done {
         # Remember global choice
         [[ $GF_NEED_RESTART = *A* ]] && GF_TASK_OPTIONS+="gf_set_task_option>0>*>-restart_mode"$'\n$GF_NEED_RESTART\n'
         # [[ $GF_NEED_RESTART = *A* ]] && GF_NEED_RESTART_GLOBAL=$GF_NEED_RESTART
+        gf_debug GF_NEED_RESTART
 
         # Task to be restarted
         if [ -z "$GF_SKIP_TASK" ]; then
@@ -4401,7 +4416,7 @@ function gf_source {
             GF_SOURCE_FILE="$gf_parent_source_file"
             GF_FUNC_NAME="$gf_parent_func_name_source"
         else
-            gf_info "Already loaded ${GFC7}$gf_file${GFC0} skipped."
+            gf_info "Already loaded ${GFC7}$gf_file${GFC0} skipped.\n"
         fi
     fi
 
@@ -8042,25 +8057,29 @@ function gf_load_options {
         GF_OPTIONS_SOURCE=S
 
         # Preload GF script recusively
+        local gf_followed_files=
         function gf_preload {
             local gf_file="$1"
-            gf_load_file_content "$gf_file"
-            local gf_content="$GF_LAST_FILE_CONTENT"
-            local gf_perl_script='
-                '"$gf_parse_gf_script"'
-                foreach (@commands) {
-                    if (s/^(\s*)(gf_source|source|\.)(\s)/$1."gf_preload".$3/e) {
-                        s/\s+-once\b//g;
+            if [ -z "$(echo "$gf_followed_files" | grep -x "$gf_file" || :)" ]; then
+                gf_followed_files+=$'\n'"$gf_file"
+                gf_load_file_content "$gf_file"
+                local gf_content="$GF_LAST_FILE_CONTENT"
+                local gf_perl_script='
+                    '"$gf_parse_gf_script"'
+                    foreach (@commands) {
+                        if (s/^(\s*)(gf_source|source|\.)(\s)/$1."gf_preload".$3/e) {
+                            s/\s+-once\b//g;
+                        }
+                        print if (/^\s*(gf_set_flow_options|gf_use_options|gf_use_option|gf_preload|gf_save_source)\s/);
                     }
-                    print if (/^\s*(gf_set_flow_options|gf_use_options|gf_use_option|gf_preload|gf_save_source)\s/);
-                }
-            '
-            local gf_commands="$(echo "$gf_content" | perl -e "$gf_perl_script")"
-            local gf_last_file="$GF_LAST_FILE"
-            eval "$gf_commands"
-            GF_LAST_FILE="$gf_last_file"
-            # gf_debug gf_perl_script
-            gf_debug gf_commands
+                '
+                local gf_commands="$(echo "$gf_content" | perl -e "$gf_perl_script")"
+                local gf_last_file="$GF_LAST_FILE"
+                eval "$gf_commands"
+                GF_LAST_FILE="$gf_last_file"
+                # gf_debug gf_perl_script
+                gf_debug gf_commands
+            fi
         }
 
         # Preload options from the script

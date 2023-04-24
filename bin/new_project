@@ -289,9 +289,10 @@ function update_and_follow_file {
                     $commands[$#commands] .= $text;
                 }
                 foreach my $command (@commands) {
-                    if ($command =~ s/^\s*gf_source\s+//) {
-                        $command =~ s/^\s*\"(.*)\"$\s*/$1/;
-                        $command =~ s/^\s*\'"'"'(.*)\'"'"'$\s*/$1/;
+                    if ($command =~ s/^\s*gf_source\b//) {
+                        $command =~ s/^\s+-once\b//g;
+                        $command =~ s/^\s+\"(.*)\"$\s*/$1/;
+                        $command =~ s/^\s+\'"'"'(.*)\'"'"'$\s*/$1/;
                         print "$command\n";
                     }
                 }
@@ -412,7 +413,7 @@ for GF_BLOCK_NAME in $GF_BLOCKS; do
     done
 
     # Copy block-specific flows
-    for flow in config.out $GF_FLOWS; do
+    for flow in $GF_FLOWS; do
         update_file 1 "$GF_PROJECT_DIR" "blocks/$GF_BLOCK_NAME/$flow.gf" "
             $GF_PROJECT_DIR/../*/blocks/*/$flow.gf
             $GF_BLOCK_DIR/../*/$flow.gf

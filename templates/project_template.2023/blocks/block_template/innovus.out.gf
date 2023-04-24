@@ -46,11 +46,9 @@ gf_spacer
 gf_choose_file_dir_task -variable INNOVUS_DATABASE -keep -prompt "Choose database or active task:" -dirs '
     ../work_*/*/out/Route*.innovus.db
     ../work_*/*/out/Assemble*.innovus.db
-    ../work_*/*/out/InnovusTSO*.innovus.db
     ../work_*/*/out/ECO*.innovus.db
 ' -want -active -task_to_file '$RUN/out/$TASK.innovus.db' -tasks '
     ../work_*/*/tasks/Route*
-    ../work_*/*/tasks/InnovusTSO*
     ../work_*/*/tasks/ECO*
     ../work_*/*/tasks/Assemble*
 ' 
@@ -111,11 +109,9 @@ gf_spacer
 gf_choose_file_dir_task -variable INNOVUS_DATABASE -keep -prompt "Choose database or active task:" -dirs '
     ../work_*/*/out/Route*.innovus.db
     ../work_*/*/out/Assemble*.innovus.db
-    ../work_*/*/out/InnovusTSO*.innovus.db
     ../work_*/*/out/ECO*.innovus.db
 ' -want -active -task_to_file '$RUN/out/$TASK.innovus.db' -tasks '
     ../work_*/*/tasks/Route*
-    ../work_*/*/tasks/InnovusTSO*
     ../work_*/*/tasks/ECO*
     ../work_*/*/tasks/Assemble*
 ' 

@@ -105,4 +105,4 @@ gf_create_step -name init_shell_environment '
 ################################################################################
 
 # Load project-specific Generic Config steps
-gf_source -once -once "../../project.gconfig.gf"
+gf_source -once "../../project.gconfig.gf"

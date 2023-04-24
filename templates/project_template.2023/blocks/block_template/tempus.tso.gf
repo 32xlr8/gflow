@@ -34,10 +34,10 @@ gf_source -once "./block.common.gf"
 gf_source -once "./block.tempus.gf"
 
 ########################################
-# Tempus ECO
+# Tempus signoff ECO
 ########################################
 
-gf_create_task -name TempusTSO
+gf_create_task -name TSO
 gf_use_tempus -eco
 
 # Design data directory

@@ -235,6 +235,9 @@ gf_add_tool_commands '
     exit
 '
 
+# Task marks
+gf_add_status_marks -1 'Worst cost_group:'
+
 # Run task
 gf_add_status_marks Error
 gf_submit_task

@@ -93,8 +93,11 @@ gf_add_tool_commands '
     set GDS_FILES {`$GDS_FILES`}
     set QUANTUS_DUMMY_TOP {`$QUANTUS_DUMMY_TOP -optional`}
     set QUANTUS_DUMMY_GDS {`$QUANTUS_DUMMY_GDS -optional`}
+
+    set DESIGN_NAME {`$DESIGN_NAME`}
     set POWER_NETS {`$POWER_NETS_CORE` `$POWER_NETS_OTHER -optional`}
     set GROUND_NETS {`$GROUND_NETS_CORE` `$GROUND_NETS_OTHER -optional`}
+
     set DATA_OUT_DIR {`$DATA_OUT_DIR`}
 
     # Initialization

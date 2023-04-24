@@ -37,7 +37,7 @@ gf_source -once "./block.innovus.gf"
 # Innovus ECO
 ########################################
 
-gf_create_task -name InnovusTSO
+gf_create_task -name ECO
 gf_use_innovus
 
 # Design data directory
@@ -49,9 +49,9 @@ gf_choose_file_dir_task -variable DATA_OUT_DIR -keep -prompt "Choose design data
 
 # Design data directory
 gf_choose_file_dir_task -variable ECO_SCRIPT -keep -prompt "Choose ECO script:" -files '
-    ../work_*/*/out/TempusTSO*.eco_innovus.tcl
+    ../work_*/*/out/TSO*.eco_innovus.tcl
 ' -want -active -task_to_file '$RUN/out/$TASK.eco_innovus.tcl' -tasks '
-    ../work_*/*/tasks/TempusTSO*
+    ../work_*/*/tasks/TSO*
 '
 
 # TCL commands

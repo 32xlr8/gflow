@@ -3672,7 +3672,7 @@ function gf_check_task_running_or_done {
         fi
 
         # Remember global choice
-        [[ $GF_NEED_RESTART = *A* ]] && GF_TASK_OPTIONS+="gf_set_task_option>0>*>-restart_mode"$'\n$GF_NEED_RESTART\n'
+        [[ $GF_NEED_RESTART = *A* ]] && GF_TASK_OPTIONS+="gf_set_task_option>0>*>-restart_mode"$'\n'"$GF_NEED_RESTART"$'\n'
         # [[ $GF_NEED_RESTART = *A* ]] && GF_NEED_RESTART_GLOBAL=$GF_NEED_RESTART
         gf_debug GF_NEED_RESTART
 
@@ -4018,8 +4018,36 @@ function gf_create_task {
             gf_info "MEM usage is ${GFC7}${GF_TASK_MEM}G${GFC0}."
         fi
 
+        # Parallel tasks control
+        local gf_task_group="$(echo "$GF_TASK_OPTIONS$GF_TASK_OPTIONS_LOCAL" | perl -e "$gf_get_task_option_perl" "$GF_TASK_BASE" '-group')"
+        local gf_parallel_count="$(echo "$GF_TASK_OPTIONS$GF_TASK_OPTIONS_LOCAL" | perl -e "$gf_get_task_option_perl" "$GF_TASK_BASE" '-parallel')"
+
         # Print task info messages
         echo -n "$GF_TASK_MSG"; GF_TASK_MSG=
+
+        # Wait tasks with parallel count
+        if [ -n "$gf_parallel_count" ]; then
+            local gf_perl_script='
+                my $count = "'"$gf_parallel_count"'";
+                my @tasks;
+                while (<STDIN>) {
+                    push @tasks, $1 if (/^(\S+)='"$gf_task_group"'$/);
+                }
+                print $tasks[$#tasks-$count+1]."\n" if ($#tasks-$count+1 >= 0);
+            '
+            local gf_wait_task="$(echo -e "$GF_TASK_GROUPS" | perl -e "$gf_perl_script")"
+            # gf_debug gf_perl_script
+            gf_debug gf_wait_task
+
+            if [ -n "$gf_wait_task" ]; then
+                if [ -z "$gf_task_group" ]; then
+                    gf_info "Task will wait for ${GFC4}$gf_wait_task${GFC0} (parallel limit ${GFC7}$gf_parallel_count${GFC0})."
+                else
+                    gf_info "Task will wait for ${GFC4}$gf_wait_task${GFC0} (parallel limit ${GFC7}$gf_parallel_count${GFC0} in ${GFC7}$gf_task_group${GFC0} group)."
+                fi
+                GF_WAIT_TASKS+="WAIT=$(echo $gf_wait_task)=\$GF_I_RUN_DIR/tasks/run.info"$'\n'
+            fi
+        fi
 
         # Mother task should be correct
         if [ -n "$MOTHER_TASK_NAME" ]; then
@@ -4069,50 +4097,6 @@ function gf_create_task {
                 gf_info "Option ${GFH7}-mother_last${GFC0} ignored for the first task."
             else
                 gf_fatal "Task mother specified as ${GFH1}-mother_last${GFC0} is not defined."
-            fi
-        fi
-
-        # Parallel tasks control
-        local gf_task_group="$(echo "$GF_TASK_OPTIONS$GF_TASK_OPTIONS_LOCAL" | perl -e "$gf_get_task_option_perl" "$GF_TASK_BASE" '-group')"
-        local gf_parallel_count="$(echo "$GF_TASK_OPTIONS$GF_TASK_OPTIONS_LOCAL" | perl -e "$gf_get_task_option_perl" "$GF_TASK_BASE" '-parallel')"
-
-        # Wait tasks with parallel count
-        if [ -n "$gf_parallel_count" ]; then
-            local gf_perl_script='
-                my $count = "'"$gf_parallel_count"'";
-                my @tasks;
-                while (<STDIN>) {
-                    push @tasks, $1 if (/^(\S+)='"$gf_task_group"'$/);
-                }
-                print $tasks[$#tasks-$count+1]."\n" if ($#tasks-$count+1 >= 0);
-            '
-            local gf_wait_task="$(echo -e "$GF_TASK_GROUPS" | perl -e "$gf_perl_script")"
-            # gf_debug gf_perl_script
-            gf_debug gf_wait_task
-
-            if [ -n "$gf_wait_task" ]; then
-                if [ -z "$gf_task_group" ]; then
-                    gf_info "Task will wait for ${GFC4}$gf_wait_task${GFC0} (parallel limit ${GFC7}$gf_parallel_count${GFC0})."
-                else
-                    gf_info "Task will wait for ${GFC4}$gf_wait_task${GFC0} (parallel limit ${GFC7}$gf_parallel_count${GFC0} in ${GFC7}$gf_task_group${GFC0} group)."
-                fi
-
-                if [ -z "$(echo "$(echo $gf_wait_task)"$'\n'"\$GF_I_RUN_DIR/tasks/run.info"$'\n'"$GF_WAIT_TASKS" | perl -e '
-                    my $task = "";
-                    my $info = "";
-                    while (<STDIN>) {
-                        s/\n$//;
-                        if ($task eq "") {
-                            $task = $_;
-                        } elsif ($info eq "") {
-                            $info = $_;
-                        } elsif (/^WA[IN]T=([^=]+)=(.+)$/) {
-                            print 1 if (($1 eq $task) && ($2 eq $info));
-                        }
-                    }
-                ')" ]; then 
-                    GF_WAIT_TASKS+="WAIT=$(echo $gf_wait_task)=\$GF_I_RUN_DIR/tasks/run.info"$'\n'
-                fi
             fi
         fi
 
@@ -4247,6 +4231,23 @@ function gf_submit_task {
 
         # Save task PID
         GF_TASK_STATUSES+="$TASK_NAME $GF_TASK_BASE new"$'\n'
+
+        # Remove duplicate tasks
+        gf_debug GF_WAIT_TASKS
+        GF_WAIT_TASKS="$(echo "$GF_WAIT_TASKS" | perl -e '
+            my @records; my %records;
+            while (<STDIN>) {
+                s/\n$//;
+                if (/^(WA[IN]T=)(.*)$/) {
+                    push @records, $2 if (!defined $records{$2});
+                    $records{$2} = $1.$2;
+                }
+            }
+            print $records{$_}."\n" foreach (@records);
+        ')"
+        gf_debug GF_WAIT_TASKS
+
+        gf_info "${GFH6}$TASK_NAME${GFC0} scheduled after ${GFC4}$(echo $(echo "$GF_WAIT_TASKS" | sed -ne 's/^WA[IN]T=\([^=]\+\)=.*/\1/p') | sed -e "s/ /\\${GFC0}, \\${GFC4}/g")${GFC0}.\n"
 
         # Create new executable task submit script
         rm -f "$GF_I_RUN_DIR/tasks/submit.$TASK_NAME.sh"
@@ -8901,12 +8902,21 @@ function gf_prepare_run_directory {
 
         # Check next directory suffix
         if [ -z "$GF_NEED_CLEAN" -o "$GF_NEED_CLEAN" == "N" ]; then
-            GF_NEXT_SUFFIX=".2"
             local gf_run_name gf_suffix
-            for gf_run_name in $GF_FOUND_RUNS; do
-                gf_suffix=${gf_run_name#$GF_RUN_NAME.}
-                [[ $gf_suffix =~ ^[1-9][0-9]*$ ]] && GF_NEXT_SUFFIX=".$((gf_suffix+1))"
-            done
+            GF_NEXT_SUFFIX=".$(
+                for gf_run_name in $GF_FOUND_RUNS; do
+                    gf_suffix=${gf_run_name#$GF_RUN_NAME.}
+                    echo $gf_suffix
+                done | perl -e '
+                    my $suffix = 2;
+                    while (<STDIN>) {
+                        if (/^(\d+)\s*$/) {
+                            $suffix = $1+1 if ($suffix <= $1);
+                        }
+                    }
+                    print "$suffix";
+                '
+            )"
         fi
 
         # Ask if user would like to save previous data

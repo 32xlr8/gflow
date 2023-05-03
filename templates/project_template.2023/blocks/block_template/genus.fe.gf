@@ -100,9 +100,7 @@ gf_add_tool_commands '
  
     # Design initialization
     init_design -top $DESIGN_NAME
-    `@genus_post_init_design_project`
-    `@genus_post_init_design`
-
+    
     # Read floorplan
     if {$FLOORPLAN_FILE == ""} {
         if {$PHYSICAL_MODE == "Y"} {
@@ -123,6 +121,10 @@ gf_add_tool_commands '
         }
     }
     
+    # Initialize tool environment
+    `@genus_post_init_design_project`
+    `@genus_post_init_design`
+
     # # Load OCV configuration
     # redirect -tee ./reports/$TASK_NAME.ocv.rpt {
     #     reset_timing_derate

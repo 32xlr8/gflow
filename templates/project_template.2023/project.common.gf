@@ -96,6 +96,9 @@ gf_create_step -name init_shell_environment '
     # Option 4: Default temporary directory (can slow down the runs)
     export TMPDIR="/tmp"
 
+    # # Clear cache to prevent tool crashes
+    # rm -Rf ~/.cache
+
     # Remove command line stack limit
     ulimit -s unlimited
 '

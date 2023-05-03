@@ -556,3 +556,11 @@ gf_create_step -name voltus_run_signal_em '
         -ict_em_models [join $VOLTUS_ICT_EM_RULE] \
         -method peak 
 '
+
+# Commands before open GUI for debug
+gf_create_step -name voltus_pre_gui '
+
+    # Instance VDD - no limit
+    gui_set_power_rail_display -plot ivdd -enable_voltage_sources true -legend nw
+    gui_fit
+'

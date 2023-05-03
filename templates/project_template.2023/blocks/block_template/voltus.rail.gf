@@ -71,6 +71,9 @@ gf_add_tool_commands '
     set DATA_OUT_DIR {`$DATA_OUT_DIR`}
     set SPEF_OUT_DIR {`$SPEF_OUT_DIR`}
 
+    # Start metric collection
+    `@collect_metrics`
+
     # Use separate Generic Config script
     source ./scripts/$TASK_NAME.gconfig.tcl
 
@@ -84,19 +87,16 @@ gf_add_tool_commands '
     # Load design files
     read_physical -lefs [join $LEF_FILES]
     read_netlist $DATA_OUT_DIR/$DESIGN_NAME.v.gz -top $DESIGN_NAME
-    read_def $DATA_OUT_DIR/$DESIGN_NAME.full.def.gz -skip_signal_nets 
 
     # Design initialization
     init_design
-    `@voltus_post_init_design_project`
-    `@voltus_post_init_variables`
-    
-    # Switch to propagated mode    
-    set_interactive_constraint_mode [get_db [get_db constraint_modes -if {.is_setup||.is_hold}] .name]
-    set_propagated_clock [get_clocks *]
+
+    # Load physical data
+    read_def $DATA_OUT_DIR/$DESIGN_NAME.full.def.gz -skip_signal_nets 
     
     # Read parasitics
-    if {[file exists [set SPEF_FILE $SPEF_OUT_DIR/$DESIGN_NAME.[gconfig::get extract_corner_name -view $STATIC_POWER_VIEW].spef.gz]]} {
+    set rc_corner [gconfig::get extract_corner_name -view $STATIC_POWER_VIEW]
+    if {[file exists [set SPEF_FILE $SPEF_OUT_DIR/$DESIGN_NAME.$rc_corner.spef.gz]]} {
         puts "SPEF file: $SPEF_FILE"
         read_spef -extended -keep_star_node_location $SPEF_FILE
     } else {
@@ -104,9 +104,20 @@ gf_add_tool_commands '
         suspend
     }
     
+    # Initialize tool environment
+    `@voltus_post_init_design_project`
+    `@voltus_post_init_variables`
+
+    # Switch to propagated mode    
+    set_interactive_constraint_mode [get_db [get_db constraint_modes -if {.is_setup||.is_hold}] .name]
+    set_propagated_clock [get_clocks *]
+    
     # Run analysis
     `@voltus_run_report_power_static`
 
+    # Report collected metrics
+    `@report_metrics`
+        
     # Close interactive session
     exit
 '
@@ -173,11 +184,18 @@ gf_add_tool_commands '
     set DESIGN_NAME {`$DESIGN_NAME`} 
     set STATIC_POWER_TASK {`$STATIC_POWER_TASK`}
 
+    # Start metric collection
+    `@collect_metrics`
+
     # Use separate Generic Config script
     source ./scripts/$TASK_NAME.gconfig.tcl
 
     # Design variables
     `@voltus_pre_init_variables`
+
+    # Link design files
+    exec ln -nsf $DATA_OUT_DIR/$DESIGN_NAME.v.gz ./in/$TASK_NAME.v.gz
+    exec ln -nsf $DATA_OUT_DIR/$DESIGN_NAME.full.def.gz ./in/$TASK_NAME.def.gz
 
     # Load MMMC configuration
     puts "Analysis view: {$STATIC_RAIL_VIEW}"
@@ -186,10 +204,14 @@ gf_add_tool_commands '
     # Load design files
     read_physical -lefs [join $LEF_FILES]
     read_netlist $DATA_OUT_DIR/$DESIGN_NAME.v.gz -top $DESIGN_NAME
-    read_def $DATA_OUT_DIR/$DESIGN_NAME.full.def.gz -skip_signal_nets 
 
     # Design initialization
     init_design
+    
+    # Load physical data
+    read_def $DATA_OUT_DIR/$DESIGN_NAME.full.def.gz -skip_signal_nets 
+
+    # Initialize tool environment
     `@voltus_post_init_design_project`
     `@voltus_post_init_variables`
 
@@ -200,9 +222,33 @@ gf_add_tool_commands '
     # Run analysis
     `@voltus_run_report_rail_static`
    
-    # Leave session open for debug
+    # Report collected metrics
+    `@report_metrics`
+    
+    # Show GUI
     gui_show
-    gui_set_power_rail_display -plot ivdd -enable_voltage_sources true
+    
+    # Generate reports
+    mkdir -p ./reports/$TASK_NAME
+    
+    # Unconnected
+    gui_set_power_rail_display -plot unc -enable_voltage_sources true -legend nw
+    gui_fit; write_to_gif ./reports/$TASK_NAME/unconnected.gif
+
+    # Instance VDD - no limit
+    gui_set_power_rail_display -plot ir -enable_voltage_sources true -legend nw
+    gui_fit; write_to_gif ./reports/$TASK_NAME/ir.auto.gif
+    
+    # Instance VDD - no limit
+    gui_set_power_rail_display -plot ivdd -enable_voltage_sources true -legend nw
+    gui_fit; write_to_gif ./reports/$TASK_NAME/ivdd.auto.gif
+    
+    # Instance VDD  - auto range
+    gui_set_power_rail_display -plot ivdd -enable_voltage_sources true -legend nw -range_min 0.0 -range_max [expr 1000.0*$IR_THRESHOLD_STATIC]
+    gui_fit; write_to_gif ./reports/$TASK_NAME/ivdd.range.gif
+    
+    # Close interactive session
+    exit
 '
 
 # Generic Config MMMC generation
@@ -270,6 +316,9 @@ gf_add_tool_commands '
     set DATA_OUT_DIR {`$DATA_OUT_DIR`}
     set SPEF_OUT_DIR {`$SPEF_OUT_DIR`}
 
+    # Start metric collection
+    `@collect_metrics`
+
     # Use separate Generic Config script
     source ./scripts/$TASK_NAME.gconfig.tcl
 
@@ -283,19 +332,16 @@ gf_add_tool_commands '
     # Load design files
     read_physical -lefs [join $LEF_FILES]
     read_netlist $DATA_OUT_DIR/$DESIGN_NAME.v.gz -top $DESIGN_NAME
-    read_def $DATA_OUT_DIR/$DESIGN_NAME.full.def.gz -skip_signal_nets 
-
+    
     # Design initialization
     init_design
-    `@voltus_post_init_design_project`
-    `@voltus_post_init_variables`
-
-    # Switch to propagated mode    
-    set_interactive_constraint_mode [get_db [get_db constraint_modes -if {.is_setup||.is_hold}] .name]
-    set_propagated_clock [get_clocks *]
     
+    # Load physical data
+    read_def $DATA_OUT_DIR/$DESIGN_NAME.full.def.gz -skip_signal_nets 
+
     # Read parasitics
-    if {[file exists [set SPEF_FILE $SPEF_OUT_DIR/$DESIGN_NAME.[gconfig::get extract_corner_name -view $DYNAMIC_POWER_VIEW].spef.gz]]} {
+    set rc_corner [gconfig::get extract_corner_name -view $DYNAMIC_POWER_VIEW]
+    if {[file exists [set SPEF_FILE $SPEF_OUT_DIR/$DESIGN_NAME.$rc_corner.spef.gz]]} {
         puts "SPEF file: $SPEF_FILE"
         read_spef -extended -keep_star_node_location $SPEF_FILE
     } else {
@@ -303,9 +349,20 @@ gf_add_tool_commands '
         suspend
     }
     
+    # Initialize tool environment
+    `@voltus_post_init_design_project`
+    `@voltus_post_init_variables`
+
+    # Switch to propagated mode    
+    set_interactive_constraint_mode [get_db [get_db constraint_modes -if {.is_setup||.is_hold}] .name]
+    set_propagated_clock [get_clocks *]
+    
     # Run analysis
     `@voltus_run_report_power_dynamic`
 
+    # Report collected metrics
+    `@report_metrics`
+        
     # Close interactive session
     exit
 '
@@ -372,11 +429,18 @@ gf_add_tool_commands '
     set DESIGN_NAME {`$DESIGN_NAME`} 
     set DYNAMIC_POWER_TASK {`$DYNAMIC_POWER_TASK`}
 
+    # Start metric collection
+    `@collect_metrics`
+
     # Use separate Generic Config script
     source ./scripts/$TASK_NAME.gconfig.tcl
 
     # Design variables
     `@voltus_pre_init_variables`
+
+    # Link design files
+    exec ln -nsf $DATA_OUT_DIR/$DESIGN_NAME.v.gz ./in/$TASK_NAME.v.gz
+    exec ln -nsf $DATA_OUT_DIR/$DESIGN_NAME.full.def.gz ./in/$TASK_NAME.def.gz
 
     # Load MMMC configuration
     puts "Analysis view: {$DYNAMIC_RAIL_VIEW}"
@@ -385,10 +449,14 @@ gf_add_tool_commands '
     # Load design files
     read_physical -lefs [join $LEF_FILES]
     read_netlist $DATA_OUT_DIR/$DESIGN_NAME.v.gz -top $DESIGN_NAME
-    read_def $DATA_OUT_DIR/$DESIGN_NAME.full.def.gz -skip_signal_nets 
 
     # Design initialization
     init_design
+    
+    # Load physical data
+    read_def $DATA_OUT_DIR/$DESIGN_NAME.full.def.gz -skip_signal_nets 
+
+    # Initialize tool environment
     `@voltus_post_init_design_project`
     `@voltus_post_init_variables`
 
@@ -399,9 +467,33 @@ gf_add_tool_commands '
     # Run analysis
     `@voltus_run_report_rail_dynamic`
 
-    # Leave session open for debug
+    # Report collected metrics
+    `@report_metrics`
+        
+    # Show GUI
     gui_show
-    gui_set_power_rail_display -plot ivdd -enable_voltage_sources true
+    
+    # Generate reports
+    mkdir -p ./reports/$TASK_NAME
+    
+    # Unconnected
+    gui_set_power_rail_display -plot unc -enable_voltage_sources true -legend nw
+    gui_fit; write_to_gif ./reports/$TASK_NAME/unconnected.gif
+
+    # Instance VDD - no limit
+    gui_set_power_rail_display -plot ir -enable_voltage_sources true -legend nw
+    gui_fit; write_to_gif ./reports/$TASK_NAME/ir.auto.gif
+    
+    # Instance VDD - no limit
+    gui_set_power_rail_display -plot ivdd -enable_voltage_sources true -legend nw
+    gui_fit; write_to_gif ./reports/$TASK_NAME/ivdd.auto.gif
+    
+    # Instance VDD  - auto range
+    gui_set_power_rail_display -plot ivdd -enable_voltage_sources true -legend nw -range_min 0.0 -range_max [expr 1000.0*$IR_THRESHOLD_DYNAMIC]
+    gui_fit; write_to_gif ./reports/$TASK_NAME/ivdd.range.gif
+
+    # Close interactive session
+    exit
 '
 
 # Generic Config MMMC generation
@@ -468,6 +560,9 @@ gf_add_tool_commands '
 
     set DESIGN_NAME {`$DESIGN_NAME`} 
 
+    # Start metric collection
+    `@collect_metrics`
+
     # Use separate Generic Config script
     source ./scripts/$TASK_NAME.gconfig.tcl
 
@@ -481,19 +576,20 @@ gf_add_tool_commands '
     # Load design files
     read_physical -lefs [join $LEF_FILES]
     read_netlist $DATA_OUT_DIR/$DESIGN_NAME.v.gz -top $DESIGN_NAME
-    read_def $DATA_OUT_DIR/$DESIGN_NAME.full.def.gz -skip_signal_nets 
 
     # Design initialization
     init_design
-    `@voltus_post_init_design_project`
-    `@voltus_post_init_variables`
+    
+    # Load physical data
+    read_def $DATA_OUT_DIR/$DESIGN_NAME.full.def.gz -skip_signal_nets 
 
     # Switch to propagated mode    
     set_interactive_constraint_mode [get_db [get_db constraint_modes -if {.is_setup||.is_hold}] .name]
     set_propagated_clock [get_clocks *]
     
     # Read parasitics
-    if {[file exists [set SPEF_FILE $SPEF_OUT_DIR/$DESIGN_NAME.[gconfig::get extract_corner_name -view $SIGNAL_EM_VIEW].spef.gz]]} {
+    set rc_corner [gconfig::get extract_corner_name -view $SIGNAL_EM_VIEW]
+    if {[file exists [set SPEF_FILE $SPEF_OUT_DIR/$DESIGN_NAME.$rc_corner.spef.gz]]} {
         puts "SPEF file: $SPEF_FILE"
         read_spef -extended -keep_star_node_location $SPEF_FILE
     } else {
@@ -501,11 +597,18 @@ gf_add_tool_commands '
         suspend
     }
     
+    # Initialize tool environment
+    `@voltus_post_init_design_project`
+    `@voltus_post_init_variables`
+
     # Check EM violations
     `@voltus_run_signal_em`
 
-    # Leave session open for debug
-    gui_show
+    # Report collected metrics
+    `@report_metrics`
+
+    # Close interactive session
+    exit
 '
 
 # Generic Config MMMC generation

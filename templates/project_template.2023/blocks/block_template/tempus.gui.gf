@@ -106,14 +106,14 @@ gf_add_tool_commands '
     source ./scripts/$TASK_NAME.ocv.tcl
     redirect ./reports/$TASK_NAME.derate.rpt {report_timing_derate}
     
-    # Initialize tool environment
-    `@tempus_post_init_design_project`
-    `@tempus_post_init_design`
-
     # Read parasitics
     `@procs_tempus_read_data`
     gf_read_parasitics $SPEF_TASKS
     
+    # Initialize tool environment
+    `@tempus_post_init_design_project`
+    `@tempus_post_init_design`
+
     # Path groups for analysis
     if {[catch create_basic_path_groups]} {
         set registers [all_registers]

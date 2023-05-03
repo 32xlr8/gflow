@@ -106,19 +106,19 @@ gf_add_tool_commands '
     # Load netlist
     read_netlist $DATA_OUT_DIR/$DESIGN_NAME.v.gz -top $DESIGN_NAME
     
+    # Initialize design with MMMC configuration
+    init_design
+    
     # Load physical data
     read_def $DATA_OUT_DIR/$DESIGN_NAME.lite.def.gz
     
-    # Initialize design with MMMC configuration
-    init_design
+    # Read parasitics
+    gf_read_parasitics $SPEF_OUT_DIR/$DESIGN_NAME
     
     # Initialize tool environment
     `@tempus_post_init_design_project`
     `@tempus_post_init_design`
 
-    # Read parasitics
-    gf_read_parasitics $SPEF_OUT_DIR/$DESIGN_NAME
-    
     # Init cells allowed for ECO
     `@init_cells_tempus`
 

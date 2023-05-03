@@ -4247,8 +4247,6 @@ function gf_submit_task {
         ')"
         gf_debug GF_WAIT_TASKS
 
-        gf_info "${GFH6}$TASK_NAME${GFC0} scheduled after ${GFC4}$(echo $(echo "$GF_WAIT_TASKS" | sed -ne 's/^WA[IN]T=\([^=]\+\)=.*/\1/p') | sed -e "s/ /\\${GFC0}, \\${GFC4}/g")${GFC0}.\n"
-
         # Create new executable task submit script
         rm -f "$GF_I_RUN_DIR/tasks/submit.$TASK_NAME.sh"
         gf_create_submit_script "$gf_silent_mode" > "$GF_I_RUN_DIR/tasks/submit.$TASK_NAME.sh"

@@ -56,44 +56,61 @@ gf_add_tool_commands -comment '#' -file "./tasks/$TASK_NAME/run.bash" '
 gf_add_tool_commands -comment '#' -file "./scripts/$TASK_NAME.tcl" '
     set TASK_NAME {`$TASK_NAME`}
 
-    # Unsorted list of mtime-file pairs
+    # Unsorted list of mtime-task-file
     set unsorted_files {}
-    foreach task {Place Clock Route} {
-        catch {
-            foreach file [glob ../../../../work_*/*/out/$task*.json] {
-                lappend unsorted_files [list [file mtime $file] $file]
+    set tasks {}
+    catch {
+        foreach file [glob ../../../../work_*/*/out/*.json] {
+            set mtime [file mtime $file]
+            set task [regsub {\..*$} [file tail $file] {}]
+            set id [file tail [file dirname [file dirname [file dirname $file]]]].[file tail [file dirname [file dirname $file]]][regsub {^[^\.]+} [file tail $file] {}]
+            lappend unsorted_files [list $mtime $task $id $file]
+            if {[lsearch -exact $tasks $task] < 0} {
+                lappend tasks $task
             }
         }
     }
     
     # Files sorted by modified date
-    set sorted_files {}
-    set ids {}
-    foreach sorted_file [lsort -index 0 -integer $unsorted_files] {
-        catch {
-            set file [lindex $sorted_file 1]
-            set id [file tail [file dirname [file dirname [file dirname $file]]]].[file tail [file dirname [file dirname $file]]]
-            read_metric -id $id $file
-            if {[lsearch -exact $ids $id] < 0} {
-                lappend ids $id
-            }
-            puts "Metric file included: $file"
-        }
-    }
+    set sorted_files [lsort -index 0 -integer $unsorted_files]
+    
+    # Group metrics by task
+    foreach task $tasks {
 
-    # Write metrics to compare
-    if {[llength $ids]} {
-        catch {
-            report_metric -id $ids -format html -file ./reports/$TASK_NAME.html
-            puts {Html metrics written: ./reports/$TASK_NAME.html}
+        # Read metrics
+        set ids {}
+        foreach sorted_file $sorted_files {
+            if {$task == [lindex $sorted_file 1]} {
+                catch {
+                    set id [lindex $sorted_file 2]
+                    set file [lindex $sorted_file 3]
+                    read_metric $file -id $id
+                    if {[lsearch -exact $ids $id] < 0} {
+                        lappend ids $id
+                    }
+                    puts "Metric file included: $file"
+                }
+            }
         }
-        catch {
-            report_metric -id $ids -format vivid -file ./reports/$TASK_NAME.vivid.html
-            puts {Vivid metrics written: ./reports/$TASK_NAME.vivid.html}
+
+        # Write metrics to compare
+        if {[llength $ids]} {
+            catch {
+                report_metric -id $ids -format html -file ./reports/$TASK_NAME.$task.html
+                puts "Html metrics written: ./reports/$TASK_NAME.$task.html"
+            }
+            catch {
+                report_metric -id $ids -format vivid -file ./reports/$TASK_NAME.$task.vivid.html
+                puts "Vivid metrics written: ./reports/$TASK_NAME.$task.vivid.html"
+            }
+        } else {
+            puts "ERROR: No metric files for $task tasks"
         }
-    } else {
-        puts "ERROR: No metric files found"
+        
+        puts {}
     }
+    
+    exit
 '
 
 # Check for success

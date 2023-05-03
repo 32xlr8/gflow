@@ -104,13 +104,13 @@ gf_add_tool_commands '
     }
     redirect ./reports/$TASK_NAME.derate.rpt {report_timing_derate}
     
+    # Read parasitics
+    gf_read_parasitics $SPEF_OUT_DIR/$DESIGN_NAME
+    
     # Initialize tool environment
     `@tempus_post_init_design_project`
     `@tempus_post_init_design`
 
-    # Read parasitics
-    gf_read_parasitics $SPEF_OUT_DIR/$DESIGN_NAME
-    
     # Path groups for analysis
     if {[catch create_basic_path_groups]} {
         set registers [all_registers]

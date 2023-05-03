@@ -36,7 +36,6 @@ gf_info "Loading block-specific Tempus steps ..."
 # # Override resources for batch tasks
 # gf_set_task_options STA -cpu 8 -mem 15
 # gf_set_task_options TSO -cpu 8 -mem 15
-gf_set_task_options DataOutTiming -cpu 4 -mem 10
 
 # Limit simultaneous tasks count
 gf_set_task_options 'Report*' -group Reports -parallel 1
@@ -45,7 +44,6 @@ gf_set_task_options 'Report*' -group Reports -parallel 1
 # # Disable not needed tasks
 # gf_set_task_options -disable STA
 # gf_set_task_options -disable TSO
-gf_set_task_options -disable DataOutTiming
 
 ################################################################################
 # Flow variables

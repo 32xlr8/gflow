@@ -44,19 +44,19 @@ gf_use_voltus
 gf_add_tool_commands '
 
     # Current design variables
-    set LEF_FILES {`$CADENCE_TLEF_FILES` `$LEF_FILES`}
+    set LEF_FILES {`$CADENCE_TLEF_FILES` `$LEF_FILES` `$PARTITIONS_LEF_FILES -optional`}
 
     # Use separate Generic Config script
     source ./scripts/$TASK_NAME.gconfig.tcl
 
     # Design variables
-    `@voltus_pre_init_variables`
+    `@voltus_pre_init_design_variables`
 
     # Read physical data
     read_physical -lefs $LEF_FILES
 
     # Design variables
-    `@voltus_post_init_variables`
+    `@voltus_post_init_design_variables`
 
     # Stage-specific options    
     `@voltus_pre_write_pgv_tech_only`
@@ -77,7 +77,7 @@ gf_add_tool_commands '
     `@gconfig_project_settings`
     `@gconfig_settings_common`
     `@gconfig_cadence_mmmc_files`
-    `@voltus_gconfig_design_settings`
+    `@voltus_gconfig_power_rail_design_settings`
 '
 
 # Layer map file
@@ -101,19 +101,19 @@ gf_use_voltus
 gf_add_tool_commands '
 
     # Current design variables
-    set LEF_FILES {`$CADENCE_TLEF_FILES` `$LEF_FILES`}
+    set LEF_FILES {`$CADENCE_TLEF_FILES` `$LEF_FILES` `$PARTITIONS_LEF_FILES -optional`}
 
     # Use separate Generic Config script
     source ./scripts/$TASK_NAME.gconfig.tcl
 
     # Design variables
-    `@voltus_pre_init_variables`
+    `@voltus_pre_init_design_variables`
 
     # Read physical data
     read_physical -lefs [join $LEF_FILES]
 
     # Design variables
-    `@voltus_post_init_variables`
+    `@voltus_post_init_design_variables`
 
     # Stage-specific options    
     `@voltus_pre_write_pgv_standard_cells`
@@ -134,7 +134,7 @@ gf_add_tool_commands '
     `@gconfig_project_settings`
     `@gconfig_settings_common`
     `@gconfig_cadence_mmmc_files`
-    `@voltus_gconfig_design_settings`
+    `@voltus_gconfig_power_rail_design_settings`
 '
 
 # Additional files
@@ -158,19 +158,19 @@ gf_use_voltus
 gf_add_tool_commands '
 
     # Current design variables
-    set LEF_FILES {`$CADENCE_TLEF_FILES` `$LEF_FILES`}
+    set LEF_FILES {`$CADENCE_TLEF_FILES` `$LEF_FILES` `$PARTITIONS_LEF_FILES -optional`}
 
     # Use separate Generic Config script
     source ./scripts/$TASK_NAME.gconfig.tcl
 
     # Design variables
-    `@voltus_pre_init_variables`
+    `@voltus_pre_init_design_variables`
 
     # Read physical data
     read_physical -lefs [join $LEF_FILES]
 
     # Design variables
-    `@voltus_post_init_variables`
+    `@voltus_post_init_design_variables`
 
     # Stage-specific options    
     `@voltus_pre_write_pgv_macros`
@@ -194,14 +194,14 @@ gf_add_tool_commands '
     `@gconfig_project_settings`
     `@gconfig_settings_common`
     `@gconfig_cadence_mmmc_files`
-    `@voltus_gconfig_design_settings`
+    `@voltus_gconfig_power_rail_design_settings`
 '
 
 # Additional files
 gf_add_tool_commands -comment '' -file ./in/$TASK_NAME.lef.map '`@voltus_pgv_lef_def_map_file`'
 gf_add_tool_commands -comment '#' -file ./in/$TASK_NAME.libgen.cmd '`@voltus_pgv_command_file`'
 gf_add_tool_commands -comment '#' -file ./in/$TASK_NAME.extract.cmd '`@voltus_pgv_extraction_command_file`'
-gf_add_tool_commands -comment '' -file ./in/$TASK_NAME.connect.map '`@voltus_pgv_layer_connect_file`'
+gf_add_tool_commands -comment '' -file ./in/$TASK_NAME.connect.map '`@voltus_pgv_lef_gds_map_file`'
 
 # Run task
 gf_add_failed_marks 'Library generation failed'

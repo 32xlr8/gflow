@@ -1,10 +1,10 @@
 #!/bin/bash
 
 ################################################################################
-# Generic Flow v5.1 (May 2023)
+# Generic Flow v5.5.0 (December 2024)
 ################################################################################
 #
-# Copyright 2011-2023 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
+# Copyright 2011-2024 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -24,7 +24,7 @@
 ################################################################################
 
 ##################################################
-GF_TITLE="Generic Flow v5.1 (May 2023)"
+GF_TITLE="Generic Flow v5.5.0 (December 2024)"
 ##################################################
 
 # Generic Flow binary
@@ -2564,7 +2564,7 @@ function gf_choose_task_candidate {
         ';
         eval "$(echo "$gf_run_info_file"$'\n'"$GF_I_RUN_DIR/tasks/run.info" | perl -e "$gf_perl_script")"
         # gf_debug gf_perl_script
-        gf_debug gf_run_info_file gf_dir_info
+        gf_debug gf_run_info_file gf_dir_info gf_task_name
 
         # Update task name and status
         if [ -n "$gf_task_name" ]; then
@@ -2636,9 +2636,9 @@ function gf_print_commands_info {
 
         # Print info
         if [ "$count" -eq 1 ]; then
-            gf_info "$count line added$relative_file."
+            gf_info "${GFH7}$count${GFC0} line added$relative_file."
         else
-            gf_info "$count lines added$relative_file."
+            gf_info "${GFH7}$count${GFC0} lines added$relative_file."
         fi
     fi
 }
@@ -3085,7 +3085,7 @@ function gf_create_submit_script {
                 echo -e "['${GFH4}'$$'${GFC0}'] $(date +%d-%H:%M:%S) '${GFH2}''$TASK_NAME''${GFC0}' done in $duration"
             elif [ "$gf_current_task_status" == "failed" ]; then
                 if [ -e "./logs/'$TASK_NAME'.log" ]; then
-                    echo -e "['${GFH4}'$$'${GFC0}'] $(date +%d-%H:%M:%S) '${GFH1}''$TASK_NAME''${GFC0}' failed. See '${GFC7}'./logs/'$TASK_NAME'.log'${GFC0}'"
+                    echo -e "['${GFH4}'$$'${GFC0}'] $(date +%d-%H:%M:%S) '${GFH1}''$TASK_NAME''${GFC0}' failed in $duration. See '${GFC7}'./logs/'$TASK_NAME'.log'${GFC0}'"
                 else
                     echo -e "['${GFH4}'$$'${GFC0}'] $(date +%d-%H:%M:%S) '${GFH1}''$TASK_NAME''${GFC0}' failed in $duration"
                 fi
@@ -3095,7 +3095,7 @@ function gf_create_submit_script {
                 fi
                 exit 4
             else
-                echo -e "['${GFH4}'$$'${GFC0}'] $(date +%d-%H:%M:%S) '${GFH1}''$TASK_NAME''${GFC0}' $gf_current_task_status"
+                echo -e "['${GFH4}'$$'${GFC0}'] $(date +%d-%H:%M:%S) '${GFH1}''$TASK_NAME''${GFC0}' $gf_current_task_status in $duration"
                 exit 3
             fi 2> /dev/null
         }
@@ -3300,52 +3300,63 @@ GF_START_TIME=$(date +%s)
         echo "$GF_TASK_INIT_SCRIPT"
     fi
 
-    # Perl script to replace CPU/MEM arguments
+    # Perl script to replace CPU/MEM/CMD arguments
     local gf_substitute_options='
+        my $GF_TASK_COMMAND = "";
         while (<STDIN>) {
-            s|\$(GF_)?(TASK_)?CPU\b|'"$GF_TASK_CPU"'|g;
-            s|\$(GF_)?(TASK_)?MEM\b|'"$GF_TASK_MEM"'|g;
-            s|\$\{(GF_)?(TASK_)?CPU\}|'"$GF_TASK_CPU"'|g;
-            s|\$\{(GF_)?(TASK_)?MEM\}|'"$GF_TASK_MEM"'|g;
-            print;
+            s|\s+$||;
+            if ($GF_TASK_COMMAND eq "") {
+                $GF_TASK_COMMAND = $_;
+            } else {
+                s|\$(GF_)?(TASK_)?CPU\b|'"$GF_TASK_CPU"'|g;
+                s|\$(GF_)?(TASK_)?MEM\b|'"$GF_TASK_MEM"'|g;
+                s|\$(GF_)?(TASK_)?COMMAND\b|$GF_TASK_COMMAND|ge;
+                s|\$\{(GF_)?(TASK_)?CPU\}|'"$GF_TASK_CPU"'|g;
+                s|\$\{(GF_)?(TASK_)?MEM\}|'"$GF_TASK_MEM"'|g;
+                s|\$\{(GF_)?(TASK_)?COMMAND\}|$GF_TASK_COMMAND|ge;
+                print;
+            }
         }
     '
 
-    # Command to run task in xterm
-    local gf_xterm_command="xterm $GF_XTERM_RES -xrm '$GF_XTERM_HOTKEYS' -geometry 150x30 -T '$TASK_NAME - $(basename "$GF_RUN_DIR") - $(dirname "$GF_RUN_DIR")' -n '$TASK_NAME - $GF_RUN_NAME' -e ./start.sh"
-    local gf_silent_command="./start.sh"
-    local gf_grid_command=
-
-    # Set up SGE mode
+    # Grid options
+    local gf_grid_command='${GF_TASK_COMMAND}'
     local gf_grid_mode="$(echo "$GF_TASK_OPTIONS$GF_TASK_OPTIONS_LOCAL" | perl -e "$gf_get_task_option_perl" "$GF_TASK_BASE" '-grid')"
+
+    # SGE mode
     if [ "$gf_grid_mode" == "sge" ]; then
-        gf_grid_command="qsub -sync y -b n -o \"\$GF_I_RUN_DIR/tasks/run.log\" -e \"\$GF_I_RUN_DIR/tasks/run.log\" -v DISPLAY -v WINDOWID -v PATH -N ${TASK_NAME}"
+        gf_grid_command="echo '\${GF_TASK_COMMAND}' | qsub -sync y -b n -o \"\$GF_I_RUN_DIR/tasks/run.log\" -e \"\$GF_I_RUN_DIR/tasks/run.log\" -v DISPLAY -v WINDOWID -v PATH -N ${TASK_NAME}"
 
         # Add CPU/MEM and user options
-        gf_grid_command+=" $(echo "$GF_TASK_OPTIONS$GF_TASK_OPTIONS_LOCAL" | perl -e "$gf_get_task_option_perl" "$GF_TASK_BASE" '-sge_options' | perl -e "$gf_substitute_options")"
+        gf_grid_command+=" $(echo "$GF_TASK_OPTIONS$GF_TASK_OPTIONS_LOCAL" | perl -e "$gf_get_task_option_perl" "$GF_TASK_BASE" '-sge_options')"
 
         # Run in current directory
         gf_grid_command+=" -cwd"
 
-    # Set up LSF mode
+    # LSF mode
     elif [ "$gf_grid_mode" == "lsf" ]; then
 
         # Use current terminal for execution
-        gf_grid_command="bsub -K -J ${TASK_NAME}"
+        gf_grid_command="echo '\${GF_TASK_COMMAND}' | bsub -K -J ${TASK_NAME}"
 
         # Add CPU/MEM and user options
-        gf_grid_command+=" $(echo "$GF_TASK_OPTIONS$GF_TASK_OPTIONS_LOCAL" | perl -e "$gf_get_task_option_perl" "$GF_TASK_BASE" '-lsf_options' | perl -e "$gf_substitute_options")"
+        gf_grid_command+=" $(echo "$GF_TASK_OPTIONS$GF_TASK_OPTIONS_LOCAL" | perl -e "$gf_get_task_option_perl" "$GF_TASK_BASE" '-lsf_options')"
 
         # Run in current directory
         gf_grid_command+=" --cwd"
+
+    # User grid mode
+    elif [ "$gf_grid_mode" == "grid" ]; then
+
+        # Use current terminal for execution
+        gf_grid_command="$(echo "$GF_TASK_OPTIONS$GF_TASK_OPTIONS_LOCAL" | perl -e "$gf_get_task_option_perl" "$GF_TASK_BASE" '-grid_command')"
+
     fi
     gf_debug GF_TASK_BASE gf_grid_mode gf_grid_command
 
-    # Modify xterm command
-    if [ -n "$gf_grid_mode" ]; then
-        gf_xterm_command="echo '$(echo "$gf_xterm_command" | sed -e "s/'/'\"'\"'/g")' | $gf_grid_command"
-        gf_silent_command="echo '$gf_silent_command' | $gf_grid_command"
-    fi
+    local gf_xterm_command="$(echo "xterm $GF_XTERM_RES -xrm '$GF_XTERM_HOTKEYS' -geometry 150x30 -T '$TASK_NAME - $(basename "$GF_RUN_DIR") - $(dirname "$GF_RUN_DIR")' -n '$TASK_NAME - $GF_RUN_NAME' -e ./start.sh"$'\n'"$gf_grid_command" | perl -e "$gf_substitute_options")"
+    local gf_silent_command="$(echo "./start.sh"$'\n'"$gf_grid_command" | perl -e "$gf_substitute_options")"
+    gf_debug GF_TASK_BASE gf_grid_mode gf_grid_command gf_xterm_command gf_silent_command
 
     # Run commands
     echo -n '
@@ -3762,6 +3773,7 @@ function gf_check_task_running_or_done {
 function gf_reset_task {
     MOTHER_TASK_NAME=
     TASK_NAME=
+    GF_SKIP_TASK=
     GF_TASK_BASE=
     GF_TASK_INIT=
     GF_TASK_DONE=
@@ -3891,6 +3903,10 @@ function gf_create_task {
                     gf_info_message="Task will be executed in LSF"
                 fi
             ;;
+            "-grid" )
+                GF_TASK_OPTIONS_LOCAL+="gf_set_task_option>2>*>-grid"$'\n'"grid"$'\n'
+                gf_info_message="Task will be executed in the grid"
+            ;;
             "-command" )
                 GF_TASK_CMD=$(gf_auto_tab_commands "$1"); shift
                 if [ $(echo "$GF_TASK_CMD" | wc -l) -gt 1 ]; then
@@ -3951,6 +3967,10 @@ function gf_create_task {
     # Previous created task name should be run before the next
     elif [ -n "$GF_PREV_TASK_NAME" ]; then
         gf_fatal "${GFH7}$GF_PREV_TASK_NAME${GFC0} has been created but not submitted."
+        
+    # OK
+    else
+        TASK_NAME+=$GF_TASK_NAME_INTERNAL_SUFFIX
     fi
 
     # Active task
@@ -3961,7 +3981,7 @@ function gf_create_task {
     [[ -n "$gf_info_message" ]] && gf_info "$gf_info_message"
 
     # Check if task disabled
-    if [ "$(echo "$GF_TASK_OPTIONS$GF_TASK_OPTIONS_LOCAL" | perl -e "$gf_get_task_option_perl" "$GF_TASK_BASE" '-enable')" == "0" ]; then
+    if [ "$(echo "$GF_TASK_OPTIONS$GF_TASK_OPTIONS_LOCAL" | perl -e "$gf_get_task_option_perl" "$GF_TASK_BASE$GF_TASK_NAME_INTERNAL_SUFFIX" '-enable')" == "0" ]; then
         GF_SKIP_TASK=disabled
     else
         GF_SKIP_TASK=
@@ -4305,6 +4325,7 @@ function gf_submit_task {
     fi
 
     # Reset task info
+    GF_PREV_SKIP_TASK="$GF_SKIP_TASK"
     gf_reset_task
 
     eval "$(gf_revert_function)"
@@ -4925,7 +4946,7 @@ function gf_set_flow_options {
             fi;;
 
             "-local" ) if [ -z "$GF_PRELOAD_MODE"  -o "$GF_OPTIONS_SOURCE" == "C" ]; then
-                gf_check_option "$gf_forbidden_source" '-local\|-sge\|-lsf' '' "$key"
+                gf_check_option "$gf_forbidden_source" '-local\|-sge\|-lsf\|-grid' '' "$key"
                 if [ $GF_CHECK_OPTION_LAST_STATUS == 1 ]; then
                     GF_TASK_OPTIONS+="gf_set_task_option>$GF_TASK_OPTIONS_PRIORITY>*>-grid"$'\n'""$'\n'
                     # GF_GRID_MODE_GLOBAL=
@@ -4934,7 +4955,7 @@ function gf_set_flow_options {
             fi;;
 
             "-sge" ) if [ -z "$GF_PRELOAD_MODE"  -o "$GF_OPTIONS_SOURCE" == "C" ]; then
-                gf_check_option "$gf_forbidden_source" '-local\|-sge\|-lsf' '' "$key"
+                gf_check_option "$gf_forbidden_source" '-local\|-sge\|-lsf\|-grid' '' "$key"
                 if [ $GF_CHECK_OPTION_LAST_STATUS == 1 ]; then
                     if [ -z "$(which qsub 2> /dev/null)" ]; then
                         gf_fatal "SGE mode cannot be activated. No path to ${GFH7}qsub${GFC0} command."
@@ -4947,7 +4968,7 @@ function gf_set_flow_options {
             fi;;
 
             "-lsf" ) if [ -z "$GF_PRELOAD_MODE"  -o "$GF_OPTIONS_SOURCE" == "C" ]; then
-                gf_check_option "$gf_forbidden_source" '-local\|-sge\|-lsf' '' "$key"
+                gf_check_option "$gf_forbidden_source" '-local\|-sge\|-lsf\|-grid' '' "$key"
                 if [ $GF_CHECK_OPTION_LAST_STATUS == 1 ]; then
                     if [ -z "$(which bsub 2> /dev/null)" ]; then
                         gf_fatal "LSF mode cannot be activated. No path to ${GFH7}bsub${GFC0} command."
@@ -4956,6 +4977,14 @@ function gf_set_flow_options {
                         # GF_GRID_MODE_GLOBAL=LSF
                         [[ -z "$GF_HELP_MODE" ]] && gf_info_message "LSF mode activated."
                     fi
+                fi
+            fi;;
+
+            "-grid" ) if [ -z "$GF_PRELOAD_MODE"  -o "$GF_OPTIONS_SOURCE" == "C" ]; then
+                gf_check_option "$gf_forbidden_source" '-local\|-sge\|-lsf\|-grid' '' "$key"
+                if [ $GF_CHECK_OPTION_LAST_STATUS == 1 ]; then
+                    GF_TASK_OPTIONS+="gf_set_task_option>$GF_TASK_OPTIONS_PRIORITY>*>-grid"$'\n'"grid"$'\n'
+                    [[ -z "$GF_HELP_MODE" ]] && gf_info_message "Grid mode activated."
                 fi
             fi;;
 
@@ -4985,6 +5014,22 @@ function gf_set_flow_options {
                         GF_TASK_OPTIONS+="gf_set_task_option>$GF_TASK_OPTIONS_PRIORITY>*>-lsf_options"$'\n'"$1"$'\n'
                         # GF_LSF_OPTIONS="$1"
                         [[ -z "$GF_HELP_MODE" ]] && gf_info_message "LSF options ${GFC7}$1${GFC0} used."
+                    fi
+                fi
+            fi; shift;;
+
+            "-grid_command" ) if [ -z "$GF_PRELOAD_MODE"  -o "$GF_OPTIONS_SOURCE" == "C" ]; then
+                gf_check_option "$gf_forbidden_source" '-lsf_options' '' "$key"
+                if [ $GF_CHECK_OPTION_LAST_STATUS == 1 ]; then
+                    if [ -z "$(echo "$1" | grep -e '$GF_TASK_CPU\b' -e '${GF_TASK_CPU}' || :)" ]; then
+                        gf_fatal "Option ${GFC7}$key${GFC0} value ${GFC7}$1${GFC0} should contain ${GFH7}\$GF_TASK_CPU${GFC0} variable. Use single quotes to avoid substitution."
+                    elif [ -z "$(echo "$1" | grep -e '$GF_TASK_MEM\b' -e '${GF_TASK_MEM}' || :)" ]; then
+                        gf_fatal "Option ${GFC7}$key${GFC0} value ${GFC7}$1${GFC0} should contain ${GFH7}\$GF_TASK_MEM${GFC0} variable. Use single quotes to avoid substitution."
+                    elif [ -z "$(echo "$1" | grep -e '$GF_TASK_COMMAND\b' -e '${GF_TASK_COMMAND}' || :)" ]; then
+                        gf_fatal "Option ${GFC7}$key${GFC0} value ${GFC7}$1${GFC0} should contain ${GFH7}\$GF_TASK_COMMAND${GFC0} variable. Use single quotes to avoid substitution."
+                    else
+                        GF_TASK_OPTIONS+="gf_set_task_option>$GF_TASK_OPTIONS_PRIORITY>*>-grid_command"$'\n'"$1"$'\n'
+                        [[ -z "$GF_HELP_MODE" ]] && gf_info_message "Grid options ${GFC7}$1${GFC0} used."
                     fi
                 fi
             fi; shift;;
@@ -5089,13 +5134,14 @@ gf_get_task_option_perl='
 
 # Option parse script
 gf_help_command '
-    {gf_set_task_options} [[-tasks] <pattern>] [-enable|-disable] [-local|-sge|-lsf] [-cpu <cpu>] [-mem <mem>] [-sge_options <grid_options>|-lsf_options <grid_options>] [-restart|-skip|-incr] [-group <group> [-parallel <count>]
+    {gf_set_task_options} [[-tasks] <pattern>] [-enable|-disable] [-local|-sge|-lsf|-grid] [-cpu <cpu>] [-mem <mem>] [-sge_options <grid_options>|-lsf_options <grid_options>|-grid_command <grid_command>] [-restart|-skip|-incr] [-group <group> [-parallel <count>]
     Specify default tasks options inside script.
     Options applied to the tasks by {pattern}.
         If no pattern specified, options applied to {all} tasks.
     CPU and MEM usage can be set with {-cpu} and {-mem} options.
-    Task-specific grid engine can be selected with one of {-local}, {-sge} or {-lsf} options.
+    Task-specific grid engine can be selected with one of {-local}, {-sge}, {-lsf} or {-grid} options.
     Task-specific grid engine options can be set with {-sge_options} or {-lsf_options} arguments.
+    For custom grid engines use {-grid_command} together with {-grid} arguments.
     Option {-restart} can be used to automatically restart the task if it is running or done.
     Option {-skip} can be used to automatically skip the task if it is running or done.
     Option {-incr} can be used to automatically start the task in incremental mode.
@@ -5194,11 +5240,28 @@ function gf_set_task_options {
                 gf_options+="gf_record>-grid>lsf"$'\n'
                 gf_status+="$gf_key "
             ;;
+            -grid )
+                gf_options+="gf_record>-grid>grid"$'\n'
+                gf_status+="$gf_key "
+            ;;
             -sge_options|-lsf_options )
                 if [ -z "$(echo "$1" | grep -e '$GF_TASK_CPU\b' -e '${GF_TASK_CPU}' || :)" ]; then
                     gf_fatal "Option ${GFC7}$gf_key${GFC0} value ${GFC7}$1${GFC0} should contain ${GFH7}\$GF_TASK_CPU${GFC0} variable. Use single quotes to avoid substitution."
                 elif [ -z "$(echo "$1" | grep -e '$GF_TASK_MEM\b' -e '${GF_TASK_MEM}' || :)" ]; then
                     gf_fatal "Option ${GFC7}$gf_key${GFC0} value ${GFC7}$1${GFC0} should contain ${GFH7}\$GF_TASK_MEM${GFC0} variable. Use single quotes to avoid substitution."
+                else
+                    gf_options+="gf_record>$gf_key>$1"$'\n'
+                    gf_status+="$gf_key $1 "
+                fi
+                shift
+            ;;
+            -grid_command )
+                if [ -z "$(echo "$1" | grep -e '$GF_TASK_CPU\b' -e '${GF_TASK_CPU}' || :)" ]; then
+                    gf_fatal "Option ${GFC7}$gf_key${GFC0} value ${GFC7}$1${GFC0} should contain ${GFH7}\$GF_TASK_CPU${GFC0} variable. Use single quotes to avoid substitution."
+                elif [ -z "$(echo "$1" | grep -e '$GF_TASK_MEM\b' -e '${GF_TASK_MEM}' || :)" ]; then
+                    gf_fatal "Option ${GFC7}$gf_key${GFC0} value ${GFC7}$1${GFC0} should contain ${GFH7}\$GF_TASK_MEM${GFC0} variable. Use single quotes to avoid substitution."
+                elif [ -z "$(echo "$1" | grep -e '$GF_TASK_COMMAND\b' -e '${GF_TASK_COMMAND}' || :)" ]; then
+                    gf_fatal "Option ${GFC7}$gf_key${GFC0} value ${GFC7}$1${GFC0} should contain ${GFH7}\$GF_TASK_COMMAND${GFC0} variable. Use single quotes to avoid substitution."
                 else
                     gf_options+="gf_record>$gf_key>$1"$'\n'
                     gf_status+="$gf_key $1 "
@@ -6538,7 +6601,8 @@ gf_help_command '
     If {-variable} option used, the result will be stored in variable with specific {name}.
 '
 function gf_get_task_dir {
-    eval "$(gf_update_function gf_want_task gf_want_tasks gf_wait_task)"
+    # [[ -n "$GF_SKIP_TASK" ]] && return
+    eval "$(gf_update_function gf_get_task_dir)"
 
     local key gf_next_key
 
@@ -6571,29 +6635,38 @@ function gf_get_task_dir {
                 local gf_perl_script="$gf_parse_task_statuses_script"'
                     my $result = "";
                     foreach my $task (@tasks) {
-                        $result = $task if ($tasks{$task}{base} eq "'"$key"'");
+                        $result = $task if (($tasks{$task}{base} eq "'"$key"'") && ($tasks{$task}{status} =~ /^(new)$/));
                     }
                     print "$result\n";
                 '
-                local gf_found_task="$(echo "$GF_TASK_STATUSES" | perl -e "$gf_perl_script")"
+                local gf_task="$(echo "$GF_TASK_STATUSES" | perl -e "$gf_perl_script")"
                 # gf_debug gf_perl_script
-                gf_debug GF_TASK_STATUSES gf_found_task
+                gf_debug GF_TASK_STATUSES gf_task
+
+                # Task can be in the same run but different session
+                if [ -z "$gf_task" ]; then
+                    gf_choose_task_candidate gf_task gf_task_status "$key" "$GF_I_WORK_DIR/$GF_RUN_NAME/tasks/run.info" "task"
+                fi
 
                 # Task not found
-                if [ -z "$gf_found_task" ]; then
+                if [ -z "$gf_task" ]; then
                     gf_fatal "No task ${GFH7}$key${GFC0} found in current session."
 
-                # Wait for tasks
-                else
-                    gf_result="$gf_result$GF_I_RUN_DIR/tasks/$gf_found_task"$'\n'
+                # Task in current session
+                elif [ "$gf_task" != "-" ]; then
+                    gf_result="$GF_I_RUN_DIR/tasks/$gf_task"$'\n'
                 fi
+
             ;;
         esac
     done
 
     # Update result variable when required
     if [ -n "$gf_var" ]; then
-        gf_info "Variable ${GFC7}$gf_var${GFC0} set to ${GFC4}$(echo $gf_result)${GFC0}."
+        if [ -n "$gf_result" ]; then
+            GF_CHOSEN_VARS+="$gf_var="$'\n'
+            gf_info "Variable ${GFC7}$gf_var${GFC0} set to ${GFC4}$(echo $gf_result)${GFC0}."
+        fi
         eval "$gf_var='$(echo $gf_result)'"
     else
         echo $gf_result
@@ -6779,19 +6852,28 @@ function gf_wait_tasks {
                                 gf_choose_task_candidate gf_task gf_task_status "$gf_task" "$gf_wait_run_dir_current/tasks/run.info" "wait task"
                             fi
 
-                            # Not wait skipped or disabled task
-                            if [ "$gf_task_status" == "disabled" -o "$gf_task_status" == "skipped" ]; then
-                                gf_warning "Will not wait for $gf_task_status ${GFC4}$gf_task${GFC0} task."
+                            # # Not wait skipped or disabled task
+                            # if [ "$gf_task_status" == "disabled" -o "$gf_task_status" == "skipped" ]; then
+                            #     gf_warning "Will not wait for $gf_task_status ${GFC4}$gf_task${GFC0} task."
+                            #
+                            # # Wait for the task
+                            # else
+                            #     GF_WAIT_TASKS+="$gf_action=$gf_task=\$GF_I_RUN_DIR/tasks/run.info"$'\n'
+                            #     gf_tasks+="$gf_task "
+                            #     if [ "$gf_task_status" == "chosen" ]; then
+                            #         gf_info "Task will wait for ${GFC4}$gf_task${GFC0} task$gf_suffix in other session."
+                            #     else
+                            #         gf_info "Task will wait for ${GFC4}$gf_task${GFC0} task$gf_suffix."
+                            #     fi
+                            # fi
 
                             # Wait for the task
+                            GF_WAIT_TASKS+="$gf_action=$gf_task=\$GF_I_RUN_DIR/tasks/run.info"$'\n'
+                            gf_tasks+="$gf_task "
+                            if [ "$gf_task_status" == "chosen" ]; then
+                                gf_info "Task will wait for ${GFC4}$gf_task${GFC0} task$gf_suffix in other session."
                             else
-                                GF_WAIT_TASKS+="$gf_action=$gf_task=\$GF_I_RUN_DIR/tasks/run.info"$'\n'
-                                gf_tasks+="$gf_task "
-                                if [ "$gf_task_status" == "chosen" ]; then
-                                    gf_info "Task will wait for ${GFC4}$gf_task${GFC0} task$gf_suffix in other session."
-                                else
-                                    gf_info "Task will wait for ${GFC4}$gf_task${GFC0} task$gf_suffix."
-                                fi
+                                gf_info "Task will wait for ${GFC4}$gf_task${GFC0} task$gf_suffix."
                             fi
                         done
                     fi
@@ -9914,9 +9996,9 @@ if [ -n "$GF_HELP_MODE" ]; then
 
     # Interactive help mode
     if [ -e "$GF_SCRIPT" ]; then
-        gf_set_window_title "Interactive help ($GF_SCRIPT_NAME) - Generic Flow v5.1 (May 2023)" "GF help ($GF_SCRIPT_NAME)"
+        gf_set_window_title "Interactive help ($GF_SCRIPT_NAME) - Generic Flow v5.5.0 (December 2024)" "GF help ($GF_SCRIPT_NAME)"
     else
-        gf_set_window_title "Interactive help - Generic Flow v5.1 (May 2023)" "GF help"
+        gf_set_window_title "Interactive help - Generic Flow v5.5.0 (December 2024)" "GF help"
     fi
     gf_show_cursor
     echo
@@ -9936,7 +10018,7 @@ elif [ -n "$GF_INTERACTIVE_MODE" -o -z "$GF_SCRIPT" ]; then
     trap -- SIGHUP
     trap 'gf_restore_title' EXIT
     gf_show_cursor
-    gf_set_window_title "Generic Flow Utilities v5.1 (May 2023)" "GF utilities"
+    gf_set_window_title "Generic Flow Utilities v5.5.0 (December 2024)" "GF utilities"
 
     # Environment initialization
     export PATH="$GF_UTILS:$(gf_full_path "$GF_BIN/.."):${PATH}"

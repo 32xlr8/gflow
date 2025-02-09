@@ -55,9 +55,6 @@ if [ "$PHYSICAL_MODE" == "Y" ]; then
         ../work_*/*/out/*.fp.def
         ../work_*/*/out/*.fp.def.gz
     '
-
-    # Create floorplan files copy in the run directory
-    [[ -n "$GENUS_FLOORPLAN_FILE" ]] && gf_save_files -copy $(dirname $GENUS_FLOORPLAN_FILE)/$(basename $GENUS_FLOORPLAN_FILE .gz)*
 fi
 
 # TCL commands
@@ -65,7 +62,7 @@ gf_add_tool_commands '
 
     # Transfer flow variables to the tool
     set PHYSICAL_MODE {`$PHYSICAL_MODE`}
-    set LEF_FILES {`$CADENCE_TLEF_FILES` `$LEF_FILES`}
+    set LEF_FILES {`$CADENCE_TLEF_FILES` `$LEF_FILES` `$PARTITIONS_LEF_FILES -optional`}
     set DESIGN_NAME {`$DESIGN_NAME`}
     set ELAB_DESIGN_NAME {`$ELAB_DESIGN_NAME`}
     set POWER_NETS {`$POWER_NETS_CORE` `$POWER_NETS_OTHER -optional`}
@@ -286,6 +283,9 @@ gf_add_tool_commands '
     # Close interactive session
     exit
 '
+
+# Task marks
+gf_add_status_marks -1 'Worst cost_group:'
 
 # Run task
 gf_add_status_marks Error

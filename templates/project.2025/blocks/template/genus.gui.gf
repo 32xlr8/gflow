@@ -41,7 +41,8 @@ gf_set_flow_options -continue -incr -auto_close -hide
 ########################################
 
 # Genus design database
-gf_choose_file_dir_task -variable GENUS_DATABASE -keep -prompt "Choose database to load:" -files '
+gf_choose_file_dir_task -variable GENUS_DATABASE -prompt "Choose database to load:" -files '
+    '"$GENUS_DATABASE"'
     ../work_*/*/out/*.genus.db
 '
 gf_spacer

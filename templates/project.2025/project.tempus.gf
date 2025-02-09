@@ -1,8 +1,8 @@
 ################################################################################
-# Generic Flow v5.1 (May 2023)
+# Generic Flow v5.5.0 (December 2024)
 ################################################################################
 #
-# Copyright 2011-2023 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
+# Copyright 2011-2024 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@
 # limitations under the License.
 #
 ################################################################################
-# Filename: templates/project_template.2023/project.tempus.gf
+# Filename: templates/project.2025/project.tempus.gf
 # Purpose:  Project-specific Tempus configuration and flow steps
 ################################################################################
 
@@ -35,6 +35,7 @@ gf_create_step -name init_tempus_environment '
     # export OA_UNSUPPORTED_PLAT=linux_rhel60
 
     # Add path the directory with tool binaries
+    export CDS_STYLUS_SOURCE_VERBOSE=1
     export PATH="${PATH}:<PLACEHOLDER>/PATH_TO_SSV/bin"
 
     # # Path to the libraries in case they are missing in Linux

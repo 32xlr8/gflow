@@ -1,8 +1,8 @@
 ################################################################################
-# Generic Flow v5.1 (May 2023)
+# Generic Flow v5.5.0 (December 2024)
 ################################################################################
 #
-# Copyright 2011-2023 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
+# Copyright 2011-2024 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@
 # limitations under the License.
 #
 ################################################################################
-# Filename: templates/project_template.2023/project.genus.gf
+# Filename: templates/project.2025/project.genus.gf
 # Purpose:  Project-specific Genus configuration and flow steps
 ################################################################################
 
@@ -35,11 +35,13 @@ gf_create_step -name init_genus_environment '
     # export OA_UNSUPPORTED_PLAT=linux_rhel60
 
     # Add path the directory with tool binaries
-    export PATH="${PATH}:<PLACEHOLDER>/PATH_TO_GENUS/bin"
+    <PLACEHOLDER>
+    export PATH="${PATH}:/PATH_TO_GENUS/bin"
 
     # # Path to the libraries in case they are missing in Linux
-    # export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:<PLACEHOLDER>/PATH_TO_GENUS/tools/lib64"
-    # export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:<PLACEHOLDER>/PATH_TO_GENUS/tools/lib"
+    # <PLACEHOLDER>
+    # export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/PATH_TO_GENUS/tools/lib64"
+    # export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/PATH_TO_GENUS/tools/lib"
 '
 
 # Project-specific tool environment

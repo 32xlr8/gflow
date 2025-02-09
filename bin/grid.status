@@ -1,0 +1,133 @@
+#!/bin/bash
+
+################################################################################
+# Generic Flow v5.5.0 (December 2024)
+################################################################################
+#
+# Copyright 2011-2024 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+################################################################################
+# Filename: bin/grid.status
+# Purpose:  Generic Flow grid status tool
+################################################################################
+
+# Usage: $0 <HOST> </path/to/config.grid> </path/to/queue.grid>
+
+# File config.grid should contain information about available resources
+# It should contain at least one line with following syntax, 
+# definind available CPU and RAM resurces to use on HOSTNAME:
+#    * HOST HOSTNAME CPU RAM LOAD
+#    * 01 ssh-host01 32 512 +0.000
+
+# File queue.grid used to store infromation on running tasks
+# Several files can be used
+
+# Host to report
+HOST=$1; shift;
+LOG="$1"; shift
+
+cat "$LOG" "$@" | perl -e '
+
+    # Analyze log file
+    my %hosts; my %hostnames; my %tasks;
+    while (<STDIN>) {
+        next if (/^\s*$/);
+        next if (/^\s*\#/);
+
+        # Host resources definition
+        if (/^\s*\*\s+(\S+)\s+(\S+)\s+(\d+)\s+(\d+)\s+([\+\-]?\d+\.?\d*)\s*$/) {
+            my $host = $1;
+            my $hostname = $2;
+            my $cpu = $3;
+            my $ram = $4;
+            my $load = $5;
+            $hosts{$hostname}{host} = $host;
+            $hosts{$hostname}{cpu_total} = $cpu;
+            $hosts{$hostname}{ram_total} = $ram;
+            $hosts{$hostname}{load} = $load;
+            $hostnames{$hostname} = $hostname;
+            $hostnames{$host} = $hostname;
+
+        # Running or done task    
+        } elsif (/^\s*([\+\-])\s+(\d\d\.\d\d\.\d\d)\s+(\d\d\:\d\d\:\d\d)\s+(\S+)\@(\S+)\s+(\d+)\s+(\d+)\s+(\S+)\:(\d+)/) {
+            my $operation = $1;
+            my $date = $2;
+            my $time = $3;
+            my $user = $4;
+            my $host = $5;
+            my $cpu = $6;
+            my $ram = $7;
+            my $owner_host = $8;
+            my $owner_pid = $9;
+
+            my $hostname = $hostnames{$host};
+            my $id = "$owner_host $owner_pid";
+            
+            $tasks{$hostname}{$id}{date} = $date;
+            $tasks{$hostname}{$id}{time} = $time;
+            $tasks{$hostname}{$id}{user} = $user;
+            $tasks{$hostname}{$id}{host} = $host;
+            $tasks{$hostname}{$id}{cpu} += "$operation$cpu";
+            $tasks{$hostname}{$id}{ram} += "$operation$ram";
+            $tasks{$hostname}{$id}{owner_host} = $owner_host;
+            $tasks{$hostname}{$id}{owner_pid} = $owner_pid;
+
+        # Unknown syntax
+        } else {
+            print STDERR "\e[31;41m \e[0m $_";
+        }
+    }
+
+    # Report host availability
+    my $is_ok = 0;
+    my $hosts = "'"$HOST"'";
+    foreach my $host (split /\s+/, $hosts) {
+        my $hostname = $hostnames{$host};
+        
+        if ($hostname) {
+            my $status = "";
+            my $cpu = 0;
+            my $ram = 0;
+
+            # Check tasks
+            foreach my $id (keys %{$tasks{$hostname}}) {
+                next if ($tasks{$hostname}{$id}{cpu} == 0);
+
+                $status .= "  \e[34;44m \e[0m Task $tasks{$hostname}{$id}{user}\@$tasks{$hostname}{$id}{owner_host}: PID $tasks{$hostname}{$id}{owner_pid}, $tasks{$hostname}{$id}{cpu} CPU, $tasks{$hostname}{$id}{ram} RAM, started on $tasks{$hostname}{$id}{date} at $tasks{$hostname}{$id}{time}\n";
+
+                # CPU usage
+                $cpu += $tasks{$hostname}{$id}{cpu} if ($tasks{$hostname}{$id}{cpu} > 0);
+                $status .= "    \e[31;41m \e[0m CPU usage is ".$tasks{$hostname}{$id}{cpu}." for $id\n" if ($tasks{$hostname}{$id}{cpu} < 0);
+                $status .= "    \e[33;43m \e[0m CPU usage is ".$tasks{$hostname}{$id}{cpu}." for $id\n" if  ($tasks{$hostname}{$id}{cpu} > 0.40 * $hosts{$hostname}{cpu_total});
+
+                # RAM usage
+                $ram += $tasks{$hostname}{$id}{ram} if ($tasks{$hostname}{$id}{ram} > 0);
+                $status .= "    \e[31;41m \e[0m RAM usage is ".$tasks{$hostname}{$id}{ram}." for $id\n" if ($tasks{$hostname}{$id}{ram} < 0);
+                $status .= "    \e[33;43m \e[0m RAM usage is ".$tasks{$hostname}{$id}{ram}." for $id\n" if  ($tasks{$hostname}{$id}{ram} > 0.25 * $hosts{$hostname}{ram_total});
+
+                $is_ok = 1;
+            }
+
+            my $score = $hosts{$hostname}{load};
+            $score += 0.50 * $cpu / $hosts{$hostname}{cpu_total} if ($hosts{$hostname}{cpu_total});
+            $score += 0.50 * $ram / $hosts{$hostname}{ram_total} if ($hosts{$hostname}{ram_total});
+
+            # print STDERR "\e[34;44m \e[0m Load score in grid is ".sprintf("%0.3f", $score)."\n\n";
+            print STDERR "\e[34;44m \e[0m Utilization in grid is ".sprintf("%0.0f%%", $score*100)."\n\n";
+            
+            print STDERR "$status\n" if ($status);
+        }
+    }
+'

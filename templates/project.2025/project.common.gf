@@ -1,8 +1,8 @@
 ################################################################################
-# Generic Flow v5.1 (May 2023)
+# Generic Flow v5.5.0 (December 2024)
 ################################################################################
 #
-# Copyright 2011-2023 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
+# Copyright 2011-2024 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@
 # limitations under the License.
 #
 ################################################################################
-# Filename: templates/project_template.2023/project.common.gf
+# Filename: templates/project.2025/project.common.gf
 # Purpose:  Project-specific configuration and flow steps
 ################################################################################
 
@@ -64,15 +64,17 @@ export SHELL=/bin/bash
 gf_create_step -name init_shell_environment '
 
     # Remove tool paths from path environment
-    export PATH="$(echo ":$PATH" | sed -e "s|:<PLACEHOLDER>/PATH_TO/SOFT/ROOT/[^:]\+||g; s/^://;")"
+    <PLACEHOLDER>
+    export PATH="$(echo ":$PATH" | sed -e "s|:/PATH_TO/SOFT/ROOT/[^:]\+||g; s/^://;")"
 
     # Bypass OpenAccess issues
     unset OA_HOME
 
     # License options
+    <PLACEHOLDER>
     # export CDS_LIC_ONLY=1
-    # export CDS_LIC_FILE=10000@<PLACEHOLDER>lic_server1:10000@<PLACEHOLDER>lic_server2
-    export LM_LICENSE_FILE=10000@<PLACEHOLDER>lic_server1:10000@<PLACEHOLDER>lic_server2
+    # export CDS_LIC_FILE=/path/to/license.dat:10000@lic_server1:10000@lic_server2
+    export LM_LICENSE_FILE=10000@lic_server1:10000>lic_server2
 
     # Startup options
     export CDS_AUTO_32BIT=NONE
@@ -95,9 +97,6 @@ gf_create_step -name init_shell_environment '
 
     # Option 4: Default temporary directory (can slow down the runs)
     export TMPDIR="/tmp"
-
-    # # Clear cache to prevent tool crashes
-    # rm -Rf ~/.cache
 
     # Remove command line stack limit
     ulimit -s unlimited

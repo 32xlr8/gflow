@@ -1,8 +1,8 @@
 ################################################################################
-# Generic Flow v5.1 (May 2023)
+# Generic Flow v5.5.0 (December 2024)
 ################################################################################
 #
-# Copyright 2011-2023 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
+# Copyright 2011-2024 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -31,8 +31,8 @@ variable header \
 # Generic Flow - Trace timing utility                                       #
 #############################################################################
 # Command:     trace_timing                                                 #
-# Version:     v5.1 (May 2023)                                              #
-# Developer:   Gennady Kirpichev <32xlr8\@gmail.com>                        #
+# Version:     v5.5.0 (December 2024)                                       #
+# Developer:   Gennady Kirpichev <32xlr8\@gmail.com>                         #
 #############################################################################"
 
 # Parameters to show
@@ -42,7 +42,7 @@ variable filter_show_parameters {pin_clock pin_data length_worst length_total in
 # Default option values
 variable default_analysis_type -late
 variable default_max_depth 3
-variable default_trace_limit 5
+variable default_trace_limit 1
 variable default_print_limit 1
 
 # Special variables

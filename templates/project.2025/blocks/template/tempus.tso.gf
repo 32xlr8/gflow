@@ -42,16 +42,16 @@ gf_use_tempus -eco
 
 # Design data directory
 gf_choose_file_dir_task -variable DATA_OUT_DIR -keep -prompt "Choose design data directory:" -dirs '
-    ../work_*/*/out/DataOutPhysical*
+    ../work_*/*/out/InnovusOut*
 ' -want -active -task_to_file '$RUN/out/$TASK' -tasks '
-    ../work_*/*/tasks/DataOutPhysical*
+    ../work_*/*/tasks/InnovusOut*
 '
 
 # SPEF directory
 gf_choose_file_dir_task -variable SPEF_OUT_DIR -keep -prompt "Choose SPEF directory:" -dirs '
-    ../work_*/*/out/Extraction*
+    ../work_*/*/out/QuantusOut*
 ' -want -active -task_to_file '$RUN/out/$TASK' -tasks '
-    ../work_*/*/tasks/Extraction*
+    ../work_*/*/tasks/QuantusOut*
 '
 
 # Choose configuration file
@@ -68,7 +68,7 @@ gf_choose -keep -variable ECO_SCENARIO -message "Which ECO scenario to run?" -va
 gf_add_tool_commands '
 
     # Current design variables
-    set LEF_FILES {`$CADENCE_TLEF_FILES` `$LEF_FILES`}
+    set LEF_FILES {`$CADENCE_TLEF_FILES` `$LEF_FILES` `$PARTITIONS_LEF_FILES -optional`}
 
     set DESIGN_NAME {`$DESIGN_NAME`}
     set POWER_NETS {`$POWER_NETS_CORE` `$POWER_NETS_OTHER -optional`}
@@ -179,8 +179,11 @@ gf_add_tool_commands -comment '#' -file ./scripts/$TASK_NAME.procs.tcl '
     `@procs_tempus_read_data`
 '
 
+# Statuses
+gf_add_status_marks '^\w+\s+file:'
+
 # Failed if some files not found
-gf_add_failed_marks '^\*\*ERROR:.\+file.\+not'
+gf_add_failed_marks '^\*\*ERROR:.+file\s+not'
 
 # Run task
 gf_submit_task

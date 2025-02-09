@@ -36,10 +36,13 @@ gf_info "Loading block-specific Tempus steps ..."
 # # Override resources for batch tasks
 # gf_set_task_options STA -cpu 8 -mem 15
 # gf_set_task_options TSO -cpu 8 -mem 15
+# gf_set_task_options STA_* -cpu 4 -mem 15
+# gf_set_task_options TempusOut_* -cpu 4 -mem 15
 
 # Limit simultaneous tasks count
-gf_set_task_options 'Report*' -group Reports -parallel 1
-# gf_set_task_options STA TSO -group Heavy -parallel 1
+gf_set_task_options STA TSO TempusOut -group Heavy -parallel 1
+gf_set_task_options STA_* -group STA -parallel 8
+gf_set_task_options TempusOut_* -group TempusOut -parallel 8
 
 # # Disable not needed tasks
 # gf_set_task_options -disable STA
@@ -74,13 +77,12 @@ ECO_SCENARIOS='
 # Flow steps
 ################################################################################
 
-# MMMC and OCV settings
-gf_create_step -name tempus_gconfig_design_settings '
-    <PLACEHOLDER> Review signoff settings for timing analysis
-    
+# Design variables
+gf_create_step -name tempus_gconfig_design_variables '
+
     # Choose analysis views patterns:
     # - {mode process voltage temperature rc_corner timing_check}
-    set MMMC_VIEWS {
+    set MMMC_VIEWS [regsub -all -line {^\s*\#.*\n} {
         {func tt 1p000v 85 ct s}
         {func tt 1p000v 85 ct h}
 
@@ -108,7 +110,18 @@ gf_create_step -name tempus_gconfig_design_settings '
         
         {func ff 1p100v 0 rcb h} 
         {func ff 1p100v 0 rcw h}
-    }
+
+        {func tt 1p000v 85 rcw p}
+        {func ff 1p100v 125 cw p}
+    } {}]
+'
+
+# MMMC and OCV settings
+gf_create_step -name tempus_gconfig_design_settings '
+    <PLACEHOLDER> Review signoff settings for timing analysis
+
+    # Design variables
+    `@tempus_gconfig_design_variables`
     
     # Choose standard cell libraries:
     # - nldm_libraries - NLDM (Liberty) + CDB (Celtic) files used for fast runtime
@@ -127,10 +140,8 @@ gf_create_step -name tempus_gconfig_design_settings '
     # - no_derates - zero derates (optimistic for prototyping mode)
     # - user_derates - same as flat_derates, but user-specified values used (customize below)
     # - vt_derates - used with ESCM/CCS if additional Voltage/Temparature derates required (see standard cell documentation, customize IR-drop below)
-    # gconfig::enable_switches flat_derates
-    # gconfig::enable_switches no_derates
-    gconfig::enable_switches vt_derates
-    # gconfig::enable_switches user_derates
+    # - default_uncertainty - set clock uncertainty ignoring one set in SDC files
+    gconfig::enable_switches vt_derates default_uncertainty
 
     # Set IR-drop value for voltage and temperature OCV derates (when vt_derate switch enabled)
     # It is recommended to set 40% of Static IR for setup and 80% for hold
@@ -152,11 +163,7 @@ gf_create_step -name tempus_gconfig_design_settings '
     #     }
     # }
     
-    # Toggle default uncertainty mode (reset all clocks uncertainty to default values):
-    # - default_uncertainty - use when SDC files do not contain set_clock_uncertainty commands
-    # gconfig::enable_switches default_uncertainty
-    #
-    # # Set PLL jitter value in ps
+    # # Set PLL jitter value in ps in default uncertainty mode
     # gconfig::add_section {
     #     -when default_uncertainty {
     #         $jitter <PLACEHOLDER>25
@@ -170,6 +177,9 @@ gf_create_step -name tempus_gconfig_design_settings '
     #         -views {* ff 1p100v * * *} {$process_uncertainty 0 $setup_uncertainty <PLACEHOLDER>100 $hold_uncertainty <PLACEHOLDER>50}
     #     }
     # }
+    
+    # Run in assembled mode
+    gconfig::enable_switches assembled
 '
 
 # Tool-specific procedures
@@ -187,7 +197,9 @@ gf_create_step -name tempus_pre_read_libs '
     # # SOCV settings before loading libraries
     # set_db timing_library_hold_sigma_multiplier 3.0
     # # set_db timing_library_hold_sigma_multiplier 0.0
+    # set_db timing_library_setup_constraint_corner_sigma_multiplier 0.0
     # set_db timing_library_hold_constraint_corner_sigma_multiplier 0.0
+    # set_db timing_library_scale_aocv_to_socv_to_n_sigma 1
     # # set_db timing_library_gen_hold_constraint_table_using_sigma_values sigma
 
     # # Spatial OCV settings before loading libraries
@@ -212,13 +224,31 @@ gf_create_step -name tempus_post_init_design '
         # Additional timing analysis
         set_db timing_analysis_clock_gating true
         set_db timing_analysis_async_checks async
-        set_db timing_use_latch_time_borrow false
+        # set_db timing_extract_model_non_borrowing_latch_path_as_setup true
+        # set_db timing_extract_model_enable_worst_slew_based_model true
+        # set_db timing_extract_model_accurate_auto_validation true
+        # set_db timing_path_based_enable_required_time_pessimism_removal true
+        # set_db timing_path_based_enable_new_latch_thru_mode true
+        # set_db timing_path_based_enable_new_max_borrow_mode true
+        # set_db timing_use_latch_time_borrow false
+        # set_db timing_use_latch_early_launch_edge false
+        # set_db timing_library_enable_cell_type_marking 1
+        # eval_legacy {set timing_library_support_opposite_polarity_current_timing_ccs_wf 1}
+        # set_db timing_apply_default_primary_input_assertion false
+        # set_db timing_disable_output_as_clock_port true
+        # set_db timing_disable_constant_propagation_for_sequential_cells true
+        # set_db timing_disable_drv_report_on_constant_nets true
+        set_db timing_report_unconstrained_paths true
 
         # General delay calculation settings
         set_db delaycal_equivalent_waveform_model propagation
         # set_db delaycal_equivalent_waveform_type simulation
         # set_db delaycal_enable_quiet_receivers_for_hold true
-        # set_db delaycal_advanced_pin_cap_mode true
+        # set_db delaycal_waveform_compression_mode clock_detailed
+        # set_db delaycal_rc_reduction_adaptive_frequency_mode 3
+        # set_db delaycal_eng_useViVoVdd true
+        # set_db delaycal_advanced_pin_cap_mode 2
+        # set_db delaycal_advanced_receiver_capacitance_mode true
         # set_db delaycal_accurate_receiver_out_load true
 
         # # AOCV libraries (see TSMCHOME/digital/Front_End/SBOCV/documents/GL_SBOCV_*.pdf)
@@ -233,21 +263,26 @@ gf_create_step -name tempus_post_init_design '
 
         # # LVF/SOCV libraries (see TSMCHOME/digital/Front_End/LVF/documents/GL_LVF_*.pdf)
         <PLACEHOLDER> Choice 2 of 3
-        # set_db timing_report_fields {timing_point cell arc fanout load slew slew_mean slew_sigma pin_location delay_mean delay_sigma delay arrival_mean arrival_sigma arrival user_derate total_derate power_domain voltage phys_info}
+        # # set_db timing_report_fields {timing_point cell arc fanout load slew slew_mean slew_sigma pin_location delay_mean delay_sigma delay arrival_mean arrival_sigma arrival user_derate total_derate power_domain voltage phys_info}
+        # set_db timing_report_fields {cell arc timing_point delay fanout load slew incr_delay arrival total_derate pin_location}
         # # set_db ui_precision_timing 6
+        # # set_db timing_report_precision 6
         # set_limited_access_feature socv 1
         # set_db timing_analysis_socv true
+        # set_db timing_library_update_libset_ssocv true
+        # set_db timing_library_infer_socv_from_aocv true
+        # set_db delaycal_accuracy_level 3
         # set_db delaycal_socv_accuracy_mode ultra
-        # set_db delaycal_socv_machine_learning_level 1
+        # set_db delaycal_socv_machine_learning_level 11
         # set_db timing_nsigma_multiplier 3.0
         # # set_db timing_disable_retime_clock_path_slew_propagation false
         # set_db timing_socv_statistical_min_max_mode mean_and_three_sigma_bounded
         # set_db timing_report_enable_verbose_ssta_mode true
-        # set_socv_reporting_nsigma_multiplier -setup 3 -hold 3
+        # set_socv_reporting_nsigma_multiplier -setup 3 -hold 4.5
         # set_db delaycal_accuracy_level 3
         # set_db delaycal_socv_lvf_mode moments
         # set_db delaycal_socv_use_lvf_tables {delay slew constraint}
-        # set_timing_derate 0 -sigma -cell_check -early [get_lib_cells *BWP*]
+        # # set_db delaycal_socv_use_lvf_tables {all}
         # set_db timing_report_max_transition_check_using_nsigma_slew false
         # set_db timing_ssta_enable_nsigma_enumeration true
         # set_db timing_ssta_generate_sta_timing_report_format true
@@ -261,16 +296,30 @@ gf_create_step -name tempus_post_init_design '
 
         # # Spatial OCV settings (see TSMCHOME/digital/Front_End/timing_margin/SPM)
         # set_db timing_enable_spatial_derate_mode true
-        # set_db timing_spatial_derate_chip_size 1000
+        # # set_db timing_spatial_derate_chip_size 1000
+        # # set_db timing_spatial_derate_distance_mode chip_size
         # set_db timing_spatial_derate_distance_mode bounding_box
+        # set_db read_parasitics_enable_spef_transform 1
     }
     
     # Analyze setup and hold concurrently
     set_db timing_enable_simultaneous_setup_hold_mode true
 
     # Enable SI delay calculation and glitch reports
-    set_db delaycal_enable_si       true
-    set_db si_glitch_enable_report  true
+    set_db delaycal_enable_si true
+    set_db si_delay_enable_report true
+    set_db si_glitch_enable_report true
+    # set_db si_delay_delta_annotation_mode lumpedOnNet
+    # set_db si_delay_enable_logical_correlation true
+    # set_db si_reselection_setup_slack 100e-12
+    # set_db si_reselection_hold_slack 100e-12
+
+    # # Pessimistic SI effect calculation
+    # set_db si_use_infinite_timing_window true
+    # set_db si_unconstrained_net_use_infinite_timing_window true
+    # set_db si_glitch_input_threshold 0.30
+    # set_db si_glitch_receiver_peak_limit 0.25
+    # set_db si_glitch_receiver_clock_peak_limit 0.20
 
     # Report SI delay in separate column
     set_db si_delay_separate_on_data true
@@ -292,11 +341,8 @@ gf_create_step -name tempus_post_init_design '
     # set_dont_use *D3?BWP* true
 
     # # Set dont touch objects
-    # foreach inst [get_db [get_db insts  {*_preserve *_preserved *_preserve_*}] .name] {set_dont_touch $inst true}
-    # foreach net [get_db [get_db nets  {*_preserve *_preserved *_preserve_*}] .name] {set_dont_touch $net true}
-
-    # # Pessimistic SI effect calculation
-    # set_db si_use_infinite_timing_window true
+    # set_db [get_db insts {*_preserve *_preserved *_preserve_*}] .dont_touch $inst true
+    # set_db [get_db nets {*_preserve *_preserved *_preserve_*}] .dont_touch $net true
 
     # # Disable PBA depth limit
     # set_db timing_path_based_enable_infinite_depth_mode true  
@@ -332,14 +378,14 @@ gf_create_step -name init_cells_tempus '
 '
 
 # STA analysis
-gf_create_step -name reports_sta_tempus '
+gf_create_step -name tempus_sta_reports '
+    exec mkdir -p ./reports/$TASK_NAME
 
     # Include SI into ECODB
     set_db opt_signoff_fix_glitch true
     set_db opt_signoff_fix_xtalk true
 
     # Create reports
-    `@procs_tempus_reports`
     gf_check_timing
     gf_report_timing_late 150
     gf_report_timing_early 150
@@ -347,10 +393,10 @@ gf_create_step -name reports_sta_tempus '
     gf_report_timing_early_pba 150
     gf_report_constraint_late
     gf_report_constraint_early
-    gf_report_noise
+    # gf_report_noise
     # gf_report_timing_summary
 
-    # Write ECO timing DB
+    # Write ECO timing database for TSO flow
     set_db opt_signoff_write_eco_opt_db ./out/$TASK_NAME.tempus.eco.db
     write_eco_opt_db
 '
@@ -445,6 +491,75 @@ gf_create_step -name run_opt_signoff '
         default {
             puts "Incorrect ECO scenario selected: $ECO_SCENARIO"
             error 1
+        }
+    }
+'
+
+# Commands to create block-specific timing files
+gf_create_step -name tempus_data_out '
+    mkdir -p ./out/$TASK_NAME/
+    mkdir -p ./reports/$TASK_NAME.GTD/
+
+    # Registers
+    set regs [all_registers]
+
+    # Create timing reports
+    set processed_views {}
+    foreach MMMC_VIEW $MMMC_VIEWS {
+        set view [gconfig::get analysis_view_name -view $MMMC_VIEW]
+        if {[lsearch -exact $processed_views $view] < 0} {
+            lappend processed_views $view
+
+            # Late paths for setup views
+            if {[lsearch -exact [gconfig::get check -view $MMMC_VIEW] "s"] >= 0} {
+
+                puts "Writing timing reports ./reports/$TASK_NAME/late.*.$view.tarpt ..."
+                report_timing -late -path_type full_clock -from $regs -to $regs -view $view -max_paths 500 > ./reports/$TASK_NAME/late.gba.reg2reg.$view.tarpt
+                report_timing -late -path_type endpoint -from $regs -to $regs -view $view -max_paths 10000 -max_slack 0 > ./reports/$TASK_NAME/late.violated.reg2reg.$view.tarpt
+                foreach clock [get_db clocks .base_name -u] {report_timing -late -path_type full_clock -from $clock -view $view -max_paths 250 > ./reports/$TASK_NAME/late.clock.full.[regsub -all {/} $clock {.}].$view.tarpt}
+                foreach clock [get_db clocks .base_name -u] {report_timing -late -path_type endpoint -from $clock -view $view -max_paths 10000 -max_slack 0 > ./reports/$TASK_NAME/late.clock.violated.[regsub -all {/} $clock {.}].$view.tarpt}
+
+                puts "Writing timing reports ./reports/$TASK_NAME.GTD/late.*.$view.mtarpt ..."
+                report_timing -late -output_format gtd -from $regs -to $regs -view $view -max_paths 500 > ./reports/$TASK_NAME.GTD/late.worst.reg2reg.$view.mtarpt
+                report_timing -late -output_format gtd -from $regs -to $regs -view $view -max_paths 10000 -max_slack 0 > ./reports/$TASK_NAME.GTD/late.violated.reg2reg.$view.mtarpt
+
+                puts "  [gf_print_report_timing_summary ./reports/$TASK_NAME/late.gba.reg2reg.$view.tarpt] @ late.gba.reg2reg.$view.tarpt"
+            }
+
+            # Early paths for hold views
+            if {[lsearch -exact [gconfig::get check -view $MMMC_VIEW] "h"] >= 0} {
+
+                puts "Writing timing reports ./reports/$TASK_NAME/early.*.$view.tarpt ..."
+                report_timing -early -path_type full_clock -from $regs -to $regs -view $view -max_paths 500 > ./reports/$TASK_NAME/early.gba.reg2reg.$view.tarpt
+                report_timing -early -path_type endpoint -from $regs -to $regs -view $view -max_paths 10000 -max_slack 0 > ./reports/$TASK_NAME/early.violated.reg2reg.$view.tarpt
+                foreach clock [get_db clocks .base_name -u] {report_timing -early -path_type full_clock -from $clock -view $view -max_paths 250 > ./reports/$TASK_NAME/early.clock.full.[regsub -all {/} $clock {.}].$view.tarpt}
+                foreach clock [get_db clocks .base_name -u] {report_timing -early -path_type endpoint -from $clock -view $view -max_paths 10000 -max_slack 0 > ./reports/$TASK_NAME/early.clock.violated.[regsub -all {/} $clock {.}].$view.tarpt}
+
+                puts "Writing timing reports ./reports/$TASK_NAME.GTD/early.*.$view.mtarpt ..."
+                report_timing -early -output_format gtd -from $regs -to $regs -view $view -max_paths 500 > ./reports/$TASK_NAME.GTD/early.worst.reg2reg.$view.mtarpt
+                report_timing -early -output_format gtd -from $regs -to $regs -view $view -max_paths 10000 -max_slack 0 > ./reports/$TASK_NAME.GTD/early.violated.reg2reg.$view.mtarpt
+
+                puts "  [gf_print_report_timing_summary ./reports/$TASK_NAME/early.gba.reg2reg.$view.tarpt] @ early.gba.reg2reg.$view.tarpt"
+            }
+
+            # TWF for power views
+            if {[lsearch -exact [gconfig::get check -view $MMMC_VIEW] "p"] >= 0} {
+                set view [gconfig::get analysis_view_name -view $MMMC_VIEW]
+                puts "Writing ./out/$TASK_NAME/$DESIGN_NAME.$view.twf.gz ..."
+                write_timing_windows \
+                    -pin \
+                    -power_compatible \
+                    -ssta_sigma_multiplier 3 \
+                    -view $view ./out/$TASK_NAME/$DESIGN_NAME.$view.twf.gz
+            }
+            
+            # LIB for timing and power views
+            puts "Writing ./out/$TASK_NAME/$DESIGN_NAME.$view.lib ..."
+            write_timing_model \
+                -include_power_ground \
+                -input_transitions {0.002, 0.010, 0.025, 0.050, 0.100, 0.200, 0.500} \
+                -output_loads {0.000, 0.010, 0.025, 0.050, 0.100, 0.200, 0.500} \
+                -view $view ./out/$TASK_NAME/$DESIGN_NAME.$view.lib
         }
     }
 '

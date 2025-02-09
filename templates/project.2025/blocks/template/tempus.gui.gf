@@ -44,7 +44,8 @@ gf_create_task -name DebugTempus
 gf_use_tempus
 
 # Innovus design database
-gf_choose_file_dir_task -variable REF_TASK -keep -prompt "Choose reference STA task:" -tasks '
+gf_choose_file_dir_task -variable REF_TASK -prompt "Choose reference STA task:" -tasks '
+    '"$REF_TASK"'
     ../work_*/*/tasks/STA*
 '
 gf_spacer
@@ -69,7 +70,7 @@ gf_add_tool_commands '
     '"$(grep -e '^\s*set\s\+\(SPEF_TASKS\|MOTHER_TASK_NAME\)\s\+' "$REF_RUN/scripts/$REF_TASK_NAME.tcl")"'
 
     # Current design variables
-    set LEF_FILES {`$CADENCE_TLEF_FILES` `$LEF_FILES`}
+    set LEF_FILES {`$CADENCE_TLEF_FILES` `$LEF_FILES` `$PARTITIONS_LEF_FILES -optional`}
     set POWER_NETS {`$POWER_NETS_CORE` `$POWER_NETS_OTHER -optional`}
     set GROUND_NETS {`$GROUND_NETS_CORE` `$GROUND_NETS_OTHER -optional`}
     set IGNORE_IO_TIMING {`$IGNORE_IO_TIMING`}

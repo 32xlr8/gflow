@@ -1,0 +1,58 @@
+################################################################################
+# Generic Flow v5.5.1 (February 2025)
+################################################################################
+#
+# Copyright 2011-2025 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+################################################################################
+# Filename: templates/demo.2025/03/Success.log
+# Purpose:  Successful task log
+################################################################################
+------------------------------------------------------------
+     opt_design Final Summary
+------------------------------------------------------------
+
+Setup views included:
+ func_tt0p900v85ct_s func_ss0p810v125cwt_s
+ func_ss0p810vm40rcwt_s
+
++--------------------+---------+---------+---------+---------+---------+---------+---------+
+|     Setup mode     |   all   | reg2reg |reg2cgate| in2reg  | reg2out | in2out  | default |
++--------------------+---------+---------+---------+---------+---------+---------+---------+
+|           WNS (ns):|  0.004  |  0.004  |  0.014  |  0.042  |   N/A   |   N/A   |  0.000  |
+|           TNS (ns):|  0.000  |  0.000  |  0.000  |  0.000  |   N/A   |   N/A   |  0.000  |
+|    Violating Paths:|    0    |    0    |    0    |    0    |   N/A   |   N/A   |    0    |
+|          All Paths:|  21000  |  18000  |  1000   |  2000   |   N/A   |   N/A   |    0    |
++--------------------+---------+---------+---------+---------+---------+---------+---------+
+
++----------------+-------------------------------+------------------+
+|                |              Real             |       Total      |
+|    DRVs        +------------------+------------+------------------|
+|                |  Nr nets(terms)  | Worst Vio  |  Nr nets(terms)  |
++----------------+------------------+------------+------------------+
+|   max_cap      |      0 (0)       |   0.000    |      0 (0)       |
+|   max_tran     |      0 (0)       |   0.000    |      0 (0)       |
+|   max_fanout   |      0 (0)       |     0      |      0 (0)       |
+|   max_length   |      0 (0)       |     0      |      0 (0)       |
++----------------+------------------+------------+------------------+
+
+Density: 78.32%
+
+WARNING     W-1               200    This is warning 1
+ERROR       E-1               10     This is error 1
+WARNING     W-2               20     This is warning 2
+WARNING     W-3               15     This is warning 3
+
+This is successful task.

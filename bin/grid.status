@@ -31,7 +31,7 @@
 #    * HOST HOSTNAME CPU RAM LOAD
 #    * 01 ssh-host01 32 512 +0.000
 
-# File queue.grid used to store infromation on running tasks
+# File queue.grid used to store information on running tasks
 # Several files can be used
 
 # Host to report

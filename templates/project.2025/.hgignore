@@ -1,0 +1,6 @@
+syntax: glob
+
+blocks/*/data/
+blocks/*/work_*/
+data/
+xfer/

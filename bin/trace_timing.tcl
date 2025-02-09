@@ -1,8 +1,8 @@
 ################################################################################
-# Generic Flow v5.5.0 (December 2024)
+# Generic Flow v5.5.1 (February 2025)
 ################################################################################
 #
-# Copyright 2011-2024 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
+# Copyright 2011-2025 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -31,7 +31,7 @@ variable header \
 # Generic Flow - Trace timing utility                                       #
 #############################################################################
 # Command:     trace_timing                                                 #
-# Version:     v5.5.0 (December 2024)                                       #
+# Version:     v5.5.1 (February 2025)                                       #
 # Developer:   Gennady Kirpichev <32xlr8\@gmail.com>                         #
 #############################################################################"
 

@@ -1,10 +1,10 @@
 #!../../gflow/bin/gflow
 
 ################################################################################
-# Generic Flow v5.1 (May 2023)
+# Generic Flow v5.5.1 (February 2025)
 ################################################################################
 #
-# Copyright 2011-2023 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
+# Copyright 2011-2025 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,7 +19,7 @@
 # limitations under the License.
 #
 ################################################################################
-# Filename: templates/project_template.2023/blocks/block_template/innovus.gui.gf
+# Filename: templates/project.2025/blocks/template/innovus.gui.gf
 # Purpose:  Interactive implementation debug flow
 ################################################################################
 

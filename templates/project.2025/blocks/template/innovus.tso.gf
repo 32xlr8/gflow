@@ -42,9 +42,9 @@ gf_use_innovus
 
 # Design data directory
 gf_choose_file_dir_task -variable DATA_OUT_DIR -keep -prompt "Choose design data directory:" -dirs '
-    ../work_*/*/out/DataOutPhysical*
+    ../work_*/*/out/InnovusOut*
 ' -want -active -task_to_file '$RUN/out/$TASK' -tasks '
-    ../work_*/*/tasks/DataOutPhysical*
+    ../work_*/*/tasks/InnovusOut*
 '
 
 # Design data directory
@@ -91,9 +91,10 @@ gf_add_tool_commands '
 '
 
 # Display status
-gf_add_status_marks -from 'Final .*Summary' -to 'Density:' WNS TNS max_tran -3 +3
-gf_add_status_marks -from '\|.*max hotspot.*\|' -expr '[\|\+]' -to '^[^\|\+]*$' -1
+# gf_add_status_marks -from '\|.*max hotspot.*\|' -expr '[\|\+]' -to '^[^\|\+]*$' -1
+gf_add_status_marks 'Local HotSpot Analysis'
 gf_add_status_marks 'number of DRC violations'
+gf_add_status_marks -from 'Final .*Summary' -to 'Density:' WNS TNS max_tran -3 +3
 
 # Run task
 gf_submit_task

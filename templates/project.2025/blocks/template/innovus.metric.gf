@@ -82,13 +82,13 @@ gf_add_tool_commands -comment '#' -file "./scripts/$TASK_NAME.tcl" '
         foreach sorted_file $sorted_files {
             if {$task == [lindex $sorted_file 1]} {
                 catch {
+                    puts "Reading metrics $file ..."
                     set id [lindex $sorted_file 2]
                     set file [lindex $sorted_file 3]
                     read_metric $file -id $id
                     if {[lsearch -exact $ids $id] < 0} {
                         lappend ids $id
                     }
-                    puts "Metric file included: $file"
                 }
             }
         }
@@ -96,12 +96,12 @@ gf_add_tool_commands -comment '#' -file "./scripts/$TASK_NAME.tcl" '
         # Write metrics to compare
         if {[llength $ids]} {
             catch {
+                puts "Writing html metrics ./reports/$TASK_NAME.$task.html ..."
                 report_metric -id $ids -format html -file ./reports/$TASK_NAME.$task.html
-                puts "Html metrics written: ./reports/$TASK_NAME.$task.html"
             }
             catch {
                 report_metric -id $ids -format vivid -file ./reports/$TASK_NAME.$task.vivid.html
-                puts "Vivid metrics written: ./reports/$TASK_NAME.$task.vivid.html"
+                puts "Writing vivid metrics ./reports/$TASK_NAME.$task.vivid.html ..."
             }
         } else {
             puts "ERROR: No metric files for $task tasks"

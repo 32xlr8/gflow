@@ -67,16 +67,13 @@ gf_spacer
 gf_choose -variable TIMING_MODE -keys YN -time 30 -default N -prompt "Initialize timing information (Y/N)?"
 gf_spacer
 
-# Create floorplan files copy in the run directory
-[[ -n "$INNOVUS_FLOORPLAN_FILE" ]] && gf_save_files -copy $(dirname $INNOVUS_FLOORPLAN_FILE)/$(basename $INNOVUS_FLOORPLAN_FILE .gz)*
-
 # Innovus TCL commands as is (commands in SINGLE quotes will not substitute GF shell variables)
 gf_add_tool_commands '
 
     # Current design variables
-    set LEF_FILES {`$CADENCE_TLEF_FILES` `$LEF_FILES`}
+    set LEF_FILES {`$CADENCE_TLEF_FILES` `$LEF_FILES` `$PARTITIONS_LEF_FILES -optional`}
     set NETLIST_FILES {`$INNOVUS_NETLIST_FILES`}
-    set SCANDEF_FILE {`$SCANDEF_FILE -optional`}
+    set SCANDEF_FILE {`$INNOVUS_SCANDEF_FILE -optional`}
     set CPF_FILE {`$CPF_FILE -optional`}
     set UPF_FILE {`$UPF_FILE -optional`}
     set FLOORPLAN_FILE {`$INNOVUS_FLOORPLAN_FILE`}
@@ -96,10 +93,9 @@ gf_add_tool_commands '
     }
     
     # Procedure to overwrite last floorplan
-    proc gf_write_floorplan_overwrite {} {
+    proc gf_write_floorplan_last {} {
         puts "\033\[42m \033\[0m Writing floorplan $::FLOORPLAN_FILE_LAST ..."
         write_floorplan $::FLOORPLAN_FILE_LAST
-        write_def -floorplan -io_row -routing $::FLOORPLAN_FILE_LAST.def.gz
     }
     
     # Procedure to save new floorplan into block data directory
@@ -107,12 +103,29 @@ gf_add_tool_commands '
         upvar gf_fp_date gf_fp_date
         upvar gf_fp_index gf_fp_index
         set base "../../../../data/[exec date +%y%m%d]"
+        set auto_tag "[expr int(0.5+[get_db current_design .bbox.ur.x]-[get_db current_design .bbox.ll.x])]x[expr int(0.5+[get_db current_design .bbox.ur.y]-[get_db current_design .bbox.ll.y])]"
         if {$tag == ""} {
-            set tag "[expr int(0.5+[get_db current_design .bbox.ur.x]-[get_db current_design .bbox.ll.x])]x[expr int(0.5+[get_db current_design .bbox.ur.y]-[get_db current_design .bbox.ll.y])]"
+            set tag $auto_tag
+        } elseif {[regexp {^\+} $tag]} {
+            set tag "$auto_tag.[regsub {^\+} $tag {}]"
         }
         puts "\033\[42m \033\[0m Writing floorplan $base.$tag.fp ..."
         set ::FLOORPLAN_FILE_LAST $base.$tag.fp
         write_floorplan $base.$tag.fp
+    }
+    
+    # Procedure to save new floorplan into block data directory
+    proc gf_write_floorplan_def_global {{tag {}}} {
+        upvar gf_fp_date gf_fp_date
+        upvar gf_fp_index gf_fp_index
+        set base "../../../../data/[exec date +%y%m%d]"
+        set auto_tag "[expr int(0.5+[get_db current_design .bbox.ur.x]-[get_db current_design .bbox.ll.x])]x[expr int(0.5+[get_db current_design .bbox.ur.y]-[get_db current_design .bbox.ll.y])]"
+        if {$tag == ""} {
+            set tag $auto_tag
+        } elseif {[regexp {^\+} $tag]} {
+            set tag "$auto_tag.[regsub {^\+} $tag {}]"
+        }
+        puts "\033\[42m \033\[0m Writing DEF $base.$tag.fp.def.gz ..."
         write_def -floorplan -io_row -routing $base.$tag.fp.def.gz
     }
     
@@ -171,6 +184,7 @@ gf_add_tool_commands '
     if {[file exists $FLOORPLAN_FILE]} {
         read_floorplan $FLOORPLAN_FILE
         check_floorplan
+        write_floorplan ./in/$TASK_NAME.fp.gz
     } else {
         puts "\033\[43m \033\[0m Floorplan $FLOORPLAN_FILE not found"
     }

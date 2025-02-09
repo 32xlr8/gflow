@@ -41,7 +41,8 @@ gf_set_flow_options -continue -incr -auto_close -hide
 ########################################
 
 # Innovus design database
-gf_choose_file_dir_task -variable INNOVUS_DATABASE -keep -prompt "Choose database to load:" -dirs '
+gf_choose_file_dir_task -variable INNOVUS_DATABASE -prompt "Choose database to load:" -dirs '
+    '"$INNOVUS_DATABASE"'
     ../work_*/*/out/*.ispatial.db
     ../work_*/*/out/*.innovus.db
     ../work_*/*/out/*/*.innovus.db

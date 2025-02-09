@@ -38,7 +38,7 @@ gf_source -once "./block.innovus.gf"
 ########################################
 
 # Write out reference data
-gf_create_task -name DataOutPhysical
+gf_create_task -name InnovusOut
 gf_use_innovus
 
 # Innovus design database
@@ -75,7 +75,7 @@ gf_add_tool_commands '
 
     # Write out design files
     `@innovus_procs_write_data`
-    `@innovus_physical_out_design`
+    `@innovus_data_out`
 
     # Exit interactive session
     exit
@@ -91,67 +91,7 @@ gf_add_shell_commands -post "
 
 # Task summary
 gf_add_status_marks ^Writing
-gf_add_status_marks 'ERROR:' 'WARNING:' 'no such file' 'cannot access' ' not found '
-
-# Run task
-gf_submit_task
-
-########################################
-# Innovus timing data out
-########################################
-
-# Write out reference data
-gf_create_task -name DataOutTiming
-gf_use_innovus
-
-# Innovus design database
-gf_spacer
-gf_choose_file_dir_task -variable INNOVUS_DATABASE -keep -prompt "Choose database or active task:" -dirs '
-    ../work_*/*/out/Route*.innovus.db
-    ../work_*/*/out/Assemble*.innovus.db
-    ../work_*/*/out/ECO*.innovus.db
-' -want -active -task_to_file '$RUN/out/$TASK.innovus.db' -tasks '
-    ../work_*/*/tasks/Route*
-    ../work_*/*/tasks/ECO*
-    ../work_*/*/tasks/Assemble*
-' 
-
-# TCL commands
-gf_add_tool_commands '
-
-    # Current design variables
-    set INNOVUS_DATABASE {`$INNOVUS_DATABASE`}
-
-    # Read input Innovus database
-    read_db $INNOVUS_DATABASE
-    
-    # Top level design name
-    set DESIGN_NAME [get_db current_design .name]
-
-    # Remember database
-    exec rm -Rf ./out/$TASK_NAME/
-    exec mkdir ./out/$TASK_NAME/
-    exec ln -nsf $INNOVUS_DATABASE ./out/$TASK_NAME/$DESIGN_NAME.innovus.db
-
-    # Load common tool procedures
-    source ./scripts/$TASK_NAME.procs.tcl
-
-    # Write out design files
-    `@innovus_procs_write_data`
-    `@innovus_timing_out_design`
-
-    # Exit interactive session
-    exit
-'
-
-# Common tool procedures
-gf_add_tool_commands -comment '#' -file ./scripts/$TASK_NAME.procs.tcl '
-    `@innovus_procs_common`
-'
-
-# Task summary
-gf_add_status_marks ^Writing
-gf_add_status_marks 'ERROR:' 'WARNING:' 'no such file' 'cannot access' ' not found '
+gf_add_status_marks 'ERROR:' 'WARNING:' 'no such file' 'cannot access' ' not found ' 'Master cell:'
 
 # Run task
 gf_submit_task

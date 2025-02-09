@@ -46,6 +46,9 @@ function gf_use_quantus_batch {
         # Dump environment variables
         env > ./reports/`$TASK_NAME`.env
 
+        # Link temporary directory
+        ln -nsf "$TMPDIR" ./tmp
+
         # Run the tool
         quantus -cmd ./scripts/`$TASK_NAME`.ccl
     '

@@ -31,16 +31,16 @@ gf_info "Loading block-specific Quantus steps ..."
 # gf_set_task_options -cpu 8 -mem 15
 
 # # Override resources for batch tasks
-# gf_set_task_options Extraction -cpu 8 -mem 15
+# gf_set_task_options QuantusOut -cpu 8 -mem 15
 
 # # Limit simultaneous tasks count
-# gf_set_task_options Extraction -group Heavy -parallel 1
+# gf_set_task_options QuantusOut -group Heavy -parallel 1
 
 ################################################################################
 # Flow variables
 ################################################################################
 
-# # Physical/logical synthesis
+# # Extraction with dummy GDS
 # USE_DUMMY_GDS=Y
 # USE_DUMMY_GDS=N
 

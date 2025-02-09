@@ -40,9 +40,14 @@ gf_set_flow_options -continue -incr -auto_close -hide
 # Automatical GDS selection
 ########################################
 
-# Choose available GDS
-gf_choose_file_dir_task -variable GDS -keep -prompt "Choose GDS to load:" -files '
+# Select GDS file without dummy structures
+gf_choose_file_dir_task -variable GDS_OUT_FILE -keep -prompt "Choose GDS to debug:" -files '
+    ../work_*/*/out/*/*.gds.gz
     ../work_*/*/out/*.gds.gz
+    ../data/*/*.gds.gz
+    ../data/*.gds.gz
+    ../data/*/*.gds
+    ../data/*.gds
 '
 gf_spacer
 
@@ -52,26 +57,51 @@ gf_spacer
 
 gf_create_task -name DebugCalibre
 
-# Ask user if need to open DRC/LVS results
+# Ask user if need to open DRC/LVS sults
 gf_spacer
-gf_choose -variable START_RVE -keys YN -time 30 -default N -prompt "Start RVE (Y/N)?"
+gf_choose -variable START_RVE -keys DLN -time 30 -default N -prompt "Start RVE (Drc/Lvs/No)?"
 gf_spacer
 
-# Load GDS
-if [ "$START_RVE" == "Y" ]; then
-    RVE_OPTIONS=""
+# Shell commands to run
+gf_set_task_command "bash run.bash"
+gf_add_tool_commands -comment '#' -file "./tasks/$TASK_NAME/run.bash" '
+    `@init_shell_environment`
+    `@init_calibre_environment`
 
-    for file in $(ls -1trd $(dirname "$GDS")/../*/*.svdb/ 2> /dev/null || :); do
-        RVE_OPTIONS="$RVE_OPTIONS -rve -lvs '$file' '$DESIGN_NAME'"
-    done
+    # Dump environment variables
+    env > ./reports/`$TASK_NAME`.env
+'
 
-    for file in $(ls -1trd $(dirname "$GDS")/../*/{,*/}*.results 2> /dev/null || :); do
-        RVE_OPTIONS="$RVE_OPTIONS -rve -drc '$file'"
-    done
+# Load DRC results
+if [ "$START_RVE" == "D" ]; then
+    gf_spacer
+    gf_choose_file_dir_task -variable RVE_RESULTS -keep -prompt "Choose DRC results:" -files '
+        ../work_*/*/out/*.results
+    '
+    gf_spacer
+    gf_add_tool_commands "
+        # Run the tool
+        calibrewb '$GDS_OUT_FILE' -rve -drc '$(dirname "$RVE_RESULTS")'/*.results
+    "
 
-    gf_set_task_command "calibrewb '$GDS' $RVE_OPTIONS"
+# Load LVS results
+elif [ "$START_RVE" == "L" ]; then
+    gf_spacer
+    gf_choose_file_dir_task -variable RVE_RESULTS -keep -prompt "Choose LVS results:" -dirs '
+        ../work_*/*/out/*.svdb
+    '
+    gf_spacer
+    gf_add_tool_commands "
+        # Run the tool
+        calibrewb '$GDS_OUT_FILE' -rve -lvs '$RVE_RESULTS' '$DESIGN_NAME'
+    "
+
+# Open GDS
 else
-    gf_set_task_command "calibrewb '$GDS'"
+    gf_add_tool_commands "
+        # Run the tool
+        calibrewb '$GDS_OUT_FILE'
+    "
 fi
 
 # Run task

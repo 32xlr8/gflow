@@ -87,13 +87,13 @@ gf_create_step -name innovus_gconfig_design_variables '
         {func ss 0p900v 125 cwt s}
         {func ff 1p100v m40 cw h}
         {func ff 1p100v 125 cb h}
-        {func tt 1p000v 125 rcw p}
+        {func tt 1p000v 85 rcw p}
     } {}]
     
     # SDF views
     set SDF_MAX_VIEW {func ss 0p900v m40 rcwt s}
     set SDF_MIN_VIEW {func ff 1p100v m40 cw h}
-    set SDF_TYP_VIEW {func tt 1p000v 125 rcw p}
+    set SDF_TYP_VIEW {func tt 1p000v 85 rcw p}
 '
 
 # MMMC and OCV settings
@@ -1967,7 +1967,6 @@ gf_create_step -name innovus_design_reports_post_clock '
 
 # Post-route design stage reports
 gf_create_step -name innovus_design_reports_post_route '
-    set LOGICAL_NETLIST_EXCLUDE_CELLS {`$LOGICAL_NETLIST_EXCLUDE_CELLS -optional`}
 
     # Enable noise reporting
     set_db si_delay_enable_report true
@@ -2018,16 +2017,26 @@ gf_create_step -name innovus_design_reports_post_route '
     # check_metal_density -report ./reports/$TASK_NAME/route.metal_density.rpt
     # check_cut_density -out_file ./reports/$TASK_NAME/route.cut_density.rpt
 
-    # Write out SDF and netlist for block level simulation
-    write_sdf ./out/$TASK_NAME.sdf \
+    # Write logical netlist for block level simulation
+    set exclude_cells [get_db [get_db base_cells {`$LOGICAL_NETLIST_EXCLUDE_CELLS -optional`}] .name]
+    if {[llength $exclude_cells] > 0} {
+        write_netlist -keep_all_backslash -exclude_leaf_cells \
+            -exclude_insts_of_cells $exclude_cells \
+            -top_module_first -top_module $DESIGN_NAME \
+            ./out/$TASK_NAME/$DESIGN_NAME.v.gz
+    } else {
+        write_netlist -keep_all_backslash -exclude_leaf_cells \
+            -top_module_first -top_module $DESIGN_NAME \
+            ./out/$TASK_NAME/$DESIGN_NAME.v.gz
+    }
+
+    # Write out SDF for block level simulation
+    write_sdf ./out/$TASK_NAME/$DESIGN_NAME.sdf.gz \
         -min_view [gconfig::get analysis_view_name -view $SDF_MIN_VIEW] \
         -typical_view [gconfig::get analysis_view_name -view $SDF_TYP_VIEW] \
         -max_view [gconfig::get analysis_view_name -view $SDF_MAX_VIEW] \
         -edges noedge -interconnect all -no_derate \
         -version 3.0
-    write_netlist -top_module_first -top_module $DESIGN_NAME \
-        -exclude_insts_of_cells [get_db [get_db base_cells $LOGICAL_NETLIST_EXCLUDE_CELLS] .name] \
-        ./out/$TASK_NAME.v
 
     # Write out RC factors for pre to post route correlation
     report_rc_factors -blocks_template medium -pre_route true -out_file ./out/$TASK_NAME.rc_factors.tcl

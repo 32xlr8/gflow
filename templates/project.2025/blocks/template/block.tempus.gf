@@ -112,8 +112,13 @@ gf_create_step -name tempus_gconfig_design_variables '
         {func ff 1p100v 0 rcw h}
 
         {func tt 1p000v 85 rcw p}
-        {func ff 1p100v 125 cw p}
+        {func ff 1p100v 125 rcw p}
     } {}]
+    
+    # SDF views
+    set SDF_MAX_VIEW {func ss 0p900v m40 rcwt s}
+    set SDF_MIN_VIEW {func ff 1p100v m40 cw h}
+    set SDF_TYP_VIEW {func tt 1p000v 85 rcw p}
 '
 
 # MMMC and OCV settings
@@ -564,4 +569,12 @@ gf_create_step -name tempus_data_out '
                 -view $view ./out/$TASK_NAME/$DESIGN_NAME.$view.lib
         }
     }
+
+    # Write out SDF for block level simulation
+    write_sdf ./out/$TASK_NAME/$DESIGN_NAME.sdf.gz \
+        -min_view [gconfig::get analysis_view_name -view $SDF_MIN_VIEW] \
+        -typical_view [gconfig::get analysis_view_name -view $SDF_TYP_VIEW] \
+        -max_view [gconfig::get analysis_view_name -view $SDF_MAX_VIEW] \
+        -edges noedge -interconnect all -no_derate \
+        -version 3.0
 '

@@ -145,10 +145,11 @@ gf_create_step -name tempus_gconfig_design_settings '
 
     # Set IR-drop value for voltage and temperature OCV derates (when vt_derate switch enabled)
     # It is recommended to set 40% of Static IR for setup and 80% for hold
+    <PLACEHOLDER>
     gconfig::add_section {
         -when vt_derates {
-            -views {* * * * * s} {$voltage_drop <PLACEHOLDER>20}
-            -views {* * * * * h} {$voltage_drop <PLACEHOLDER>40}
+            -views {* * * * * s} {$voltage_drop 20}
+            -views {* * * * * h} {$voltage_drop 40}
         }
     }
 
@@ -163,12 +164,13 @@ gf_create_step -name tempus_gconfig_design_settings '
     #     }
     # }
     
-    # # Set PLL jitter value in ps in default uncertainty mode
-    # gconfig::add_section {
-    #     -when default_uncertainty {
-    #         $jitter <PLACEHOLDER>25
-    #     }
-    # }
+    # Set PLL jitter value in ps in default uncertainty mode
+    <PLACEHOLDER>
+    gconfig::add_section {
+        -when default_uncertainty {
+            $jitter 25
+        }
+    }
     
     # # Optional: set user-specific clock uncertainty values for all clocks
     # gconfig::add_section {
@@ -251,8 +253,8 @@ gf_create_step -name tempus_post_init_design '
         # set_db delaycal_advanced_receiver_capacitance_mode true
         # set_db delaycal_accurate_receiver_out_load true
 
-        # # AOCV libraries (see TSMCHOME/digital/Front_End/SBOCV/documents/GL_SBOCV_*.pdf)
-        <PLACEHOLDER> Choice 1 of 3
+        # # Choice 1 of 3: AOCV libraries (see TSMCHOME/digital/Front_End/SBOCV/documents/GL_SBOCV_*.pdf)
+        <PLACEHOLDER>
         # set_db timing_report_fields {cell arc delay incr_delay arrival required transition fanout load aocv_adj_stages aocv_derate user_derate annotation instance}
         # set_db timing_analysis_aocv true
         # set_db timing_extract_model_aocv_mode graph_based
@@ -261,8 +263,8 @@ gf_create_step -name tempus_post_init_design '
         # # set_db timing_aocv_slack_threshold 0.0
         # set_db timing_enable_aocv_slack_based true
 
-        # # LVF/SOCV libraries (see TSMCHOME/digital/Front_End/LVF/documents/GL_LVF_*.pdf)
-        <PLACEHOLDER> Choice 2 of 3
+        # # Choice 2 of 3: LVF/SOCV libraries (see TSMCHOME/digital/Front_End/LVF/documents/GL_LVF_*.pdf)
+        <PLACEHOLDER>
         # # set_db timing_report_fields {timing_point cell arc fanout load slew slew_mean slew_sigma pin_location delay_mean delay_sigma delay arrival_mean arrival_sigma arrival user_derate total_derate power_domain voltage phys_info}
         # set_db timing_report_fields {cell arc timing_point delay fanout load slew incr_delay arrival total_derate pin_location}
         # # set_db ui_precision_timing 6
@@ -290,8 +292,8 @@ gf_create_step -name tempus_post_init_design '
         # set_socv_rc_variation_factor 0.1 -early
         # set_socv_rc_variation_factor 0.1 -late
 
-        # Flat STA settings
-        <PLACEHOLDER> Choice 3 of 3
+        # Choice 3 of 3: Flat STA settings
+        <PLACEHOLDER>
         set_db timing_report_fields {cell arc delay incr_delay arrival required transition fanout load user_derate annotation instance}
 
         # # Spatial OCV settings (see TSMCHOME/digital/Front_End/timing_margin/SPM)

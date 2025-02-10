@@ -145,13 +145,13 @@ gf_create_step -name innovus_gconfig_design_settings '
     #     }
     # }
     
-    # # Set PLL jitter value in ps in default uncertainty mode
-    # <PLACEHOLDER>
-    # gconfig::add_section {
-    #     -when default_uncertainty {
-    #         $jitter 25
-    #     }
-    # }
+    # Set PLL jitter value in ps in default uncertainty mode
+    <PLACEHOLDER>
+    gconfig::add_section {
+        -when default_uncertainty {
+            $jitter 25
+        }
+    }
     
     # # Optional: set user-specific clock uncertainty values for all clocks
     # <PLACEHOLDER>
@@ -442,8 +442,8 @@ gf_create_step -name innovus_post_init_design '
         # set_db delaycal_enable_quiet_receivers_for_hold true
         # set_db delaycal_advanced_pin_cap_mode 2
 
-        # # AOCV libraries (see TSMCHOME/digital/Front_End/SBOCV/documents/GL_SBOCV_*.pdf)
-        <PLACEHOLDER> Choice 1 of 3
+        # # Choice 1 of 3: AOCV libraries (see TSMCHOME/digital/Front_End/SBOCV/documents/GL_SBOCV_*.pdf)
+        <PLACEHOLDER>
         # set_db timing_report_fields {cell arc delay incr_delay arrival required transition fanout load aocv_adj_stages aocv_derate user_derate annotation instance}
         # set_db timing_analysis_aocv true
         # set_db timing_extract_model_aocv_mode graph_based
@@ -452,8 +452,8 @@ gf_create_step -name innovus_post_init_design '
         # # set_db timing_aocv_slack_threshold 0.0
         # set_db timing_enable_aocv_slack_based true
 
-        # # LVF/SOCV libraries (see TSMCHOME/digital/Front_End/LVF/documents/GL_LVF_*.pdf)
-        <PLACEHOLDER> Choice 2 of 3
+        # # Choice 2 of 3: LVF/SOCV libraries (see TSMCHOME/digital/Front_End/LVF/documents/GL_LVF_*.pdf)
+        <PLACEHOLDER>
         # set_db timing_report_fields {timing_point cell arc fanout load slew slew_mean slew_sigma pin_location delay_mean delay_sigma delay arrival_mean arrival_sigma arrival user_derate total_derate power_domain voltage phys_info}
         # set_db timing_report_fields {cell arc timing_point delay fanout load slew incr_delay arrival total_derate pin_location}
         # # set_db ui_precision_timing 6
@@ -478,8 +478,8 @@ gf_create_step -name innovus_post_init_design '
         # set_socv_rc_variation_factor 0.1 -early
         # set_socv_rc_variation_factor 0.1 -late
 
-        # Flat STA settings
-        <PLACEHOLDER> Choice 3 of 3
+        # Choice 3 of 3: Flat STA settings
+        <PLACEHOLDER>
         set_db timing_report_fields {cell arc delay incr_delay arrival required transition fanout load user_derate annotation instance}
 
         # # Spatial OCV settings (see TSMCHOME/digital/Front_End/timing_margin/SPM)
@@ -617,7 +617,7 @@ gf_create_step -name innovus_post_init_design '
         # eval_legacy {setNanoRouteMode -drouteStrictlyHonorObsInStandardCell true}
         # set_db check_drc_check_routing_halo true
 
-        # Project-specific shrink factor
+        # Technology-specific shrink factor
         # <PLACEHOLDER>
         # set_db extract_rc_shrink_factor 0.9
         
@@ -683,18 +683,20 @@ gf_create_step -name innovus_pre_place '
     }] .name]
 
     # NDR for clock routing
+    <PLACEHOLDER>
     create_route_rule -name CTS_S \
-        -spacing_multiplier {<PLACEHOLDER>M4:<PLACEHOLDER>M8 2} \
-        -min_cut {<PLACEHOLDER>VIA1:<PLACEHOLDER>VIA7 2}
+        -spacing_multiplier {M4:M8 2} \
+        -min_cut {VIA1:VIA7 2}
     create_route_rule -name CTS_WS \
-        -width_multiplier {<PLACEHOLDER>M4:<PLACEHOLDER>M6 2} \
-        -spacing_multiplier {<PLACEHOLDER>M4:<PLACEHOLDER>M8 2} \
-        -min_cut {<PLACEHOLDER>VIA1:<PLACEHOLDER>VIA7 2}
+        -width_multiplier {M4:M6 2} \
+        -spacing_multiplier {M4:M8 2} \
+        -min_cut {VIA1:VIA7 2}
 
     # Route types for clock routing
-    create_route_type -name leaf_rule  -bottom_preferred_layer <PLACEHOLDER>5 -top_preferred_layer <PLACEHOLDER>6 -route_rule CTS_S
-    create_route_type -name trunk_rule -bottom_preferred_layer <PLACEHOLDER>7 -top_preferred_layer <PLACEHOLDER>8 -route_rule CTS_WS -shield_net <PLACEHOLDER>VSS
-    create_route_type -name top_rule   -bottom_preferred_layer <PLACEHOLDER>7 -top_preferred_layer <PLACEHOLDER>8 -route_rule CTS_WS -shield_net <PLACEHOLDER>VSS
+    <PLACEHOLDER>
+    create_route_type -name leaf_rule  -bottom_preferred_layer 5 -top_preferred_layer 6 -route_rule CTS_S
+    create_route_type -name trunk_rule -bottom_preferred_layer 7 -top_preferred_layer 8 -route_rule CTS_WS -shield_net VSS
+    create_route_type -name top_rule   -bottom_preferred_layer 7 -top_preferred_layer 8 -route_rule CTS_WS -shield_net VSS
     
     # # Via pillar
     # create_stack_via_rules \
@@ -882,6 +884,9 @@ gf_create_step -name innovus_pre_place '
         get_db ccopt_*
         get_db route_*
     }
+    
+    # # Write intermediate database
+    # write_db ./out/$TASK_NAME.intermediate.innovus.db
 '
 
 # Commands after design placement
@@ -935,12 +940,15 @@ gf_create_step -name innovus_post_clock '
 
     # # Delete route blockages created for clock
     # catch {delete_route_blockages -name clock_no_routing}
+    
+    # # Write intermediate database
+    # write_db ./out/$TASK_NAME.intermediate.innovus.db
 '
 
 # Commands before post-clock hold fix
 gf_create_step -name innovus_pre_clock_opt_hold '
 
-    # # Do not fix hold at interfaces
+    # Do not fix hold at interfaces
     # set_db opt_fix_hold_ignore_path_groups {in2reg in2out reg2out}
     set_db opt_fix_hold_ignore_path_groups {default}
 
@@ -1015,6 +1023,9 @@ gf_create_step -name innovus_post_route '
     if {[llength [get_db markers]] < 10000} {
         reset_db route_design_detail_end_iteration
     }
+    
+    # # Write intermediate database
+    # write_db ./out/$TASK_NAME.intermediate.innovus.db
 '
 
 # Commands before post-route setup and hold optimization

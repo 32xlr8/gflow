@@ -191,9 +191,6 @@ gf_add_tool_commands '
     # Stage-specific options    
     `@innovus_pre_place`
     
-    # Write Innovus database
-    write_db ./out/$TASK_NAME.intermediate.innovus.db
-    
     # Run placement
     set_db opt_new_inst_prefix Place
     place_opt_design -report_dir ./reports/$TASK_NAME -report_prefix place_opt_design
@@ -302,9 +299,6 @@ gf_add_tool_commands '
 
     # Stage-specific options    
     `@innovus_post_clock`
-    
-    # Write Innovus database
-    write_db ./out/$TASK_NAME.intermediate.innovus.db
 
     # Stage-specific options    
     `@innovus_pre_clock_opt_hold`
@@ -387,9 +381,6 @@ gf_add_tool_commands '
 
     # Stage-specific Innovus options    
     `@innovus_post_route`
-
-    # Write Innovus database
-    write_db ./out/$TASK_NAME.intermediate.innovus.db
 
     # Stage-specific Innovus options    
     `@innovus_pre_route_opt_setup_hold`

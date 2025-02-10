@@ -208,9 +208,9 @@ gf_create_step -name gconfig_project_settings '
         # STA check variants to use in file name patterns
         -views {* * * * * s} {$check {s setup}}
         -views {* * * * * h} {$check {h hold}}
-        -views {* * * * * p} {$check {p power}}
-        -views {* * * * * l} {$check {l leakage power}}
-        -views {* * * * * d} {$check {d dynamic power}}
+        -views {* * * * * p} {$check {p power setup hold}}
+        -views {* * * * * l} {$check {l leakage power setup hold}}
+        -views {* * * * * d} {$check {d dynamic power setup hold}}
     }
 
     # Default OCV margins for not covered views

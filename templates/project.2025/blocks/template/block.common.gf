@@ -158,7 +158,7 @@ gf_create_step -name gconfig_cadence_mmmc_files '
     #     /path/pgv/standard_cells_${pvt_p}_${pvt_rc}_${pvt_v}_${pvt_t}.cl
     # }
 
-    # # Block-specific SDC files
+    # Block-specific SDC files
     <PLACEHOLDER>
     gconfig::add_files sdc -views {func * * * * *} {
         ../../../../data/func.sdc

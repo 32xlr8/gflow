@@ -213,8 +213,8 @@ gf_create_step -name voltus_post_init_design '
         # set_db delaycal_enable_quiet_receivers_for_hold true
         # set_db delaycal_advanced_pin_cap_mode true
 
-        # # AOCV libraries (see TSMCHOME/digital/Front_End/SBOCV/documents/GL_SBOCV_*.pdf)
-        <PLACEHOLDER> Choice 1 of 3
+        # # Choice 1 of 3: AOCV libraries (see TSMCHOME/digital/Front_End/SBOCV/documents/GL_SBOCV_*.pdf)
+        <PLACEHOLDER>
         # set_db timing_analysis_aocv true
         # set_db timing_extract_model_aocv_mode graph_based
         # set_db timing_aocv_analysis_mode combine_launch_capture
@@ -222,8 +222,8 @@ gf_create_step -name voltus_post_init_design '
         # # set_db timing_aocv_slack_threshold 0.0
         # set_db timing_enable_aocv_slack_based true
 
-        # # LVF/SOCV libraries (see TSMCHOME/digital/Front_End/LVF/documents/GL_LVF_*.pdf)
-        <PLACEHOLDER> Choice 2 of 3
+        # # Choice 2 of 3: LVF/SOCV libraries (see TSMCHOME/digital/Front_End/LVF/documents/GL_LVF_*.pdf)
+        <PLACEHOLDER>
         # # set_limited_access_feature socv 1
         # set_db timing_analysis_socv true
         # set_db delaycal_socv_accuracy_mode ultra
@@ -241,8 +241,8 @@ gf_create_step -name voltus_post_init_design '
         # set_socv_rc_variation_factor 0.1 -early
         # set_socv_rc_variation_factor 0.1 -late
 
-        # Flat STA settings
-        <PLACEHOLDER> Choice 3 of 3
+        # Choice 3 of 3: Flat STA settings
+        <PLACEHOLDER>
 
         # # Spatial OCV settings (see TSMCHOME/digital/Front_End/timing_margin/SPM)
         # set_db timing_enable_spatial_derate_mode true

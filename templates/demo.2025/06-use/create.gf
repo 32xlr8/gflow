@@ -1,5 +1,7 @@
 #!../../../bin/gflow
 
+# Basic flow creates output data
+
 # Data creation task
 gf_create_task -name Data
 gf_set_task_command "

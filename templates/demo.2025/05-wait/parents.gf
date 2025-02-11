@@ -1,5 +1,7 @@
 #!../../../bin/gflow
 
+# Complicated tasks dependencies demo
+
 # Root task
 gf_create_task -name Root
 gf_set_task_command "echo This is $TASK_NAME task; read"

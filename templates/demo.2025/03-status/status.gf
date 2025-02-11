@@ -1,5 +1,7 @@
 #!../../../bin/gflow
 
+# Task status demo
+
 # Failed task
 gf_create_task -name Fail
 gf_set_task_command 'cat ../../../Failed.log; read'

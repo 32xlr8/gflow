@@ -1,5 +1,7 @@
 #!../../../bin/gflow
 
+# Shell commands demo
+
 # Task start
 gf_create_task -name Command
 

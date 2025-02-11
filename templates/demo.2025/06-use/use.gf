@@ -1,5 +1,7 @@
 #!../../../bin/gflow
 
+# Dependent flow uses data from different flow
+
 # Data use task
 gf_create_task -name Use
 

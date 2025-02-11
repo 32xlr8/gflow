@@ -1,5 +1,7 @@
 #!../../../bin/gflow
 
+# Generic Config MMMC generation demo - low power support
+
 # Flow steps to paste
 gf_source steps.gf
 
@@ -16,6 +18,13 @@ gf_add_tool_commands -comment '#' -ext 'tcl' '
     `@init_gconfig_mmmc`
     `@init_variables`
     `@init_files`
+
+    # Timing conditions
+    gconfig::add_power_domain_timing_conditions {
+        -views {func ss 720mv * * *} {
+            PD_LP {* * 500mv * * *}
+        }
+    }
 
     # Dump MMMC file
     gconfig::get_mmmc_commands -dump_to_file ./mmmc.tcl -views {

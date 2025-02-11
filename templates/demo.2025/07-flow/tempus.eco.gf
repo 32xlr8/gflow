@@ -1,5 +1,8 @@
 #!../../../bin/gflow
 
+# Tempus ECO sub-flow
+
+# Load Tempus STA sub-flow
 gf_source tempus.sta.gf
 
 ##################################################

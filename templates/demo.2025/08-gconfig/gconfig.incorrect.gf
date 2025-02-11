@@ -1,5 +1,7 @@
 #!../../../bin/gflow
 
+# Generic Config MMMC generation demo - errors debug
+
 # Flow steps to paste
 gf_source steps.gf
 

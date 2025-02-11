@@ -1,5 +1,7 @@
 #!../../../bin/gflow
 
+# Simple task dependencies demo
+
 # Mother task
 gf_create_task -name Mother
 gf_set_task_command 'tree ../..; read'

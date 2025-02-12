@@ -611,7 +611,8 @@ gf_create_step -name innovus_post_init_design '
         # set_db route_design_antenna_cell_name [get_db base_cells .name ANTENNA*]
         # set_db route_design_antenna_diode_insertion true
         # set_db route_design_diode_insertion_for_clock_nets true
-
+        # set_db route_design_detail_fix_antenna true
+        
         # Additional routing settings (see foundry recommendations)
         # set_db route_design_with_via_in_pin 1:1
         # eval_legacy {setNanoRouteMode -drouteStrictlyHonorObsInStandardCell true}

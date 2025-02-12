@@ -79,6 +79,7 @@ function gf_use_voltus {
     gf_add_status_marks -1 -from 'Annotated \(%\)' -to '^\+\-+\+$'
     gf_add_status_marks '^Run directory:' '^Analysis view:' '^RC corner:' '^SPEF file:'
     gf_add_status_marks 'Voltage Source.*%' 'Current Tap.*%'
+    gf_add_status_marks 'Total annotation coverage' 'Names in file' 'Unique nets'
     gf_add_status_marks 'annotated' 'disconnected nodes'
     gf_add_status_marks 'Total.*Power:' 'Total .* coverage:' 'Num Violations:' 'Instance.* IR Drop:'
     gf_add_success_marks 'Exiting Voltus' 'Ending.*Voltus'
@@ -135,10 +136,10 @@ function gf_use_voltus_batch {
 
     # Status marks
     gf_add_status_marks 'Names in file' 'Unique nets'
-    gf_add_status_marks 'Total annotation coverage' 
     gf_add_status_marks -1 -from 'Annotated \(%\)' -to '^\+\-+\+$'
     gf_add_status_marks 'Run directory:' 'SPEF file:' 'QRC file:' 'MMMC file:'
     gf_add_status_marks 'Voltage Source.*%' 'Current Tap.*%'
+    gf_add_status_marks 'Total annotation coverage' 'Names in file' 'Unique nets'
     gf_add_status_marks 'annotated' 'disconnected nodes'
     gf_add_status_marks 'Total.*Power:' 'Total .* coverage:' 'Num Violations:' 'Instance.* IR Drop:'
     gf_add_success_marks 'Exiting Voltus' 'Ending.*Voltus'

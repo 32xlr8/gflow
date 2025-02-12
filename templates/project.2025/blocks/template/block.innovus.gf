@@ -1040,7 +1040,6 @@ gf_create_step -name innovus_pre_route_opt_setup_hold '
 
 # Commands after post-route setup and hold optimization
 gf_create_step -name innovus_post_route_opt_setup_hold '
-    set INNOVUS_DFM_VIA_SWAP_SCRIPT {`$INNOVUS_DFM_VIA_SWAP_SCRIPT -optional`}
     
     # # Re-insert fillers by priority (post-route mode)
     # delete_filler
@@ -1059,6 +1058,7 @@ gf_create_step -name innovus_post_route_opt_setup_hold '
     # # add_fillers -fill_gap -prefix FILLER
 
     # DFM via replacement
+    set INNOVUS_DFM_VIA_SWAP_SCRIPT {`$INNOVUS_DFM_VIA_SWAP_SCRIPT -optional`}
     if {[file exists $INNOVUS_DFM_VIA_SWAP_SCRIPT]} {
         eval_legacy [subst {
             source {$INNOVUS_DFM_VIA_SWAP_SCRIPT}
@@ -1093,7 +1093,13 @@ gf_create_step -name innovus_procs_interactive_design '
         set_db assign_pins_edit_in_batch true
 
         # Source script
-        source [join {`$INNOVUS_INIT_PORTS_SCRIPT -optional`}]
+        set script [join {`$INNOVUS_INIT_PORTS_SCRIPT -optional`}]
+        if {[file exists $script]} {
+            puts "\033\[32;42m \033\[0m Sourcing $script ..."
+            source $script
+        } else {
+            puts "\033\[31;41m \033\[0m Script $script not found"
+        }
 
         # Batch mode off
         set_db assign_pins_edit_in_batch false
@@ -1101,12 +1107,24 @@ gf_create_step -name innovus_procs_interactive_design '
 
     # External power grid creation script
     proc gf_init_power_grid {} {
-        source [join {`$INNOVUS_INIT_POWER_GRID_SCRIPT`}]
+        set script [join {`$INNOVUS_INIT_POWER_GRID_SCRIPT`}]
+        if {[file exists $script]} {
+            puts "\033\[32;42m \033\[0m Sourcing $script ..."
+            source $script
+        } else {
+            puts "\033\[31;41m \033\[0m Script $script not found"
+        }
     }
 
     # External flip chip routing script
     proc gf_route_flipchip {} {
-        source [join {`$INNOVUS_ROUTE_FLIPCHIP_SCRIPT -optional`}]
+        set script [join {`$INNOVUS_ROUTE_FLIPCHIP_SCRIPT -optional`}]
+        if {[file exists $script]} {
+            puts "\033\[32;42m \033\[0m Sourcing $script ..."
+            source $script
+        } else {
+            puts "\033\[31;41m \033\[0m Script $script not found"
+        }
     }
     
     # Add physical cells after floorplan modifications

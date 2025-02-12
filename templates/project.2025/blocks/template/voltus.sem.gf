@@ -78,6 +78,10 @@ gf_add_tool_commands '
     # Design variables
     `@voltus_pre_init_design_variables`
 
+    # Link design files
+    exec ln -nsf $DATA_OUT_DIR/$DESIGN_NAME.v.gz ./in/$TASK_NAME.v.gz
+    exec ln -nsf $DATA_OUT_DIR/$DESIGN_NAME.full.def.gz ./in/$TASK_NAME.def.gz
+
     # Read physical files
     read_physical -lefs [join $LEF_FILES]
     

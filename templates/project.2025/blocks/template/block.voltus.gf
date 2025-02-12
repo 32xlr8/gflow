@@ -407,6 +407,7 @@ gf_create_step -name voltus_pre_write_pgv_macros '
 
 # Commands before performing static power analysis
 gf_create_step -name voltus_run_report_power_static '
+    set VOLTUS_PGV_LIBS [join [concat {`$VOLTUS_PGV_LIBS`} [gconfig::get_files pgv -view $DYNAMIC_RAIL_VIEW]]]
 
     # Reset options
     set_power -reset
@@ -415,7 +416,7 @@ gf_create_step -name voltus_run_report_power_static '
     set_default_switching_activity -reset
 
     # Input files
-    set_db power_grid_libraries [join {`$VOLTUS_PGV_LIBS`}]
+    set_db power_grid_libraries $VOLTUS_PGV_LIBS
     set_db power_include_file [join {`$VOLTUS_STATIC_POWER_INCLUDE_FILE -optional`}]
     catch {set_db power_extractor_include [join {`$VOLTUS_EXTRACTOR_INCLUDE_FILE -optional`}]}
 
@@ -494,7 +495,7 @@ gf_create_step -name voltus_run_report_power_static '
 
 # Commands before performing static rail analysis
 gf_create_step -name voltus_run_report_rail_static '
-    set VOLTUS_PGV_LIBS {`$VOLTUS_PGV_LIBS`}
+    set VOLTUS_PGV_LIBS [join [concat {`$VOLTUS_PGV_LIBS`} [gconfig::get_files pgv -view $DYNAMIC_RAIL_VIEW]]]
     set VOLTUS_ICT_EM_RULE [join {`$VOLTUS_ICT_EM_RULE -optional`}]
 
     # Reset options
@@ -505,7 +506,7 @@ gf_create_step -name voltus_run_report_rail_static '
     set_rail_analysis_config \
         -extraction_tech_file [gconfig::get_files qrc -view $STATIC_RAIL_VIEW] \
             -temperature [gconfig::get temperature -view $STATIC_RAIL_VIEW] \
-        -power_grid_libraries [join $VOLTUS_PGV_LIBS] \
+        -power_grid_libraries $VOLTUS_PGV_LIBS \
         -cluster_via_rule $CLUSTER_VIA_RULE \
             -cluster_via_size 1 \
             -cluster_via1_ports false \
@@ -589,6 +590,7 @@ gf_create_step -name voltus_run_report_rail_static '
 
 # Commands before performing dynamic power analysis
 gf_create_step -name voltus_run_report_power_dynamic '
+    set VOLTUS_PGV_LIBS [join [concat {`$VOLTUS_PGV_LIBS`} [gconfig::get_files pgv -view $DYNAMIC_RAIL_VIEW]]]
 
     # Reset options
     set_power -reset
@@ -597,7 +599,7 @@ gf_create_step -name voltus_run_report_power_dynamic '
     set_default_switching_activity -reset
 
     # Input files
-    set_db power_grid_libraries [join {`$VOLTUS_PGV_LIBS`}]
+    set_db power_grid_libraries $VOLTUS_PGV_LIBS
     set_db power_include_file [join {`$VOLTUS_DYNAMIC_POWER_INCLUDE_FILE -optional`}]
     catch {set_db power_extractor_include [join {`$VOLTUS_EXTRACTOR_INCLUDE_FILE -optional`}]}
     
@@ -682,7 +684,7 @@ gf_create_step -name voltus_run_report_power_dynamic '
 
 # Commands before performing dynamic rail analysis
 gf_create_step -name voltus_run_report_rail_dynamic '
-    set VOLTUS_PGV_LIBS {`$VOLTUS_PGV_LIBS`}
+    set VOLTUS_PGV_LIBS [join [concat {`$VOLTUS_PGV_LIBS`} [gconfig::get_files pgv -view $DYNAMIC_RAIL_VIEW]]]
     set VOLTUS_ICT_EM_RULE {`$VOLTUS_ICT_EM_RULE -optional`}
 
     # Reset options
@@ -693,7 +695,7 @@ gf_create_step -name voltus_run_report_rail_dynamic '
     set_rail_analysis_config \
         -extraction_tech_file [gconfig::get_files qrc -view $DYNAMIC_RAIL_VIEW] \
             -temperature [gconfig::get temperature -view $DYNAMIC_RAIL_VIEW] \
-        -power_grid_libraries [join $VOLTUS_PGV_LIBS] \
+        -power_grid_libraries $VOLTUS_PGV_LIBS \
         -cluster_via_rule $CLUSTER_VIA_RULE \
             -cluster_via_size 1 \
             -cluster_via1_ports false \

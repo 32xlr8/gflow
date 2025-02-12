@@ -71,6 +71,11 @@ gf_choose -count 25 -keep -variable POWER_SCENARIO \
     -message "Which power scenario to run?" \
     -variants "$(echo "$POWER_SCENARIOS" | sed -e 's|^\s\+||g; s|\s\+$||g;')"
 
+
+# Select PGV to analyze if empty
+gf_choose_file_dir_task -variable VOLTUS_PGV_LIBS -keep -prompt "Choose PGV libraries:" -dirs '
+    ../work_*/*/out/TechPGV*/*.cl
+'
 # TCL commands
 gf_add_tool_commands '
 
@@ -96,6 +101,10 @@ gf_add_tool_commands '
 
     # Design variables
     `@voltus_pre_init_design_variables`
+
+    # Link design files
+    exec ln -nsf $DATA_OUT_DIR/$DESIGN_NAME.v.gz ./in/$TASK_NAME.v.gz
+    exec ln -nsf $DATA_OUT_DIR/$DESIGN_NAME.full.def.gz ./in/$TASK_NAME.def.gz
 
     # Read physical files
     read_physical -lefs [join $LEF_FILES]
@@ -201,9 +210,6 @@ gf_add_tool_commands '
     
     # Report missing power data
     catch {foreach file [glob ./out/$TASK_NAME.power/*missing*] {exec grep {:} $file}}
-
-    # PGV libraries for rail analysis
-    set VOLTUS_PGV_LIBS [join [concat {`$VOLTUS_PGV_LIBS`} [gconfig::get_files pgv -view $DYNAMIC_RAIL_VIEW]]]
 
     # Run rail analysis
     exec rm -Rf ./out/$TASK_NAME.rail/

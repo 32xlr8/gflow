@@ -1326,9 +1326,7 @@ gf_create_step -name innovus_procs_interactive_design '
     # Finalize and save floorplan
     proc gf_finish_floorplan {} {
         gui_hide
-        
-        # gf_reserve_space_for_tcd
-        
+
         # gf_init_io_rows
         # gf_init_io_fillers
         

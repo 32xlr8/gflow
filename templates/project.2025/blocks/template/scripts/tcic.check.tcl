@@ -1,4 +1,5 @@
 # Check floorplan with TCIC rules
+<PLACEHOLDER>
 eval_legacy {
     source "*_tCIC_macro_usage_manager.tcl"
     source "*_tCIC_set_cip_variables.tcl"

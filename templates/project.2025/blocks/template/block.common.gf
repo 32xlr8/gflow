@@ -269,9 +269,9 @@ RTL_FILES='
 ################################################################################
 
 # Innovus scripts templates
-INNOVUS_INIT_PORTS_SCRIPT='../../../../template/scripts/init.ports.tcl'
-INNOVUS_INIT_POWER_GRID_SCRIPT='../../../../template/scripts/init.pg.default.tcl'
-INNOVUS_ROUTE_FLIPCHIP_SCRIPT='../../../../template/scripts/route.flipchip.tcl'
+INNOVUS_INIT_PORTS_SCRIPT='../../../../../template/scripts/init.ports.tcl'
+INNOVUS_INIT_POWER_GRID_SCRIPT='../../../../../template/scripts/init.pg.default.tcl'
+INNOVUS_ROUTE_FLIPCHIP_SCRIPT='../../../../../template/scripts/route.flipchip.tcl'
 
 # # Innovus GDS map file and units in nm (mandatory for ./innovus.out.gf)
 # <PLACEHOLDER>

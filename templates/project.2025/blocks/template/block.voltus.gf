@@ -102,6 +102,11 @@ gf_create_step -name voltus_gconfig_power_rail_design_settings '
     # - ccs_p_libraries - CCS-P (Liberty) files used for precise power calculation
     gconfig::enable_switches ccs_p_libraries
    
+    # Choose separate variation libraries (optional with ecsm_libraries or ccs_libraries):
+    # - aocv_libraries - AOCV (advanced, SBOCV)
+    # - socv_libraries - SOCV (statistical)
+    gconfig::enable_switches aocv_libraries
+
     # Choose derating scenarios (additional variations):
     # - flat_derates - used with NLDM (see process node documentation)
     # - no_derates - zero derates (optimistic for prototyping mode)
@@ -129,6 +134,11 @@ gf_create_step -name voltus_gconfig_electromigration_design_settings '
     # - ecsm_p_libraries - ECSM-P (Liberty) files used for precise power calculation
     # - ccs_p_libraries - CCS-P (Liberty) files used for precise power calculation
     gconfig::enable_switches ccs_libraries
+   
+    # Choose separate variation libraries (optional with ecsm_libraries or ccs_libraries):
+    # - aocv_libraries - AOCV (advanced, SBOCV)
+    # - socv_libraries - SOCV (statistical)
+    gconfig::enable_switches aocv_libraries
    
     # Choose derating scenarios (additional variations):
     # - flat_derates - used with NLDM (see process node documentation)

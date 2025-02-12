@@ -36,7 +36,8 @@ gf_set_task_options -cpu 8 -mem 20
 
 # Top cell name in netlist (default is current block directory name)
 DESIGN_NAME="$(basename $PWD | sed -e 's|\..*$||')"
-# DESIGN_NAME='<PLACEHOLDER>block_name'
+# <PLACEHOLDER>
+# DESIGN_NAME='block_name'
 
 # Global core nets
 POWER_NETS_CORE='VDD'
@@ -227,25 +228,24 @@ gf_create_step -name gconfig_settings_common '
 ################################################################################
 
 # # Paths to locate relative RTL files (only when RTL files used without full path)
+# <PLACEHOLDER>
 # RTL_SEARCH_PATHS='
-#     <PLACEHOLDER>
 #     ../../../../../../data/hdl
 #     ../../../../data/hdl
 # '
-# 
+
 # # RTL defines to apply
+# <PLACEHOLDER>
 # RTL_DEFINES='
-#     <PLACEHOLDER>
 #     SYNTHESIS
 # '
-# 
-# # Option 1: List of system-verilog RTL files for synthesis
-# RTL_FILES='
-#     <PLACEHOLDER>
-#     block_name.sv
-# '
+
+# Option 1: List of system-verilog RTL files for synthesis
+<PLACEHOLDER>
+RTL_FILES='
+    block_name.sv
+'
 # # Option 2: System-verilog RTL files list for synthesis
-# <PLACEHOLDER>
 # RTL_FILES_LIST='/path/to/block.f'
 
 ################################################################################
@@ -441,15 +441,15 @@ INNOVUS_ROUTE_FLIPCHIP_SCRIPT='../../../../template/scripts/route.flipchip.tcl'
 # 
 # # # Partitions databases to assemble after route (assemble design for flat timing and power analysis)
 # # PARTITIONS_INNOVUS_DATABASES='
-# #     <PLACEHOLDER>../../../../../partition/work_*/innovus.be.0000/out/Route.innovus.db
+# #     ../../../../../partition/work_*/innovus.be.0000/out/Route.innovus.db
 # #'
 # 
 # # # Partitions netlist files (hierarchical power and timing analysis)
 # # PARTITIONS_NETLIST_FILES='
-# #     <PLACEHOLDER>../../../../../partition/work_*/innovus.out.0000/out/InnovusOut/partition.v.gz
+# #     ../../../../../partition/work_*/innovus.out.0000/out/InnovusOut/partition.v.gz
 # # '
 # #
 # # # Partitions DEF files (hierarchical power and timing analysis)
 # # PARTITIONS_DEF_FILES='
-# #     <PLACEHOLDER>../../../../../partition/work_*/innovus.out.0000/out/InnovusOut/partition.pg.def.gz
+# #     ../../../../../partition/work_*/innovus.out.0000/out/InnovusOut/partition.pg.def.gz
 # # '

@@ -656,30 +656,32 @@ gf_create_step -name innovus_post_init_design '
 gf_create_step -name innovus_pre_place '
 
     # Clock tree cells
+    <PLACEHOLDER>
     set_db cts_buffer_cells [get_db [get_db base_cells {
-        <PLACEHOLDER>DCAP_CLOCK_BUFFER_CELL_NAME:DCCKB*LVT
+        DCAP_CLOCK_BUFFER_CELL_NAME:DCCKB*LVT
     }] .name]
     set_db cts_inverter_cells [get_db [get_db base_cells {
-        <PLACEHOLDER>DCAP_CLOCK_INVERTER_CELL_NAME:DCCKN*LVT
+        DCAP_CLOCK_INVERTER_CELL_NAME:DCCKN*LVT
     }] .name]
     set_db cts_clock_gating_cells [get_db [get_db base_cells {
-        <PLACEHOLDER>CLOCK_LATCH_HIGH_CELL_NAME:CKLHQ*LVT
-        <PLACEHOLDER>CLOCK_LATCH_LOW_CELL_NAME:CKLNQ*LVT
+        CLOCK_LATCH_HIGH_CELL_NAME:CKLHQ*LVT
+        CLOCK_LATCH_LOW_CELL_NAME:CKLNQ*LVT
     }] .name]
     set_db cts_logic_cells [get_db [get_db base_cells {
-        <PLACEHOLDER>CLOCK_MUX_CELL_NAME:CKMUX2*LVT
-        <PLACEHOLDER>CLOCK_NAND_CELL_NAME:CKND2*LVT
-        <PLACEHOLDER>CLOCK_NOR_CELL_NAME:CKNR2*LVT
-        <PLACEHOLDER>CLOCK_AND_CELL_NAME:CKAN2*LVT
-        <PLACEHOLDER>CLOCK_OR_CELL_NAME:CKOR2*LVT
-        <PLACEHOLDER>CLOCK_XOR_CELL_NAME:CKXOR2*LVT
-        <PLACEHOLDER>DCAP_CLOCK_INVERTER_CELL_NAME:DCCKN*
+        CLOCK_MUX_CELL_NAME:CKMUX2*LVT
+        CLOCK_NAND_CELL_NAME:CKND2*LVT
+        CLOCK_NOR_CELL_NAME:CKNR2*LVT
+        CLOCK_AND_CELL_NAME:CKAN2*LVT
+        CLOCK_OR_CELL_NAME:CKOR2*LVT
+        CLOCK_XOR_CELL_NAME:CKXOR2*LVT
+        DCAP_CLOCK_INVERTER_CELL_NAME:DCCKN*
     }] .name]
 
     # Hold fixing cells
+    <PLACEHOLDER>
     set_db opt_fix_hold_lib_cells [get_db [get_db base_cells {
-        <PLACEHOLDER>DATA_DELAY_CELL_NAME:DEL*
-        <PLACEHOLDER>DATA_BUFFER_CELL_NAME:BUFF*
+        DATA_DELAY_CELL_NAME:DEL*
+        DATA_BUFFER_CELL_NAME:BUFF*
     }] .name]
 
     # NDR for clock routing

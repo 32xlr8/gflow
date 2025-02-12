@@ -117,7 +117,7 @@ gf_create_step -name tempus_gconfig_design_variables '
     
     # SDF views
     set SDF_MAX_VIEW {func ss 0p900v m40 rcwt s}
-    set SDF_MIN_VIEW {func ff 1p100v m40 cw h}
+    set SDF_MIN_VIEW {func ff 1p100v m40 cb h}
     set SDF_TYP_VIEW {func tt 1p000v 85 rcw p}
 '
 
@@ -178,10 +178,11 @@ gf_create_step -name tempus_gconfig_design_settings '
     }
     
     # # Optional: set user-specific clock uncertainty values for all clocks
+    # <PLACEHOLDER>
     # gconfig::add_section {
     #     -when default_uncertainty {
-    #         -views {* ss 0p900v * * *} {$process_uncertainty 0 $setup_uncertainty <PLACEHOLDER>100 $hold_uncertainty <PLACEHOLDER>50}
-    #         -views {* ff 1p100v * * *} {$process_uncertainty 0 $setup_uncertainty <PLACEHOLDER>100 $hold_uncertainty <PLACEHOLDER>50}
+    #         -views {* ss 0p900v * * *} {$process_uncertainty 0 $setup_uncertainty 100 $hold_uncertainty 50}
+    #         -views {* ff 1p100v * * *} {$process_uncertainty 0 $setup_uncertainty 100 $hold_uncertainty 50}
     #     }
     # }
     
@@ -359,28 +360,31 @@ gf_create_step -name tempus_post_init_design '
 gf_create_step -name init_cells_tempus '
 
     # Clock tree cells
+    <PLACEHOLDER>
     set_db opt_signoff_clock_cell_list [join {
-        <PLACEHOLDER>CLOCK_BUFFER_CELL_NAME
-        <PLACEHOLDER>CLOCK_INVERTER_CELL_NAME
-        <PLACEHOLDER>CLOCK_GATING_CELL_NAME
-        <PLACEHOLDER>CLOCK_NAND_CELL_NAME
-        <PLACEHOLDER>CLOCK_NOR_CELL_NAME
-        <PLACEHOLDER>CLOCK_XNOR_CELL_NAME
-        <PLACEHOLDER>CLOCK_AND_CELL_NAME
-        <PLACEHOLDER>CLOCK_OR_CELL_NAME
-        <PLACEHOLDER>CLOCK_XOR_CELL_NAME
+        CLOCK_BUFFER_CELL_NAME
+        CLOCK_INVERTER_CELL_NAME
+        CLOCK_GATING_CELL_NAME
+        CLOCK_NAND_CELL_NAME
+        CLOCK_NOR_CELL_NAME
+        CLOCK_XNOR_CELL_NAME
+        CLOCK_AND_CELL_NAME
+        CLOCK_OR_CELL_NAME
+        CLOCK_XOR_CELL_NAME
     }]
 
     # Hold fixing cells
+    <PLACEHOLDER>
     set_db opt_signoff_buffer_cell_list [join {
-        <PLACEHOLDER>DATA_DELAY_CELL_NAME
-        <PLACEHOLDER>DATA_BUFFER_CELL_NAME
+        DATA_DELAY_CELL_NAME
+        DATA_BUFFER_CELL_NAME
     }]
 
     # Decap and filler cells
+    <PLACEHOLDER> 2-dimensional list
     set_db add_fillers_cells [list \
-        [get_db base_cells .name <PLACEHOLDER>DCAP*] \
-        [get_db base_cells .name <PLACEHOLDER>FILL*] \
+        [get_db base_cells .name DCAP*] \
+        [get_db base_cells .name FILL*] \
     ]
 '
 

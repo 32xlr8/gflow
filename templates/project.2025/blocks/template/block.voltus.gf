@@ -179,7 +179,7 @@ gf_create_step -name voltus_pre_init_design_variables '
     set CLUSTER_VIA_RULE {{VIA1 1} {VIA2 1} .. {RV 1}}
 
     # Currents generation methods (peak or avg)
-    set STATIC_POWER_CURRENT_METHOD "peak"
+    set STATIC_POWER_CURRENT_METHOD "avg"
     set DYNAMIC_POWER_CURRENT_METHOD "avg"
 '
 
@@ -446,8 +446,9 @@ gf_create_step -name voltus_run_report_power_static '
     # set_db power_z_transition_factor 1.0
     
     # Design settings
-    set_db power_default_frequency <PlACEHOLDER>1000.0
-    set_db power_default_slew <PlACEHOLDER>0.150
+    <PlACEHOLDER>
+    set_db power_default_frequency 1000.0
+    set_db power_default_slew 0.150
     set_db power_default_supply_voltage [lindex $VOLTUS_POWER_NETS_PAIRS 1]
     # set_db power_ignore_control_signals false
     # set_db power_static_netlist def
@@ -481,10 +482,11 @@ gf_create_step -name voltus_run_report_power_static '
         set_default_switching_activity -clock_gates_output 2
 
     # # VCD-based analysis
+    # <PLACEHOLDER>
     # } elseif {$POWER_SCENARIO == "VCD: Default mode"} {
-    #     read_activity_file <PLACEHOLDER>/PATH_TO/ACTIVITY_FILE.vcd -format <PLACEHOLDER>VCD \
-    #         -scope <PLACEHOLDER>/design_instance/scope/in/vcd \
-    #         -start <PLACEHOLDER>10ns -end <PLACEHOLDER>20ns
+    #     read_activity_file /PATH_TO/ACTIVITY_FILE.vcd -format VCD \
+    #         -scope /design_instance/scope/in/vcd \
+    #         -start 10ns -end 20ns
     #     set_db power_scale_to_sdc_clock_frequency true
     #     set_db power_use_zero_delay_vector_file true
         
@@ -628,8 +630,9 @@ gf_create_step -name voltus_run_report_power_dynamic '
     # set_db power_z_transition_factor 1.0
 
     # Design settings
-    set_db power_default_frequency <PlACEHOLDER>1000.0
-    set_db power_default_slew <PlACEHOLDER>0.150
+    <PlACEHOLDER>
+    set_db power_default_frequency 1000.0
+    set_db power_default_slew 0.150
     set_db power_default_supply_voltage [lindex $VOLTUS_POWER_NETS_PAIRS 1]
     # set_db power_ignore_control_signals false
     # set_db power_static_netlist def
@@ -668,12 +671,13 @@ gf_create_step -name voltus_run_report_power_dynamic '
         set_dynamic_power_simulation -resolution 10ps -period 10ns
 
     # # VCD-based analysis
+    # <PLACEHOLDER>
     # } elseif {$POWER_SCENARIO == "VCD: Default mode"} {
-    #     read_activity_file <PLACEHOLDER>/PATH_TO/ACTIVITY_FILE.vcd -format <PLACEHOLDER>VCD \
-    #         -scope <PLACEHOLDER>/design_instance/scope/in/vcd \
-    #         -start <PLACEHOLDER>10ns -end <PLACEHOLDER>20ns
+    #     read_activity_file /PATH_TO/ACTIVITY_FILE.vcd -format VCD \
+    #         -scope /design_instance/scope/in/vcd \
+    #         -start 10ns -end 20ns
     #     set_db power_method dynamic_vectorbased
-    #     set_dynamic_power_simulation -resolution <PLACEHOLDER>10ps
+    #     set_dynamic_power_simulation -resolution 10ps
     #     set_db power_scale_to_sdc_clock_frequency true
     #     set_db power_use_zero_delay_vector_file true
 

@@ -35,12 +35,13 @@ gf_create_step -name init_tempus_environment '
     # export OA_UNSUPPORTED_PLAT=linux_rhel60
 
     # Add path the directory with tool binaries
+    <PLACEHOLDER>
     export CDS_STYLUS_SOURCE_VERBOSE=1
-    export PATH="${PATH}:<PLACEHOLDER>/PATH_TO_SSV/bin"
+    export PATH="${PATH}:/PATH_TO_SSV/bin"
 
     # # Path to the libraries in case they are missing in Linux
-    # export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:<PLACEHOLDER>/PATH_TO_SSV/tools/lib64"
-    # export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:<PLACEHOLDER>/PATH_TO_SSV/tools/lib"
+    # export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/PATH_TO_SSV/tools/lib64"
+    # export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/PATH_TO_SSV/tools/lib"
 '
 
 # Project-specific tool environment

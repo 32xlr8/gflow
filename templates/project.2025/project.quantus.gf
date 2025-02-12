@@ -38,8 +38,8 @@ gf_create_step -name init_quantus_environment '
     export PATH="${PATH}:/PATH_TO_EXT/bin"
 
     # # Path to the libraries in case they are missing in Linux
-    # export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:<PLACEHOLDER>/PATH_TO_EXT/tools/lib64"
-    # export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:<PLACEHOLDER>/PATH_TO_EXT/tools/lib"
+    # export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/PATH_TO_EXT/tools/lib64"
+    # export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/PATH_TO_EXT/tools/lib"
 '
 
 # Project-specific tool environment

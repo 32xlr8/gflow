@@ -35,7 +35,8 @@ gf_set_task_options -disable Antenna
 ################################################################################
 
 # # Nets to connect virtually during LVS
-# LVS_VIRTUAL_NET_CONNECT="<PLACEHOLDER>POC VDD VSS VSSPST VDDPST AVDD AVSS"
+# <PLACEHOLDER>
+# LVS_VIRTUAL_NET_CONNECT="POC VDD VSS VSSPST VDDPST AVDD AVSS"
 
 # Sed commands to replace LEF metal layer names with GDS text layer numbers 
 MAP_PORT_NAMES_SED_SCRIPT='

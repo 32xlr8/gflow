@@ -265,7 +265,7 @@ gf_create_step -name genus_post_init_design '
     # set_db input_pragma_keyword {synopsys}
 
     # # Flop settings
-    #set_db multibit_allow_unused_bits true
+    # set_db multibit_allow_unused_bits true
 
     # Non-scan flops insertion
     set_db use_scan_seqs_for_non_dft false

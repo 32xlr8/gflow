@@ -227,6 +227,9 @@ gf_add_tool_commands '
     # Check cells with missing LEF files
     `@innovus_check_missing_cells`
 
+    # Show available scripts
+    gf_show_scripts
+
     # Enable rectilinear floorplanning
     set_preference EnableRectilinearDesign 1
 

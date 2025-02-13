@@ -1091,14 +1091,14 @@ gf_create_step -name innovus_procs_interactive_design '
         puts ""
         if {[llength [set scripts [glob ../../../../../template/scripts/*.tcl]]]} {
             puts "Template scripts\n"
-            foreach script $scripts {
+            foreach script [lsort $scripts] {
                 puts "\033\[33;43m \033\[0m source $script"
             }
             puts ""
         }
         if {[llength [set scripts [glob ../../../../scripts/*.tcl]]]} {
             puts "Block scripts\n"
-            foreach script $scripts {
+            foreach script [lsort $scripts] {
                 puts "\033\[32;42m \033\[0m source $script"
             }
             puts ""

@@ -342,7 +342,8 @@ INNOVUS_ROUTE_FLIPCHIP_SCRIPT='../../../../../template/scripts/route.flipchip.tc
 
 # # Signal EM analysis rule file (mandatory for signal elecromigration analysis)
 # <PLACEHOLDER>
-# VOLTUS_ICT_EM_RULE='/PATH_TO/VOLTUS_EM_RULE.ictem'
+# VOLTUS_EM_MODELS='/PATH_TO/VSTORM/EM.rules'
+# VOLTUS_ICT_EM_MODELS='/PATH_TO/VOLTUS_EM_RULE.ictem'
 
 # # Optional include files
 # VOLTUS_STATIC_POWER_INCLUDE_FILE=/PATH/TO/static.include.cmd

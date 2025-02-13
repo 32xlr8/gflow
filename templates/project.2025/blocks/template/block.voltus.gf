@@ -512,7 +512,6 @@ gf_create_step -name voltus_run_report_power_static '
 # Commands before performing static rail analysis
 gf_create_step -name voltus_run_report_rail_static '
     set VOLTUS_PGV_LIBS [join [concat {`$VOLTUS_PGV_LIBS`} [gconfig::get_files pgv -view $DYNAMIC_RAIL_VIEW]]]
-    set VOLTUS_ICT_EM_RULE [join {`$VOLTUS_ICT_EM_RULE -optional`}]
 
     # Reset options
     set_power_pads -reset
@@ -528,9 +527,10 @@ gf_create_step -name voltus_run_report_rail_static '
             -cluster_via1_ports false \
         -em_peak_analysis true \
             -process_techgen_em_rules false \
-            -ict_em_models $VOLTUS_ICT_EM_RULE \
             -em_temperature $EM_TEMPERATURE \
             -em_threshold $EM_THRESHOLD \
+            -em_models [join {`$VOLTUS_EM_MODELS -optional`}] \
+            -ict_em_models [join {`$VOLTUS_ICT_EM_MODELS -optional`}] \
             -lifetime $EM_LIFE_TIME \
         -enable_manufacturing_effects true \
         -enable_rlrp_analysis true \
@@ -703,7 +703,6 @@ gf_create_step -name voltus_run_report_power_dynamic '
 # Commands before performing dynamic rail analysis
 gf_create_step -name voltus_run_report_rail_dynamic '
     set VOLTUS_PGV_LIBS [join [concat {`$VOLTUS_PGV_LIBS`} [gconfig::get_files pgv -view $DYNAMIC_RAIL_VIEW]]]
-    set VOLTUS_ICT_EM_RULE {`$VOLTUS_ICT_EM_RULE -optional`}
 
     # Reset options
     set_power_pads -reset
@@ -793,7 +792,6 @@ gf_create_step -name voltus_run_report_rail_dynamic '
 
 # Commands before performing dynamic rail analysis
 gf_create_step -name voltus_run_signal_em '
-    set VOLTUS_ICT_EM_RULE {`$VOLTUS_ICT_EM_RULE -optional`}
 
     # Reset options
     set_power -reset
@@ -830,8 +828,9 @@ gf_create_step -name voltus_run_signal_em '
     }
 
     # Run analysis
-    if {$VOLTUS_ICT_EM_RULE != ""} {
-        set_db check_ac_limit_ict_em_models $VOLTUS_ICT_EM_RULE
+    set VOLTUS_ICT_EM_MODELS {`$VOLTUS_ICT_EM_MODELS -optional`}
+    if {$VOLTUS_ICT_EM_MODELS != ""} {
+        set_db check_ac_limit_ict_em_models $VOLTUS_ICT_EM_MODELS
     } else {
         set_db check_ac_limit_use_qrc_tech true
     }

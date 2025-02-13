@@ -1412,8 +1412,12 @@ gf_create_step -name innovus_design_reports_post_place '
 gf_create_step -name innovus_design_reports_post_clock '
 
     # Set of post-clock reports in simultaneous setup and hold mode
-    `@innovus_report_clock_timing`
     gf_report_simultaneous_time_design ./reports/$TASK_NAME
+
+    # Clock timing
+    report_clock_timing -type summary > ./reports/$TASK_NAME/clock.summary.rpt
+    report_clock_timing -type latency > ./reports/$TASK_NAME/clock.latency.rpt
+    report_clock_timing -type skew > ./reports/$TASK_NAME/clock.skew.rpt
 
     # Late timing
     gf_report_timing ./reports/$TASK_NAME late 150 1000 10000

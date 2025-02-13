@@ -162,27 +162,27 @@ gf_create_step -name gconfig_cadence_mmmc_files '
     # Block-specific SDC files
     <PLACEHOLDER>
     gconfig::add_files sdc -views {func * * * * *} {
-        ../../../../data/func.sdc
+        ../../../../scripts/func.sdc
     }
     # gconfig::add_files sdc -views {scan * * * * *} {
-    #     ../../../../data/scan.sdc
+    #     ../../../../scripts/scan.sdc
     # }
     
     # # View-independent constraints
     # gconfig::add_files sdc {
-    #     ../../../../data/design.sdc
+    #     ../../../../scripts/design.sdc
     # }
 
     # # Clock uncertainty stored in separate SDC files
     # <PLACEHOLDER>
     # gconfig::add_files sdc -views {func tt * * * *} {
-    #     ../../../../data/uncertainty.tt.sdc
+    #     ../../../../scripts/uncertainty.tt.sdc
     # }
     # gconfig::add_files sdc -views {func ss * * * *} {
-    #     ../../../../data/uncertainty.ss.sdc
+    #     ../../../../scripts/uncertainty.ss.sdc
     # }
     # gconfig::add_files sdc -views {func ff * * * *} {
-    #     ../../../../data/uncertainty.ff.sdc
+    #     ../../../../scripts/uncertainty.ff.sdc
     # }
 
     `@gconfig_cadence_mmmc_partitions_files -optional`
@@ -423,7 +423,7 @@ INNOVUS_ROUTE_FLIPCHIP_SCRIPT='../../../../../template/scripts/route.flipchip.tc
 #     # # Partitions SDC files (flat timing analysis)
 #     # gconfig::add_files sdc {
 #     #     -when assembled {
-#     #         ../../../../data/${constraint_mode_name}.partition.sdc
+#     #         ../../../../scripts/${constraint_mode_name}.partition.sdc
 #     #     }
 #     # }
 # '

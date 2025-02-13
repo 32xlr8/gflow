@@ -48,6 +48,9 @@ gf_set_task_options 'TempusOut_*' -group TempusOut -parallel 8
 # gf_set_task_options -disable STA
 # gf_set_task_options -disable TSO
 
+# Spread parallel tasks in time
+TEMPUS_WAIT_TIME_STEP=60
+
 ################################################################################
 # Flow variables
 ################################################################################

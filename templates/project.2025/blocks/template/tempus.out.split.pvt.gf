@@ -36,15 +36,12 @@ gf_source -once "./block.tempus.gf"
 # Run tasks in silent mode
 gf_set_task_options 'TempusOut_*' -silent
 
-# Spread tasks in time
-WAIT_TIME_STEP=60
-
 ########################################
 # Split tasks
 ########################################
 
 # Spread tasks in time
-[[ -n "$WAIT_TIME_STEP" ]] && WAIT_TIME=0
+[[ -n "$TEMPUS_WAIT_TIME_STEP" ]] && WAIT_TIME=0
 
 gf_create_task -name SplitTempusOut -restart
 gf_set_task_command "sleep 10; grep -H set ./in/$TASK_NAME/*.tcl"
@@ -116,9 +113,9 @@ gf_create_task -name TempusOut_$GROUP -mother SplitTempusOut
 gf_use_tempus
 
 # Spread tasks in time
-if [ -n "$WAIT_TIME_STEP" -a -z "$GF_SKIP_TASK" ]; then
+if [ -n "$TEMPUS_WAIT_TIME_STEP" -a -z "$GF_SKIP_TASK" ]; then
     gf_wait_time $WAIT_TIME
-    WAIT_TIME=$((WAIT_TIME+$WAIT_TIME_STEP))
+    WAIT_TIME=$((WAIT_TIME+$TEMPUS_WAIT_TIME_STEP))
 fi
 
 # Design data directory

@@ -38,6 +38,9 @@ gf_info "Loading block-specific Quantus steps ..."
 # gf_set_task_options QuantusOut -group Heavy -parallel 1
 gf_set_task_options 'QuantusOut_*' -group QuantusOut -parallel 8
 
+# Spread parallel tasks in time
+QUANTUS_WAIT_TIME_STEP=60
+
 ################################################################################
 # Flow variables
 ################################################################################

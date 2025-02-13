@@ -74,7 +74,6 @@ gf_add_tool_commands '
     set POWER_NETS {`$POWER_NETS_CORE` `$POWER_NETS_OTHER -optional`}
     set GROUND_NETS {`$GROUND_NETS_CORE` `$GROUND_NETS_OTHER -optional`}
     set IGNORE_IO_TIMING {`$IGNORE_IO_TIMING`}
-    set MMMC_FILE {`$MMMC_FILE`}
     set OCV_FILE "[regsub {\.mmmc\.tcl$} $MMMC_FILE {}].ocv.tcl"
 
     # Ignore IMPESI-3490

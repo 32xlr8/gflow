@@ -1109,9 +1109,6 @@ gf_create_step -name innovus_procs_interactive_design '
     proc gf_init_ports {} {
         gf_reset_ports
     
-        # Batch mode on
-        set_db assign_pins_edit_in_batch true
-
         # Source script
         set script [join {`$INNOVUS_INIT_PORTS_SCRIPT -optional`}]
         if {[file exists $script]} {
@@ -1120,9 +1117,6 @@ gf_create_step -name innovus_procs_interactive_design '
         } else {
             puts "\033\[31;41m \033\[0m Script $script not found"
         }
-
-        # Batch mode off
-        set_db assign_pins_edit_in_batch false
     }
 
     # External power grid creation script

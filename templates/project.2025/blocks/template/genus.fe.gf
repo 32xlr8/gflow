@@ -128,9 +128,6 @@ gf_add_tool_commands '
     #     source ./in/$TASK_NAME.ocv.tcl
     # }
     
-    # Write Genus database
-    write_db ./out/$TASK_NAME.intermediate.genus.db
- 
     # Run generic synthesis
     `@genus_pre_syn_gen`
     if {$PHYSICAL_MODE == "Y"} {

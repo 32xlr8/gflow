@@ -388,6 +388,8 @@ gf_create_step -name genus_post_init_design '
     # # Update clock gating margin
     # #set_clock_gating_check -setup 0.100
 
+    # # Write intermediate database
+    # write_db ./out/$TASK_NAME.intermediate.genus.db
 '
 
 # Commands before generic synthesis

@@ -34,7 +34,7 @@ gf_source -once "./block.common.gf"
 gf_source -once "./block.tempus.gf"
 
 # Run tasks in silent mode
-gf_set_task_options STA_* -silent
+gf_set_task_options 'STA_*' -silent
 
 # Spread tasks in time
 WAIT_TIME_STEP=60

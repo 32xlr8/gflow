@@ -33,16 +33,18 @@ gf_info "Loading block-specific Genus steps ..."
 # gf_set_task_options -cpu 8 -mem 15
 
 # # Override resources for interactive tasks
-# gf_set_task_options 'Debug*' -cpu 4 -mem 10
+# gf_set_task_options DebugGenus -cpu 4 -mem 10
 
 # # Override resources for batch tasks
 # gf_set_task_options SynGen -cpu 8 -mem 15
 # gf_set_task_options SynMap -cpu 8 -mem 15
 # gf_set_task_options SynOpt -cpu 8 -mem 15
-gf_set_task_options 'Report*' -cpu 4 -mem 10
+gf_set_task_options ReportSynGen -cpu 4 -mem 10
+gf_set_task_options ReportSynMap -cpu 4 -mem 10
+gf_set_task_options ReportSynOpt -cpu 4 -mem 10
 
 # Limit simultaneous tasks count
-gf_set_task_options 'Report*' -group Reports -parallel 1
+gf_set_task_options ReportSynGen ReportSynMap ReportSynOpt -group Reports -parallel 1
 # gf_set_task_options SynGen SynMap SynOpt -group Heavy -parallel 1
 
 # # Disable not needed tasks

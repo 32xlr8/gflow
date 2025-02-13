@@ -32,9 +32,11 @@ gf_info "Loading block-specific Quantus steps ..."
 
 # # Override resources for batch tasks
 # gf_set_task_options QuantusOut -cpu 8 -mem 15
+# gf_set_task_options 'QuantusOut_*' -cpu 4 -mem 15
 
 # # Limit simultaneous tasks count
 # gf_set_task_options QuantusOut -group Heavy -parallel 1
+gf_set_task_options 'QuantusOut_*' -group TempusOut -parallel 8
 
 ################################################################################
 # Flow variables

@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 
 ################################################################################
-# Generic Flow v5.5.1 (February 2025)
+# Generic Flow v5.5.2 (February 2025)
 ################################################################################
 #
 # Copyright 2011-2025 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)

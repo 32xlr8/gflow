@@ -50,11 +50,22 @@ gf_choose_file_dir_task -variable VOLTUS_RAIL_DATA -prompt "Choose rail data to 
 '
 gf_spacer
     
+# Voltus power data
+gf_choose -variable OPEN_POWER_DB -keep -keys YN -default Y -prompt "Do you want to open power data (Y/N)?"
+if [ "$OPEN_POWER_DB" == "Y" ]; then
+    gf_choose_file_dir_task -variable VOLTUS_POWER_DATA -prompt "Choose power data to load:" -files '
+        '"$VOLTUS_POWER_DATA"'
+        ../work_*/*/out/*.power/*power.db
+    '
+fi
+gf_spacer
+
 # TCL commands
 gf_add_tool_commands '
 
     # Current design variables
     set LEF_FILES {`$CADENCE_TLEF_FILES` `$LEF_FILES` `$PARTITIONS_LEF_FILES -optional`}
+    set VOLTUS_POWER_DATA {`$VOLTUS_POWER_DATA -optional`} 
     set VOLTUS_RAIL_DATA {`$VOLTUS_RAIL_DATA`} 
     set DESIGN_NAME {`$DESIGN_NAME`} 
 
@@ -75,13 +86,23 @@ gf_add_tool_commands '
     `@voltus_post_init_design`
     
     # Load physical data
-    read_def [regsub {/out/(.*)\.rail/.*?$} $VOLTUS_RAIL_DATA {/in/\1.def.gz}]  -skip_signal_nets 
+    read_def [regsub {/out/(.*)\.rail/.*?$} $VOLTUS_RAIL_DATA {/in/\1.def.gz}] -skip_signal_nets 
 
-    # Open latest directory
-    ::read_power_rail_results \
-        -rail_directory $VOLTUS_RAIL_DATA \
-        -instance_voltage_window {timing whole} \
-        -instance_voltage_method {worst best avg worstavg}
+    # Open power and rail results
+    if {[llength $VOLTUS_POWER_DATA]} {
+        ::read_power_rail_results \
+            -power_db $VOLTUS_POWER_DATA \
+            -rail_directory $VOLTUS_RAIL_DATA \
+            -instance_voltage_window {timing whole} \
+            -instance_voltage_method {worst best avg worstavg}
+
+    # Rail results only
+    } else {
+        ::read_power_rail_results \
+            -rail_directory $VOLTUS_RAIL_DATA \
+            -instance_voltage_window {timing whole} \
+            -instance_voltage_method {worst best avg worstavg}
+    }
 
     # GUI commands
     `@voltus_pre_gui -optional`

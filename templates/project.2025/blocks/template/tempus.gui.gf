@@ -91,7 +91,7 @@ gf_add_tool_commands '
     set_db init_ground_nets [join $GROUND_NETS]
 
     # Load MMMC configuration
-    read_mmmc $MMMC_FILE
+    read_mmmc $REF_RUN/in/$MOTHER_TASK_NAME.mmmc.tcl
 
     # Read physical information defined in project config
     read_physical -lefs [join $LEF_FILES]
@@ -104,7 +104,7 @@ gf_add_tool_commands '
     
     # Generate and load OCV configuration
     reset_timing_derate
-    source ./scripts/$TASK_NAME.ocv.tcl
+    source $REF_RUN/in/$MOTHER_TASK_NAME.ocv.tcl
     redirect ./reports/$TASK_NAME.derate.rpt {report_timing_derate}
     
     # Read design parasitics files

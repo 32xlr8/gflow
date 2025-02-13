@@ -70,6 +70,9 @@ gf_create_step -name init_shell_environment '
     # Bypass OpenAccess issues
     unset OA_HOME
 
+    # Bypass OS check
+    export W3264_NO_HOST_CHECK=1
+
     # License options
     <PLACEHOLDER>
     # export CDS_LIC_ONLY=1

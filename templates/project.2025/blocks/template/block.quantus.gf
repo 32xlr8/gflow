@@ -36,7 +36,7 @@ gf_info "Loading block-specific Quantus steps ..."
 
 # # Limit simultaneous tasks count
 # gf_set_task_options QuantusOut -group Heavy -parallel 1
-gf_set_task_options 'QuantusOut_*' -group TempusOut -parallel 8
+gf_set_task_options 'QuantusOut_*' -group QuantusOut -parallel 8
 
 ################################################################################
 # Flow variables

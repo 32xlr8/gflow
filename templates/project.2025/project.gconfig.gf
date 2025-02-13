@@ -68,7 +68,7 @@ gf_create_step -name gconfig_ocv_settings '
     # # - Default IR-drop value for voltage OCV to be defined in block.common.gf
     # # - Derate tables: <cell pattern> <voltage-drop table> <dV derate table> <dT> <reference PDF>
     # # - Views mask is {<constraint_mode> <process> <voltage> <temperature> <rc_corner> <check>}
-    # # - Run ./gflow/templates/project.2025/create_tsmc_vt_tables.sh ./TSMCHOME/digital/Front_End/*/ utility to get it from PDF
+    # # - Run ./gflow/templates/project.2025/tools/create_tsmc_vt_tables.sh ./TSMCHOME/digital/Front_End/*/ utility to get it from PDF
     # <PLACEHOLDER>
     # gconfig::add_section {
     #     -views {* pvt_p pvt_v pvt_t * *} $cells_IR_dV_dT_table {
@@ -136,7 +136,7 @@ gf_create_step -name gconfig_project_settings '
         -views {* ff * * * *} {$pvt_p {ffgnp ffg ff FFGNP FFG FF fast best bc bcs}}
 
         # Voltage variants to use in file name patterns
-        # - See ./gflow/templates/project.2025/print_gconfig_voltage_variants.sh to generate lines below
+        # - See ./gflow/templates/project.2025/tools/print_gconfig_voltage_variants.sh to generate lines below
         -views {* * 0p500v * * *} {$pvt_v {0p500v 0.500 0p500 0.50 0p50 0.5 0p5}}
         -views {* * 0p540v * * *} {$pvt_v {0p540v 0.540 0p540 0.54 0p54}}
         -views {* * 0p550v * * *} {$pvt_v {0p550v 0.550 0p550 0.55 0p55}}

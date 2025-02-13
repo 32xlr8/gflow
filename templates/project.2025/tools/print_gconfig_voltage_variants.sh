@@ -19,7 +19,7 @@
 # limitations under the License.
 #
 ################################################################################
-# Filename: templates/project.2025/print_gconfig_voltage_variants.sh
+# Filename: templates/project.2025/tools/print_gconfig_voltage_variants.sh
 # Purpose:  Print voltage variants for gconfig
 ################################################################################
 

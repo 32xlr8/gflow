@@ -216,3 +216,11 @@ gf_add_failed_marks '^\*\*ERROR:.+file\s+not'
 
 # Run task
 gf_submit_task
+
+########################################
+# Generic Flow history
+########################################
+
+gf_create_task -name HistorySTA -mother STA
+gf_set_task_command "../../../../../../tools/print_runs_history_html.pl ../.. > ./reports/$TASK_NAME.html"
+gf_submit_task -silent

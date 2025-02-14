@@ -404,3 +404,11 @@ gf_add_success_marks 'Voltus Power Analysis exited successfully'
 gf_add_status_marks 'No such file'
 gf_add_failed_marks 'No such file'
 gf_submit_task
+
+########################################
+# Generic Flow history
+########################################
+
+gf_create_task -name HistoryStaticRail -mother StaticRail
+gf_set_task_command "../../../../../../tools/print_runs_history_html.pl ../.. > ./reports/$TASK_NAME.html"
+gf_submit_task -silent

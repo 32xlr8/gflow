@@ -83,3 +83,11 @@ gf_add_shell_commands -post "
 
 # Start task
 gf_submit_task
+
+########################################
+# Generic Flow history
+########################################
+
+gf_create_task -name HistoryFlatten -mother Flatten
+gf_set_task_command "../../../../../../tools/print_runs_history_html.pl ../.. > ./reports/$TASK_NAME.html"
+gf_submit_task -silent

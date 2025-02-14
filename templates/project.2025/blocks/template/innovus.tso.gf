@@ -99,3 +99,11 @@ gf_add_status_marks -from 'Final .*Summary' -to 'Density:' WNS TNS max_tran -3 +
 
 # Run task
 gf_submit_task
+
+########################################
+# Generic Flow history
+########################################
+
+gf_create_task -name HistoryECO -mother ECO
+gf_set_task_command "../../../../../../tools/print_runs_history_html.pl ../.. > ./reports/$TASK_NAME.html"
+gf_submit_task -silent

@@ -96,3 +96,11 @@ gf_add_status_marks 'ERROR:' 'WARNING:' 'no such file' 'cannot access' ' not fou
 
 # Run task
 gf_submit_task
+
+########################################
+# Generic Flow history
+########################################
+
+gf_create_task -name HistoryInnovusOut -mother InnovusOut
+gf_set_task_command "../../../../../../tools/print_runs_history_html.pl ../.. > ./reports/$TASK_NAME.html"
+gf_submit_task -silent

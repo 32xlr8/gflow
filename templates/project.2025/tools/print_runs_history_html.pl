@@ -69,6 +69,13 @@ sub next_log {
     return get_file_id($file);
 }
 
+# Preprocess status line
+sub preprocess_status {
+    my $status = shift;
+    $status =~ s/\e\[[\d\;]+m//g;
+    return $status;
+}
+
 # Parse new run
 sub parse_run {
     my $run = abs_path(shift);
@@ -83,38 +90,38 @@ sub parse_run {
                 my $index = $1;
                 if (open FILE, $file) {
                     print STDERR "Run: $file ...\n";
-                    my $status = "";
                     my $task = "";
-                    my %tasks = ();
+                    my %tasks = (); my @tasks = ();
                     while (<FILE>) {
                         next if (!/\S/);
+                        my $status = "";
                         if (/^\[\e\[94m\d+\e\[0m\].*?\e\[94m(\S+?)\e\[0m status is/) {
                             $task = $1;
-                            $status = "";
-                            print STDERR "  Task: $task\n" if (!defined $tasks{$task}); $tasks{$task} = 1;
+                            push @tasks, $task if (!defined $tasks{$task}); $tasks{$task} = 1;
+                            $index{$index}{H}{$task}{S} = preprocess_status($_);
                         } elsif (s/^.*?\e\[35;45m \e\[0;35m //) {
-                            s/\e\[0m\s*$//;
-                            $status .= $_;
+                            $index{$index}{H}{$task}{S} .= preprocess_status($_);
                         } else {
                             if (/^\[\e\[94m\d+\e\[0m\].*?9?m(\S+?)\e\[0m (done|failed) in/) {
                                 my $task = $1;
                                 my $mark = $2;
-                                $index{$index}{H}{$task}{M} = $mark;
-                                push @{$index{$index}{A}}, $task if (!defined $index{$index}{X}{$task});
-                                print STDERR "  Task: $task\n" if (!defined $tasks{$task}); $tasks{$task} = 1;
-                            } elsif ($task ne "") {
-                                push @{$index{$index}{A}}, $task if (!defined $index{$index}{X}{$task});
-                                $index{$index}{X}{$task} = 1;
+                                push @{$index{$index}{A}}, $task if (!defined $index{$index}{X}{$task}); $index{$index}{X}{$task} = 1;
+                                push @tasks, $task if (!defined $tasks{$task}); $tasks{$task} = 1;
                                 $index{$index}{H}{$task}{F} = $file;
-                                $index{$index}{H}{$task}{S} = $status;
-                                $index{$index}{H}{$task}{M} = "unknown";
+                                $index{$index}{H}{$task}{M} = $mark;
+                                $index{$index}{H}{$task}{S} .= preprocess_status($_);
                             }
-                            $status = "";
                             $task = "";
                         }
+                        if ($status ne "") {
+                            $status =~ s/\e\[[\d\;]+m\s*$//g;
+                            $status =~ s/\e\[[\d\;]+m//g;
+                            $index{$index}{H}{$task}{S} = $status;
+                        }
                     }        
-                    print STDERR "\n";
                     close FILE;
+                    print STDERR "  Tasks: ".(join ",", @tasks)."\n" if ($#tasks >= 0);
+                    print STDERR "\n";
                 }
             }
         }
@@ -139,7 +146,11 @@ sub parse_run {
                     $record{F} = $index{$index}{H}{$task}{F};
                     $record{I} = $index;
                     $record{S} = $index{$index}{H}{$task}{S};
-                    $record{M} = $index{$index}{H}{$task}{M};
+                    if (defined $index{$index}{H}{$task}{M}) {
+                        $record{M} = $index{$index}{H}{$task}{M};
+                    } else {
+                        $record{M} = "unknown";
+                    }
                     push @{$record{L}}, next_log("$run/logs/$task.log");
                     push @{$record{L}}, next_log("$run/scripts/$task.sh");
                     push @{$record{L}}, next_log("$run/scripts/$task.tcl");
@@ -323,32 +334,27 @@ sub print_html {
                         div.R1 { display: block; margin-left: 8px; } 
                         
                         p.R0, p#R { border-left: 4px solid #8ac; } 
-                        p.R1, p#R:hover { border-left: 4px solid #08c; background-color: #eef; }
+                        p.R1, p#R:hover { border-left: 4px solid #08c; background-color: #def; }
 
                         p.R1:hover { cursor: pointer; background-color: #eee; } 
-                        p.R0:hover { cursor: pointer; background-color: #eef; } 
+                        p.R0:hover { cursor: pointer; background-color: #def; } 
 
                         div.TG0 { display: none;} 
                         div.TG1 { display: block; margin-left: 8px; } 
-                        
                         p.TG0, p#TG { border-left: 4px solid #aca; } 
-                        p.TG1, p#TG:hover { border-left: 4px solid #0c0; background-color: #dfd; } 
-
+                        p.TG1, p#TG:hover { border-left: 4px solid #0a0; background-color: #cfc; } 
                         p.TG1:hover { cursor: pointer; background-color: #eee; } 
-                        p.TG0:hover { cursor: pointer; background-color: #dfd; } 
+                        p.TG0:hover { cursor: pointer; background-color: #cfc; } 
 
                         div.TR0 { display: none;} 
                         div.TR1 { display: block; margin-left: 8px; } 
-                        
                         p.TR0, p#TR { border-left: 4px solid #c88; } 
                         p.TR1, p#TR:hover { border-left: 4px solid #c00; background-color: #fdd; } 
-
                         p.TR1:hover { cursor: pointer; background-color: #eee; } 
                         p.TR0:hover { cursor: pointer; background-color: #fdd; } 
 
                         div.TS0 { display: none;} 
                         div.TS1 { display: block; padding: 4px; border-left: 4px solid #c8c; } 
-
                         p.TS0, p#TS { border-left: 4px solid #c8c; } 
                         p.TS1, p#TS:hover { border-left: 4px solid #c8c; background-color: #fef; }
                         p.TSN { border-left: 4px solid #c8c; background-color: #fef; } 
@@ -356,31 +362,27 @@ sub print_html {
 
                         div.TFL0 { display: none;} 
                         div.TFL1 { display: block; padding: 4px; border-left: 4px solid #aa5; } 
-
                         p.TFL0, p#TFL { border-left: 4px solid #aa5; } 
                         p.TFL1 { border-left: 4px solid #aa5; background-color: #ffd;} 
                         p.TFL0:hover, p.TFL1:hover, p#TFL:hover { background-color: #ffd; }
                         p.TFL0:hover, p.TFL1:hover { cursor: pointer; }
                         
                         div.TFI0 { display: none;} 
-                        div.TFI1 { display: block; padding: 4px; border-left: 4px solid #0a0; } 
-
-                        p.TFI0, p#TFI { border-left: 4px solid #0a0; } 
-                        p.TFI1 { border-left: 4px solid #0a0; background-color: #dfd;} 
-                        p.TFI0:hover, p.TFI1:hover, p.TFIL:hover, p#TFI:hover { background-color: #dfd; }
+                        div.TFI1 { display: block; padding: 4px; border-left: 4px solid #8a8; } 
+                        p.TFI0, p#TFI { border-left: 4px solid #8a8; } 
+                        p.TFI1 { border-left: 4px solid #8a8; background-color: #efe;} 
+                        p.TFI0:hover, p.TFI1:hover, p.TFIL:hover, p#TFI:hover { background-color: #efe; }
                         p.TFI0:hover, p.TFI1:hover, p.TFIL:hover { cursor: pointer; }
                         
                         div.TFE0 { display: none;} 
-                        div.TFE1 { display: block; padding: 4px; border-left: 4px solid #0a8; } 
-
-                        p.TFE0, p#TFE { border-left: 4px solid #0a8; } 
-                        p.TFE1 { border-left: 4px solid #0a8; background-color: #dfe;} 
-                        p.TFE0:hover, p.TFE1:hover, p#TFE:hover { background-color: #dfe; }
+                        div.TFE1 { display: block; padding: 4px; border-left: 4px solid #8aa; } 
+                        p.TFE0, p#TFE { border-left: 4px solid #8aa; } 
+                        p.TFE1 { border-left: 4px solid #8aa; background-color: #eff;} 
+                        p.TFE0:hover, p.TFE1:hover, p#TFE:hover { background-color: #eff; }
                         p.TFE0:hover, p.TFE1:hover { cursor: pointer; }
                         
                         div.TFM0 { display: none;} 
                         div.TFM1 { display: block; padding: 4px; border-left: 4px solid #a88; } 
-
                         p.TFM0, p#TFM { border-left: 4px solid #a88; } 
                         p.TFM1 { border-left: 4px solid #a88; background-color: #fee;} 
                         p.TFM0:hover, p.TFM1:hover, p#TFM:hover { background-color: #fee; }

@@ -30,6 +30,9 @@ gf_info "Loading block-specific setup ..."
 # Default tasks resources
 gf_set_task_options -cpu 8 -mem 20
 
+# # Disable Generic Flow history tasks
+# gf_set_task_options -disable History*
+
 ################################################################################
 # Flow variables
 ################################################################################

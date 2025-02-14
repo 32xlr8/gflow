@@ -116,7 +116,7 @@ gf_create_step -name voltus_gconfig_power_rail_design_settings '
     # - no_derates - zero derates (optimistic for prototyping mode)
     # - user_derates - same as flat_derates, but user-specified values used (customize below)
     # - vt_derates - used with ESCM/CCS if additional Voltage/Temparature derates required (see standard cell documentation, customize IR-drop below)
-    gconfig::enable_switches no_derates
+    gconfig::enable_switches vt_derates
 '
 
 # MMMC and OCV settings for signal electromigration

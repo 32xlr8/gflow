@@ -1,5 +1,5 @@
-blocks/*/data/
-blocks/*/work_*/
-data/
-xfer/
-gflow/
+/blocks/*/data/
+/blocks/*/work_*/
+/data/
+/xfer/
+/gflow/

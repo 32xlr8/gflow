@@ -211,7 +211,8 @@ gf_create_step -name genus_read_rtl '
     # # Flop settings
     # set_db optimize_constant_0_flops false
     # set_db optimize_constant_1_flops false
-    
+    # set_db optimize_merge_flops false
+
     # Read system verilog files
     if {[llength $RTL_FILES] > 0} {
         read_hdl -define $RTL_DEFINES -language sv $RTL_FILES

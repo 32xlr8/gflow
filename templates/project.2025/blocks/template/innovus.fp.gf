@@ -54,12 +54,13 @@ gf_choose_file_dir_task -variable INNOVUS_NETLIST_FILES -keep -prompt "Choose ne
 '
 
 # Innovus floorplan
-gf_choose_file_dir_task -variable INNOVUS_FLOORPLAN_FILE -keep -prompt "Choose floorplan (optional):" -files '
+gf_choose_file_dir_task -variable INNOVUS_FLOORPLAN_FILE -prompt "Choose floorplan (optional):" -files '
+    `$INNOVUS_FLOORPLAN_FILE`
     ../data/*.fp
     ../data/*.fp.gz
     ../data/*/*.fp
     ../data/*/*.fp.gz
-    ../work_*/*/out/*.fp
+    ./*/out/*.fp
 '
 
 # Ask user if need to load timing information

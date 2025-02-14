@@ -60,6 +60,7 @@ gf_add_tool_commands '
     # Read latest available database
     set GENUS_DATABASE {`$GENUS_DATABASE`}
     read_db $GENUS_DATABASE
+    puts "Database: $GENUS_DATABASE"
 
     # Top level design name
     set DESIGN_NAME [get_db current_design .name]

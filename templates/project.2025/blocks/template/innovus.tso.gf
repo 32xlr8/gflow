@@ -65,6 +65,7 @@ gf_add_tool_commands '
 
     # Load input database
     read_db $DATA_OUT_DIR/$DESIGN_NAME.innovus.db
+    puts "Database: $DATA_OUT_DIR/$DESIGN_NAME.innovus.db"
     
     # Include STA metrics
     `@procs_stylus_metrics`

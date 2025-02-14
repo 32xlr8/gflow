@@ -267,6 +267,7 @@ gf_add_tool_commands '
 
     # Load Innovus database
     read_db ./out/$MOTHER_TASK_NAME.innovus.db
+    puts "Database: ./out/$MOTHER_TASK_NAME.innovus.db"
 
     # Read in ILM
     if {[llength [set PARTITIONS_POSTCTS_ILM_DIRECTORIES {`$PARTITIONS_POSTCTS_ILM_DIRECTORIES -optional`}]]} {
@@ -355,6 +356,7 @@ gf_add_tool_commands '
 
     # Load Innovus database
     read_db ./out/$MOTHER_TASK_NAME.innovus.db
+    puts "Database: ./out/$MOTHER_TASK_NAME.innovus.db"
 
     # Read in ILM
     if {[llength [set PARTITIONS_POSTROUTE_ILM_DIRECTORIES {`$PARTITIONS_POSTROUTE_ILM_DIRECTORIES -optional`}]]} {
@@ -430,6 +432,7 @@ gf_add_tool_commands '
 
     # Load Innovus database
     read_db ./out/$MOTHER_TASK_NAME.innovus.db
+    puts "Database: ./out/$MOTHER_TASK_NAME.innovus.db"
 
     # Start metric collection
     `@collect_metrics`
@@ -473,6 +476,7 @@ gf_add_tool_commands '
 
     # Load Innovus database
     read_db ./out/$MOTHER_TASK_NAME.innovus.db
+    puts "Database: ./out/$MOTHER_TASK_NAME.innovus.db"
     
     # Start metric collection
     `@collect_metrics`
@@ -509,6 +513,7 @@ gf_add_tool_commands '
 
     # Load Innovus database
     read_db ./out/$MOTHER_TASK_NAME.innovus.db
+    puts "Database: ./out/$MOTHER_TASK_NAME.innovus.db"
 
     # Start metric collection
     `@collect_metrics`
@@ -548,6 +553,7 @@ gf_add_tool_commands '
 
     # Load Innovus database
     read_db ./out/$MOTHER_TASK_NAME.innovus.db
+    puts "Database: ./out/$MOTHER_TASK_NAME.innovus.db"
 
     # Top level design name
     set DESIGN_NAME [get_db current_design .name]

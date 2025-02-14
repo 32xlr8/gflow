@@ -61,6 +61,7 @@ gf_add_tool_commands '
 
     # Read input Innovus database
     read_db -no_timing $INNOVUS_DATABASE
+    puts "Database: $INNOVUS_DATABASE"
     
     # Top level design name
     set DESIGN_NAME [get_db current_design .name]

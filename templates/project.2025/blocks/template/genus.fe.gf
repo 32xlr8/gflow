@@ -205,6 +205,7 @@ gf_add_tool_commands '
     
     # Read Genus database
     read_db ./out/$MOTHER_TASK_NAME.genus.db
+    puts "Database: ./out/$MOTHER_TASK_NAME.genus.db"
     
     # Run generic synthesis
     `@genus_pre_syn_map`
@@ -257,6 +258,7 @@ gf_add_tool_commands '
     
     # Read Genus database
     read_db ./out/$MOTHER_TASK_NAME.genus.db
+    puts "Database: ./out/$MOTHER_TASK_NAME.genus.db"
     
     # Run optimization
     `@genus_pre_syn_opt`
@@ -300,6 +302,7 @@ gf_add_tool_commands '
 
     # Load Genus database
     read_db ./out/$MOTHER_TASK_NAME.genus.db
+    puts "Database: ./out/$MOTHER_TASK_NAME.genus.db"
 
     # Start metric collection
     `@collect_metrics`
@@ -329,6 +332,7 @@ gf_add_tool_commands '
 
     # Load Genus database
     read_db ./out/$MOTHER_TASK_NAME.genus.db
+    puts "Database: ./out/$MOTHER_TASK_NAME.genus.db"
 
     # Start metric collection
     `@collect_metrics`
@@ -358,6 +362,7 @@ gf_add_tool_commands '
 
     # Load Genus database
     read_db ./out/$MOTHER_TASK_NAME.genus.db
+    puts "Database: ./out/$MOTHER_TASK_NAME.genus.db"
 
     # Start metric collection
     `@collect_metrics`

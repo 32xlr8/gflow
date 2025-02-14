@@ -834,7 +834,7 @@ gf_create_step -name voltus_run_signal_em '
     } else {
         set_db check_ac_limit_use_qrc_tech true
     }
-    check_ac_limits -detailed
+    check_ac_limits -detailed -out_file ./reports/$TASK_NAME.rpt
 '
 
 # Commands before open GUI for debug

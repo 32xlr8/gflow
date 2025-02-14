@@ -34,7 +34,7 @@ gf_source -once "./block.common.gf"
 gf_source -once "./block.voltus.gf"
 
 ########################################
-# Static power calculation
+# Static power/rail calculation
 ########################################
 
 gf_create_task -name StaticRail
@@ -274,17 +274,6 @@ gf_add_tool_commands '
     # Print out summary
     gconfig::show_variables
     gconfig::show_switches
-
-    # Generate timing configuration
-    try {
-        gconfig::get_mmmc_commands -views [list $STATIC_POWER_VIEW] -dump_to_file ./in/$TASK_NAME.mmmc.tcl
-
-    # Suspend on error
-    } on error {result options} {
-        exec rm -f ./in/$TASK_NAME.mmmc.tcl
-        puts "\033\[41;31m \033\[0m $result"
-        suspend
-    }
 '
 
 # Run task

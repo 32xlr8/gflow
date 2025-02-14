@@ -90,8 +90,8 @@ gf_create_step -name voltus_gconfig_power_rail_design_settings '
     set SIGNAL_SPEF_CORNER {* * * m40 rcb *}
     set POWER_SPEF_CORNER {* * * 125 cw *}
 
-    set STATIC_POWER_VIEW {func ff 1p100v 125 cw p}
-    set DYNAMIC_POWER_VIEW {func ff 1p100v 125 cw p}
+    set STATIC_POWER_VIEW {func ff 1p100v 125 rcw p}
+    set DYNAMIC_POWER_VIEW {func ff 1p100v 125 rcw p}
 
     set STATIC_RAIL_VIEW {func ff 1p100v 125 rcw p}
     set DYNAMIC_RAIL_VIEW {func ff 1p100v 125 rcw p}

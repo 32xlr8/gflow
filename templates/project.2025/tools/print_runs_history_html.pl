@@ -82,14 +82,16 @@ sub parse_run {
             if ($file =~ m|/logs/run\.(\d+)\.log$|) {
                 my $index = $1;
                 if (open FILE, $file) {
-                    print STDERR "Parsing run: $file ...";
+                    print STDERR "Run: $file ...\n";
                     my $status = "";
                     my $task = "";
+                    my %tasks = ();
                     while (<FILE>) {
                         next if (!/\S/);
                         if (/^\[\e\[94m\d+\e\[0m\].*?\e\[94m(\S+?)\e\[0m status is/) {
                             $task = $1;
                             $status = "";
+                            print STDERR "  Task: $task\n" if (!defined $tasks{$task}); $tasks{$task} = 1;
                         } elsif (s/^.*?\e\[35;45m \e\[0;35m //) {
                             s/\e\[0m\s*$//;
                             $status .= $_;
@@ -98,8 +100,11 @@ sub parse_run {
                                 my $task = $1;
                                 my $mark = $2;
                                 $index{$index}{H}{$task}{M} = $mark;
+                                push @{$index{$index}{A}}, $task if (!defined $index{$index}{X}{$task});
+                                print STDERR "  Task: $task\n" if (!defined $tasks{$task}); $tasks{$task} = 1;
                             } elsif ($task ne "") {
-                                push @{$index{$index}{A}}, $task if (!defined $index{$index}{H}{$task});
+                                push @{$index{$index}{A}}, $task if (!defined $index{$index}{X}{$task});
+                                $index{$index}{X}{$task} = 1;
                                 $index{$index}{H}{$task}{F} = $file;
                                 $index{$index}{H}{$task}{S} = $status;
                                 $index{$index}{H}{$task}{M} = "unknown";
@@ -108,7 +113,7 @@ sub parse_run {
                             $task = "";
                         }
                     }        
-                    print STDERR " done.\n";
+                    print STDERR "\n";
                     close FILE;
                 }
             }
@@ -158,7 +163,7 @@ sub parse_log {
         my $root = $log;
         $root =~ s:/(in|out|tasks|logs|scripts)/.*::;
         if (open FILE, $log) {
-            print STDERR "Parsing log: $log ...";
+            print STDERR "Log: $log ...";
             my $log_id = get_file_id($log);
             while (<FILE>) {
                 my $line = $_;
@@ -208,7 +213,7 @@ sub parse_log {
                     $files[$log_id]{EF}{get_file_id($file)}++;
                 }
             }
-            print STDERR " done.\n";
+            print STDERR "\n";
             close FILE;
         }
     }

@@ -144,6 +144,7 @@ gf_add_tool_commands '
 
     # Read netlist for current design
     read_netlist [join $NETLIST_FILES] -top $DESIGN_NAME
+    puts "Netlist files: [join $NETLIST_FILES]"
 
     # Initialize library and design information
     init_design

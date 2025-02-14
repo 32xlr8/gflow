@@ -121,6 +121,7 @@ gf_add_tool_commands '
         }
     }
     read_netlist $files -top $DESIGN_NAME
+    puts "Netlist files: [join $files]"
 
     # Design initialization
     init_design
@@ -313,6 +314,7 @@ gf_add_tool_commands '
         }
     }
     read_netlist $files -top $DESIGN_NAME
+    puts "Netlist files: [join $files]"
 
     # Design initialization
     init_design

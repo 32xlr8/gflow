@@ -105,6 +105,7 @@ gf_add_tool_commands '
 
     # Load netlist
     read_netlist $DATA_OUT_DIR/$DESIGN_NAME.v.gz -top $DESIGN_NAME
+    puts "Netlist files: $DATA_OUT_DIR/$DESIGN_NAME.v.gz"
     
     # Initialize design with MMMC configuration
     init_design

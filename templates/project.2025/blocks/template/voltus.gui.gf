@@ -77,7 +77,9 @@ gf_add_tool_commands '
 
     # Load design files
     read_physical -lefs [join $LEF_FILES]
-    read_netlist [regsub {/out/(.*)\.rail/.*?$} $VOLTUS_RAIL_DATA {/in/\1.v.gz}] -top $DESIGN_NAME
+    set files [regsub {/out/(.*)\.rail/.*?$} $VOLTUS_RAIL_DATA {/in/\1.v.gz}]
+    read_netlist $files -top $DESIGN_NAME
+    puts "Netlist files: [join $files]"
     
     # Design initialization
     init_design

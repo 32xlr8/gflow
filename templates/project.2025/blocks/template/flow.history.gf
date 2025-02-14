@@ -31,9 +31,9 @@
 gf_source -once "../../project.common.gf"
 
 ########################################
-# Generic Flow history report
+# Generic Flow history
 ########################################
 
 gf_create_task -name History
-gf_set_task_command "../../../../../../tools/print_runs_history_html.pl ../../../../work_*/*/ > ../../reports/$TASK_NAME.html"
+gf_set_task_command "../../../../../../tools/print_runs_history_html.pl ../../../../work_*/*/ > ./reports/$TASK_NAME.html"
 gf_submit_task -silent

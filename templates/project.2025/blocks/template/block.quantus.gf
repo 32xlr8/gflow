@@ -59,7 +59,7 @@ gf_create_step -name quantus_gconfig_design_settings '
 
     # Choose analysis view patterns:
     # - {mode process voltage temperature rc_corner timing_check}
-    set RC_CORNERS {
+    set RC_CORNERS [regsub -all -line {^\s*\#.*\n} {
         {* * * 85 ct *}
         
         {* * * m40 cwt *} 
@@ -82,7 +82,7 @@ gf_create_step -name quantus_gconfig_design_settings '
         {* * * 0 cw *} 
         {* * * 0 rcb *} 
         {* * * 0 rcw *}
-    }
+    } {}]
 '
 
 # CCL Commands before design initialized

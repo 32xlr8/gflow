@@ -1,10 +1,10 @@
 #!/bin/bash
 
 ################################################################################
-# Generic Flow v5.1 (May 2023)
+# Generic Flow v5.5.0 (December 2024)
 ################################################################################
 #
-# Copyright 2011-2023 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
+# Copyright 2011-2024 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -287,7 +287,8 @@ gf_get_directory_sizes='
     }
     scan_directory($_, 0) foreach (keys %sizes);
     print STDERR "\e[0J";
-    if ($#updated < 20) { print STDERR "\e[34m|\e[0m ".$_."\n" foreach (@updated); }
+    for (my $i=0; $i<20; $i++) { print STDERR "\e[34m|\e[0m ".$updated[$i]."\n"; }
+    print STDERR "\e[34m|\e[0m ...\n" if ($#updated >= 20);
     print STDERR "\e[34;44m \e[0m Total \e[1m".($#updated+1)."\e[0m of \e[1m$checked\e[0m directories updated in \e[1m".(time()-$start_time)."\e[0m seconds\n"
 ;
     foreach (sort keys %sizes) {

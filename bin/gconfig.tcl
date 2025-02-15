@@ -1,8 +1,8 @@
 ################################################################################
-# Generic Flow v5.1 (May 2023)
+# Generic Flow v5.5.0 (December 2024)
 ################################################################################
 #
-# Copyright 2011-2023 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
+# Copyright 2011-2024 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -2039,11 +2039,23 @@ namespace eval gconfig {
 
             # Check if file exists
             if {$is_files_record} {
-                set is_value_valid [file exists $current_value]
+                # set is_value_valid [file exists $current_value]
+                # foreach search_path $gconfig::search_paths {
+                #     if {!$is_value_valid} {
+                #         set is_value_valid [file exists $search_path/$current_value]
+                #         set current_value $search_path/$current_value
+                #     }
+                # }
+                set files ""; catch {set files [glob $current_value]}
+                if {[set is_value_valid [llength $files]]} {
+                    set current_value $files
+                }
                 foreach search_path $gconfig::search_paths {
                     if {!$is_value_valid} {
-                        set is_value_valid [file exists $search_path/$current_value]
-                        set current_value $search_path/$current_value
+                        catch {set files [glob $search_path/$current_value]}
+                        if {[set is_value_valid [llength $files]]} {
+                            set current_value $files
+                        }
                     }
                 }
             }

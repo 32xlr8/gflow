@@ -1,10 +1,10 @@
 #!/bin/bash
 
 ################################################################################
-# Generic Flow v5.1 (May 2023)
+# Generic Flow v5.5.0 (December 2024)
 ################################################################################
 #
-# Copyright 2011-2023 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
+# Copyright 2011-2024 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,7 +19,7 @@
 # limitations under the License.
 #
 ################################################################################
-# Filename: templates/project_template.2023/create_tsmc_vt_tables.sh
+# Filename: templates/project.2025/create_tsmc_vt_tables.sh
 # Purpose:  Parse TSMC PDF files to extract dV/dT derates
 ################################################################################
 
@@ -295,7 +295,7 @@ export_gconfig_code='
         print "    # TSMC $node voltage and vemperature OCV requirements\n";
         print "    # Derate tables: <cell pattern> <voltage-drop table> <dV derate table> <dT> <reference PDF>\n";
         print "    # Views mask is {<constraint_mode> <process> <voltage> <temperature> <rc_corner> <check>}\n";
-        print "    # Run ./gflow/templates/project_template.2023/create_tsmc_vt_tables.sh ./TSMCHOME/digital/Front_End/SBOCV/ utility to get it from PDF\n";
+        print "    # Run ./gflow/templates/project.2025/create_tsmc_vt_tables.sh ./TSMCHOME/digital/Front_End/SBOCV/ utility to get it from PDF\n";
         print "    gconfig::add_section {\n";
         # print "        # Process node: $node\n";
         my @corners;

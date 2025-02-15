@@ -1,8 +1,8 @@
 ################################################################################
-# Generic Flow v5.1 (May 2023)
+# Generic Flow v5.5.0 (December 2024)
 ################################################################################
 #
-# Copyright 2011-2023 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
+# Copyright 2011-2024 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,34 +17,39 @@
 # limitations under the License.
 #
 ################################################################################
-# Filename: templates/project_template.2023/project.genus.gf
-# Purpose:  Project-specific Genus configuration and flow steps
+# Filename: templates/project.2025/project.innovus.gf
+# Purpose:  Project-specific Innovus configuration and flow steps
 ################################################################################
 
 # Load tool plugin, tool and technology steps to use in GF scripts
 gf_source -once "../../tools/tool_steps.stylus.gf"
-gf_source -once "../../tools/gflow_plugin.genus.gf"
-gf_source -once "../../tools/tool_steps.genus.gf"
+gf_source -once "../../tools/gflow_plugin.innovus.gf"
+gf_source -once "../../tools/tool_steps.innovus.gf"
 
-gf_info "Loading project-specific Genus steps ..."
+gf_info "Loading project-specific Innovus steps ..."
 
 # Tool initialization in Linux environment
-gf_create_step -name init_genus_environment '
+gf_create_step -name init_innovus_environment '
 
     # # Manually override OpenAccess lib platform
     # export OA_UNSUPPORTED_PLAT=linux_rhel60
 
     # Add path the directory with tool binaries
-    export PATH="${PATH}:<PLACEHOLDER>/PATH_TO_GENUS/bin"
+    <PLACEHOLDER>
+    export PATH="${PATH}:/PATH_TO_INNOVUS/bin"
 
     # # Path to the libraries in case they are missing in Linux
-    # export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:<PLACEHOLDER>/PATH_TO_GENUS/tools/lib64"
-    # export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:<PLACEHOLDER>/PATH_TO_GENUS/tools/lib"
+    # <PLACEHOLDER>
+    # export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/PATH_TO_INNOVUS/tools/voltus_components/xp_tools/anls/lib"
+    # export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/PATH_TO_INNOVUS/tools/lib64"
+    # export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/PATH_TO_INNOVUS/tools/lib"
 '
 
 # Project-specific tool environment
-gf_create_step -name genus_post_init_design_project '
+gf_create_step -name innovus_post_init_design_physical_mode_project '
 
     # Process related settings
     set_db design_process_node <PLACEHOLDER>
+    # set_db design_tech_node <PLACEHOLDER>
+    set_db route_design_process_node <PLACEHOLDER>
 '

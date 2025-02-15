@@ -1,8 +1,8 @@
 ################################################################################
-# Generic Flow v5.1 (May 2023)
+# Generic Flow v5.5.0 (December 2024)
 ################################################################################
 #
-# Copyright 2011-2023 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
+# Copyright 2011-2024 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@
 # limitations under the License.
 #
 ################################################################################
-# Filename: templates/project_template.2023/project.quantus.gf
+# Filename: templates/project.2025/project.quantus.gf
 # Purpose:  Project-specific Quantus configuration and flow steps
 ################################################################################
 
@@ -34,7 +34,8 @@ gf_create_step -name init_quantus_environment '
     # export OA_UNSUPPORTED_PLAT=linux_rhel60
 
     # Add path the directory with tool binaries
-    export PATH="${PATH}:<PLACEHOLDER>/PATH_TO_EXT/bin"
+    <PLACEHOLDER>
+    export PATH="${PATH}:/PATH_TO_EXT/bin"
 
     # # Path to the libraries in case they are missing in Linux
     # export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:<PLACEHOLDER>/PATH_TO_EXT/tools/lib64"
@@ -47,22 +48,32 @@ gf_create_step -name quantus_pre_init_design_project '
     # Cross-coupling mode required for SI
     extract \
         -selection all \
+        -extract_via_cap true \
         -type rc_coupled
 
     # Filtering options
     filter_coupling_cap \
-        -total_cap_threshold 0.0 \
-        -coupling_cap_threshold_absolute 0.1 \
-        -coupling_cap_threshold_relative 1.0 \
+        -total_cap_threshold 0.000 \
+        -coupling_cap_threshold_absolute 0.100 \
+        -coupling_cap_threshold_relative 1.000 \
         -cap_filtering_mode absolute_and_relative
 
     # Parasitics reduction
-    parasitic_reduction -enable_reduction false
+    parasitic_reduction \
+        -reduction_level off \
+        -enable_reduction false
     
     # Process scale factor
     extraction_setup \
+        -max_fracture_length 50 \
         -layout_scale <PLACEHOLDER>1.0
 
+    # Additional extraction options
     extraction_setup \
         -promote_pin_pad logical
+
+    # Temporary directory
+    output_setup \
+        -temporary_directory_name ./tmp \
+        -unique_quantustemp_name false
 '

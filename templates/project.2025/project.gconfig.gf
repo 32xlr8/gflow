@@ -1,8 +1,8 @@
 ################################################################################
-# Generic Flow v5.1 (May 2023)
+# Generic Flow v5.5.0 (December 2024)
 ################################################################################
 #
-# Copyright 2011-2023 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
+# Copyright 2011-2024 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@
 # limitations under the License.
 #
 ################################################################################
-# Filename: templates/project_template.2023/project.gconfig.gf
+# Filename: templates/project.2025/project.gconfig.gf
 # Purpose:  Project-specific configuration for Generic Config toolkit
 ################################################################################
 
@@ -68,10 +68,11 @@ gf_create_step -name gconfig_ocv_settings '
     # # - Default IR-drop value for voltage OCV to be defined in block.common.gf
     # # - Derate tables: <cell pattern> <voltage-drop table> <dV derate table> <dT> <reference PDF>
     # # - Views mask is {<constraint_mode> <process> <voltage> <temperature> <rc_corner> <check>}
-    # # - Run ./gflow/templates/project_template.2023/create_tsmc_vt_tables.sh ./TSMCHOME/digital/Front_End/*/ utility to get it from PDF
+    # # - Run ./gflow/templates/project.2025/create_tsmc_vt_tables.sh ./TSMCHOME/digital/Front_End/*/ utility to get it from PDF
+    # <PLACEHOLDER>
     # gconfig::add_section {
-    #     -views {* <PLACEHOLDER>pvt_p <PLACEHOLDER>pvt_v <PLACEHOLDER>pvt_t * *} $cells_IR_dV_dT_table {
-    #         { <PLACEHOLDER>cells pattern {<PLACEHOLDER>IR-drop values} {<PLACEHOLDER>voltage derates}  {<PLACEHOLDER>temperature derate} {PDF}}
+    #     -views {* pvt_p pvt_v pvt_t * *} $cells_IR_dV_dT_table {
+    #         { cells pattern {IR-drop values} {voltage derates}  {temperature derate} {PDF}}
     #     }
     # }
 '
@@ -97,10 +98,13 @@ gf_create_step -name gconfig_project_settings '
     ##############################
 
     # Standard cell libraries types
-    gconfig::define_switches -group "MMMC libraries presets" -required -switches {nldm_libraries ecsm_libraries ccs_libraries lvf_libraries ecsm_p_libraries ccs_p_libraries}
+    gconfig::define_switches -group "MMMC libraries presets" -required -switches {nldm_libraries ecsm_libraries ccs_libraries lvf_libraries ldb_libraries ecsm_p_libraries ccs_p_libraries}
+
+    # Design status
+    gconfig::define_switches -group "Hierarchical design presets" -optional -switches {assembled}
 
     # Factory uncertainty control
-    gconfig::define_switches -group "OCV uncertainty preset" -optional -switches default_uncertainty
+    gconfig::define_switches -group "OCV uncertainty preset" -optional -switches {default_uncertainty}
 
     ##############################
     # Generic Config data
@@ -127,68 +131,53 @@ gf_create_step -name gconfig_project_settings '
         -views {scan * * * * *} {$mode scan}
 
         # Process variants to use in file name patterns
-        -views {* tt * * * *} {$pvt_p {tt TT typical nominal nom}}
-        -views {* ss * * * *} {$pvt_p {ssgnp ssg ss SSGNP SSG SS slow worst wc}}
-        -views {* ff * * * *} {$pvt_p {ffgnp ffg ff FFGNP FFG FF fast best bc}}
+        -views {* tt * * * *} {$pvt_p {tt TT typ typical nominal nom}}
+        -views {* ss * * * *} {$pvt_p {ssgnp ssg ss SSGNP SSG SS slow worst wc wcs}}
+        -views {* ff * * * *} {$pvt_p {ffgnp ffg ff FFGNP FFG FF fast best bc bcs}}
 
         # Voltage variants to use in file name patterns
-        -views {* * 0p500v * * *} {$pvt_v {0.5 0.50 0.500 0p500v 0p50v 0p5v}}
-        -views {* * 0p550v * * *} {$pvt_v {0.55 0.550 0p550v 0p55v}}
-        -views {* * 0p600v * * *} {$pvt_v {0.6 0.60 0.600 0p600v 0p60v 0p6v}}
-
-        -views {* * 0p540v * * *} {$pvt_v {0.54 0.540 0p540v 0p54v}}
-        # -views {* * 0p600v * * *} {$pvt_v {0.6 0.60 0.600 0p600v 0p60v 0p6v}}
-        -views {* * 0p660v * * *} {$pvt_v {0.66 0.660 0p660v 0p66v}}
-
-        -views {* * 0p630v * * *} {$pvt_v {0.63 0.630 0p630v 0p63v}}
-        -views {* * 0p700v * * *} {$pvt_v {0.7 0.70 0.700 0p700v 0p70v 0p7v}}
-        -views {* * 0p770v * * *} {$pvt_v {0.77 0.770 0p770v 0p77v}}
-
-        -views {* * 0p675v * * *} {$pvt_v {0.675 0p675v}}
-        -views {* * 0p750v * * *} {$pvt_v {0.75 0.750 0p750v 0p75v}}
-        -views {* * 0p825v * * *} {$pvt_v {0.825 0p825v}}
-
-        -views {* * 0p720v * * *} {$pvt_v {0.72 0.720 0p720v 0p72v}}
-        -views {* * 0p800v * * *} {$pvt_v {0.8 0.80 0.800 0p800v 0p80v 0p8v}}
-        -views {* * 0p880v * * *} {$pvt_v {0.88 0.880 0p880v 0p88v}}
-
-        -views {* * 0p810v * * *} {$pvt_v {0.81 0.810 0p810v 0p81v}}
-        -views {* * 0p900v * * *} {$pvt_v {0.9 0.90 0.900 0p900v 0p90v 0p9v}}
-        -views {* * 0p990v * * *} {$pvt_v {0.99 0.990 0p990v 0p99v}}
-
-        -views {* * 0p765v * * *} {$pvt_v {0.765 0p765v}}
-        -views {* * 0p850v * * *} {$pvt_v {0.85 0.850 0p850v 0p85v}}
-        -views {* * 0p935v * * *} {$pvt_v {0.935 0p935v}}
-
-        # -views {* * 0p900v * * *} {$pvt_v {0.9 0.90 0.900 0p900v 0p90v 0p9v}}
-        -views {* * 1p000v * * *} {$pvt_v {1 1.0 1.00 1.000 1p000v 1p00v 1p0v 1v}}
-        -views {* * 1p050v * * *} {$pvt_v {1.05 1.050 1p050v 1p05v}}
-        
-        # -views {* * 0p900v * * *} {$pvt_v {0.9 0.90 0.900 0p900v 0p90v 0p9v}}
-        # -views {* * 1p000v * * *} {$pvt_v {1 1.0 1p000v 1p00v 1p0v 1v}}
-        -views {* * 1p100v * * *} {$pvt_v {1.1 1.10 1.100 1p100v 1p10v 1p1v}}
-        
-        # -views {* * 0p990v * * *} {$pvt_v {0.99 0.990 0p990v 0p99v}}
-        # -views {* * 1p100v * * *} {$pvt_v {1.1 1.10 1.100 1p100v 1p10v 1p1v}}
-        -views {* * 1p200v * * *} {$pvt_v {1.2 1.20 1.200 1p200v 1p20v 1p2v}}
-
-        # -views {* * 1p100v * * *} {$pvt_v {1.1 1.10 1.100 1p100v 1p10v 1p1v}}
-        # -views {* * 1p200v * * *} {$pvt_v {1.2 1.20 1.200 1p200v 1p20v 1p2v}}
-        -views {* * 1p300v * * *} {$pvt_v {1.3 1.30 1.300 1p300v 1p30v 1p3v}}
-
-        -views {* * 1p260v * * *} {$pvt_v {1.26 1.260 1p260v 1p26v}}
-        -views {* * 1p400v * * *} {$pvt_v {1.4 1.40 1.400 1p400v 1p40v 1p4v}}
-        -views {* * 1p540v * * *} {$pvt_v {1.54 1.540 1p540v 1p54v}}
+        # - See ./gflow/templates/project.2025/print_gconfig_voltage_variants.sh to generate lines below
+        -views {* * 0p500v * * *} {$pvt_v {0p500v 0.500 0p500 0.50 0p50 0.5 0p5}}
+        -views {* * 0p540v * * *} {$pvt_v {0p540v 0.540 0p540 0.54 0p54}}
+        -views {* * 0p550v * * *} {$pvt_v {0p550v 0.550 0p550 0.55 0p55}}
+        -views {* * 0p600v * * *} {$pvt_v {0p600v 0.600 0p600 0.60 0p60 0.6 0p6}}
+        -views {* * 0p630v * * *} {$pvt_v {0p630v 0.630 0p630 0.63 0p63}}
+        -views {* * 0p660v * * *} {$pvt_v {0p660v 0.660 0p660 0.66 0p66}}
+        -views {* * 0p675v * * *} {$pvt_v {0p675v 0.675 0p675}}
+        -views {* * 0p700v * * *} {$pvt_v {0p700v 0.700 0p700 0.70 0p70 0.7 0p7}}
+        -views {* * 0p720v * * *} {$pvt_v {0p720v 0.720 0p720 0.72 0p72}}
+        -views {* * 0p750v * * *} {$pvt_v {0p750v 0.750 0p750 0.75 0p75}}
+        -views {* * 0p765v * * *} {$pvt_v {0p765v 0.765 0p765}}
+        -views {* * 0p770v * * *} {$pvt_v {0p770v 0.770 0p770 0.77 0p77}}
+        -views {* * 0p800v * * *} {$pvt_v {0p800v 0.800 0p800 0.80 0p80 0.8 0p8}}
+        -views {* * 0p810v * * *} {$pvt_v {0p810v 0.810 0p810 0.81 0p81}}
+        -views {* * 0p825v * * *} {$pvt_v {0p825v 0.825 0p825}}
+        -views {* * 0p850v * * *} {$pvt_v {0p850v 0.850 0p850 0.85 0p85}}
+        -views {* * 0p880v * * *} {$pvt_v {0p880v 0.880 0p880 0.88 0p88}}
+        -views {* * 0p900v * * *} {$pvt_v {0p900v 0.900 0p900 0.90 0p90 0.9 0p9}}
+        -views {* * 0p935v * * *} {$pvt_v {0p935v 0.935 0p935}}
+        -views {* * 0p990v * * *} {$pvt_v {0p990v 0.990 0p990 0.99 0p99}}
+        -views {* * 1p000v * * *} {$pvt_v {1p000v 1.000 1p000 1.00 1p00 1.0 1p0 1}}
+        -views {* * 1p050v * * *} {$pvt_v {1p050v 1.050 1p050 1.05 1p05}}
+        -views {* * 1p080v * * *} {$pvt_v {1p080v 1.080 1p080 1.08 1p08}}
+        -views {* * 1p100v * * *} {$pvt_v {1p100v 1.100 1p100 1.10 1p10 1.1 1p1}}
+        -views {* * 1p200v * * *} {$pvt_v {1p200v 1.200 1p200 1.20 1p20 1.2 1p2}}
+        -views {* * 1p210v * * *} {$pvt_v {1p210v 1.210 1p210 1.21 1p21}}
+        -views {* * 1p260v * * *} {$pvt_v {1p260v 1.260 1p260 1.26 1p26}}
+        -views {* * 1p300v * * *} {$pvt_v {1p300v 1.300 1p300 1.30 1p30 1.3 1p3}}
+        -views {* * 1p320v * * *} {$pvt_v {1p320v 1.320 1p320 1.32 1p32}}
+        -views {* * 1p400v * * *} {$pvt_v {1p400v 1.400 1p400 1.40 1p40 1.4 1p4}}
+        -views {* * 1p540v * * *} {$pvt_v {1p540v 1.540 1p540 1.54 1p54}}
 
         # Temperature variants to use in file name patterns
-        -views {* * * m60 * *} {$pvt_t {m60 m60c n60c}}
-        -views {* * * m40 * *} {$pvt_t {m40 m40c n40c}}
-        -views {* * *   0 * *} {$pvt_t {0 0c}}
-        -views {* * *  25 * *} {$pvt_t {25 25c}}
-        -views {* * *  85 * *} {$pvt_t {85 85c}}
-        -views {* * * 105 * *} {$pvt_t {105 105c}}
-        -views {* * * 125 * *} {$pvt_t {125 125c}}
-        -views {* * * 150 * *} {$pvt_t {150 150c}}
+        -views {* * * m60 * *} {$pvt_t {-60 -60c m60}}
+        -views {* * * m40 * *} {$pvt_t {-40 -40c m40}}
+        -views {* * *   0 * *} {$pvt_t {0 00 000}}
+        -views {* * *  25 * *} {$pvt_t {25 025}}
+        -views {* * *  85 * *} {$pvt_t {85 085}}
+        -views {* * * 105 * *} {$pvt_t {105}}
+        -views {* * * 125 * *} {$pvt_t {125}}
+        -views {* * * 150 * *} {$pvt_t {150}}
 
         # Extraction variants to use in file name patterns
         -views {* tt * * * *} {$pvt_rc {typical_max typ.max}}
@@ -206,19 +195,22 @@ gf_create_step -name gconfig_project_settings '
         -views {* ff * 125 * *} {$pvt {ml leak}}
 
         # QRC variants to use in file name patterns
-        -views {* * * *   cb *} {$qrc {CMIN     bc   cb   cbest       cbest_CCBest                            cbest/Tech/cbest_CCbest}}
+        -views {* * * *   cb *} {$qrc {CMIN     bc   cb   cbest       cbest_CCBest        cbest_CCbest        cbest/Tech/cbest_CCbest}}
         -views {* * * *  cbt *} {$qrc {              cbt  cbest_T     cbest_T_CCBest      cbest_CCbest_T      cbest/Tech/cbest_CCbest_T}}
-        -views {* * * *   cw *} {$qrc {CMAX     wc   cw   cworst      cworst_CCWorst                          cworst/Tech/cworst_CCworst}}
+        -views {* * * *   cw *} {$qrc {CMAX     wc   cw   cworst      cworst_CCWorst      cworst_CCworst      cworst/Tech/cworst_CCworst}}
         -views {* * * *  cwt *} {$qrc {              cwt  cworst_T    cworst_T_CCworst    cworst_CCworst_T    cworst/Tech/cworst_CCworst_T}}
-        -views {* * * *  rcb *} {$qrc {RCMIN         rcb  rcbest      rcbest_CCBest                           rcbest/Tech/rcbest_CCbest}}
+        -views {* * * *  rcb *} {$qrc {RCMIN         rcb  rcbest      rcbest_CCBest       rcbest_CCbest       rcbest/Tech/rcbest_CCbest}}
         -views {* * * * rcbt *} {$qrc {              rcbt rcbest_T    rcbest_T_CCBest     rcbest_CCbest_T     rcbest/Tech/rcbest_CCbest_T}}
-        -views {* * * *  rcw *} {$qrc {RCMAX         rcw  rcworst     rcworst_CCWorst                         rcworst/Tech/rcworst_CCworst}}
+        -views {* * * *  rcw *} {$qrc {RCMAX         rcw  rcworst     rcworst_CCWorst     rcworst_CCworst     rcworst/Tech/rcworst_CCworst}}
         -views {* * * * rcwt *} {$qrc {              rcwt rcworst_T   rcworst_T_CCWorst   rcworst_CCworst_T   rcworst/Tech/rcworst_CCworst_T}}
-        -views {* * * *   ct *} {$qrc {RCTYP    nom  ct   typical     Typical             typical/Tech/typical}}
+        -views {* * * *   ct *} {$qrc {RCTYP    nom  ct   typical     Typical             TYPICAL             typical/Tech/typical}}
         
         # STA check variants to use in file name patterns
         -views {* * * * * s} {$check {s setup}}
-        -views {* * * * * {h p l d}} {$check {h hold}}
+        -views {* * * * * h} {$check {h hold}}
+        -views {* * * * * p} {$check {p power}}
+        -views {* * * * * l} {$check {l leakage power}}
+        -views {* * * * * d} {$check {d dynamic power}}
     }
 
     # Default OCV margins for not covered views

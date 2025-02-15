@@ -1,8 +1,8 @@
 ################################################################################
-# Generic Flow v5.1 (May 2023)
+# Generic Flow v5.5.0 (December 2024)
 ################################################################################
 #
-# Copyright 2011-2023 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
+# Copyright 2011-2024 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,36 +17,35 @@
 # limitations under the License.
 #
 ################################################################################
-# Filename: templates/project_template.2023/project.innovus.gf
-# Purpose:  Project-specific Innovus configuration and flow steps
+# Filename: templates/project.2025/project.tempus.gf
+# Purpose:  Project-specific Tempus configuration and flow steps
 ################################################################################
 
 # Load tool plugin, tool and technology steps to use in GF scripts
 gf_source -once "../../tools/tool_steps.stylus.gf"
-gf_source -once "../../tools/gflow_plugin.innovus.gf"
-gf_source -once "../../tools/tool_steps.innovus.gf"
+gf_source -once "../../tools/gflow_plugin.tempus.gf"
+gf_source -once "../../tools/tool_steps.tempus.gf"
 
-gf_info "Loading project-specific Innovus steps ..."
+gf_info "Loading project-specific Tempus steps ..."
 
 # Tool initialization in Linux environment
-gf_create_step -name init_innovus_environment '
+gf_create_step -name init_tempus_environment '
 
     # # Manually override OpenAccess lib platform
     # export OA_UNSUPPORTED_PLAT=linux_rhel60
 
     # Add path the directory with tool binaries
-    export PATH="${PATH}:<PLACEHOLDER>/PATH_TO_INNOVUS/bin"
+    export CDS_STYLUS_SOURCE_VERBOSE=1
+    export PATH="${PATH}:<PLACEHOLDER>/PATH_TO_SSV/bin"
 
     # # Path to the libraries in case they are missing in Linux
-    # export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:<PLACEHOLDER>/PATH_TO_INNOVUS/tools/lib64"
-    # export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:<PLACEHOLDER>/PATH_TO_INNOVUS/tools/lib"
+    # export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:<PLACEHOLDER>/PATH_TO_SSV/tools/lib64"
+    # export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:<PLACEHOLDER>/PATH_TO_SSV/tools/lib"
 '
 
 # Project-specific tool environment
-gf_create_step -name innovus_post_init_design_physical_mode_project '
-
+gf_create_step -name tempus_post_init_design_project '
+    
     # Process related settings
     set_db design_process_node <PLACEHOLDER>
-    # set_db design_tech_node <PLACEHOLDER>
-    set_db route_design_process_node <PLACEHOLDER>
 '

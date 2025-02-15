@@ -1,8 +1,8 @@
 ################################################################################
-# Generic Flow v5.1 (May 2023)
+# Generic Flow v5.5.1 (February 2025)
 ################################################################################
 #
-# Copyright 2011-2023 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
+# Copyright 2011-2025 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,14 +17,14 @@
 # limitations under the License.
 #
 ################################################################################
-# Filename: templates/tools_template.2023/gflow_plugin.tempus.gf
+# Filename: templates/project.2025/tools/gflow_plugin.tempus.gf
 # Purpose:  Generic Flow Tempus plugin
 ################################################################################
 
 gf_info "Loading Tempus plugin ..."
 
 ##################################################
-gf_help_section "Tempus Common UI plugin v5.1"
+gf_help_section "Tempus Common UI plugin v5.5.1"
 ##################################################
 
 ##################################################

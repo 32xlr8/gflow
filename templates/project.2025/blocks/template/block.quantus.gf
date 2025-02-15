@@ -1,8 +1,8 @@
 ################################################################################
-# Generic Flow v5.1 (May 2023)
+# Generic Flow v5.5.1 (February 2025)
 ################################################################################
 #
-# Copyright 2011-2023 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
+# Copyright 2011-2025 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@
 # limitations under the License.
 #
 ################################################################################
-# Filename: templates/project_template.2023/blocks/block_template/block.quantus.gf
+# Filename: templates/project.2025/blocks/template/block.quantus.gf
 # Purpose:  Block-specific Quantus configuration and flow steps
 ################################################################################
 
@@ -31,16 +31,16 @@ gf_info "Loading block-specific Quantus steps ..."
 # gf_set_task_options -cpu 8 -mem 15
 
 # # Override resources for batch tasks
-# gf_set_task_options Extraction -cpu 8 -mem 15
+# gf_set_task_options QuantusOut -cpu 8 -mem 15
 
 # # Limit simultaneous tasks count
-# gf_set_task_options Extraction -group Heavy -parallel 1
+# gf_set_task_options QuantusOut -group Heavy -parallel 1
 
 ################################################################################
 # Flow variables
 ################################################################################
 
-# # Physical/logical synthesis
+# # Extraction with dummy GDS
 # USE_DUMMY_GDS=Y
 # USE_DUMMY_GDS=N
 

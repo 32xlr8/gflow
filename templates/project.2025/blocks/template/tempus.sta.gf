@@ -1,10 +1,10 @@
 #!../../gflow/bin/gflow
 
 ################################################################################
-# Generic Flow v5.1 (May 2023)
+# Generic Flow v5.5.1 (February 2025)
 ################################################################################
 #
-# Copyright 2011-2023 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
+# Copyright 2011-2025 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,7 +19,7 @@
 # limitations under the License.
 #
 ################################################################################
-# Filename: templates/project_template.2023/blocks/block_template/tempus.sta.gf
+# Filename: templates/project.2025/blocks/template/tempus.sta.gf
 # Purpose:  Batch signoff STA flow
 ################################################################################
 
@@ -42,23 +42,23 @@ gf_use_tempus
 
 # Design data directory
 gf_choose_file_dir_task -variable DATA_OUT_DIR -keep -prompt "Choose design data directory:" -dirs '
-    ../work_*/*/out/DataOutPhysical*
+    ../work_*/*/out/InnovusOut*
 ' -want -active -task_to_file '$RUN/out/$TASK' -tasks '
-    ../work_*/*/tasks/DataOutPhysical*
+    ../work_*/*/tasks/InnovusOut*
 '
 
 # SPEF directory
 gf_choose_file_dir_task -variable SPEF_OUT_DIR -keep -prompt "Choose SPEF directory:" -dirs '
-    ../work_*/*/out/Extraction*
+    ../work_*/*/out/QuantusOut*
 ' -want -active -task_to_file '$RUN/out/$TASK' -tasks '
-    ../work_*/*/tasks/Extraction*
+    ../work_*/*/tasks/QuantusOut*
 '
 
 # TCL commands
 gf_add_tool_commands '
 
     # Current design variables
-    set LEF_FILES {`$CADENCE_TLEF_FILES` `$LEF_FILES`}
+    set LEF_FILES {`$CADENCE_TLEF_FILES` `$LEF_FILES` `$PARTITIONS_LEF_FILES -optional`}
 
     set DESIGN_NAME {`$DESIGN_NAME`} 
     set POWER_NETS {`$POWER_NETS_CORE` `$POWER_NETS_OTHER -optional`}
@@ -66,6 +66,7 @@ gf_add_tool_commands '
 
     set DATA_OUT_DIR {`$DATA_OUT_DIR`}
     set SPEF_OUT_DIR {`$SPEF_OUT_DIR`}
+    set PARTITIONS_NETLIST_FILES {`$PARTITIONS_NETLIST_FILES -optional`}
     
     set IGNORE_IO_TIMING {`$IGNORE_IO_TIMING`}
 
@@ -91,9 +92,20 @@ gf_add_tool_commands '
     # Read physical information defined in project config
     read_physical -lefs [join $LEF_FILES]
     
-    # Load netlist
-    read_netlist $DATA_OUT_DIR/$DESIGN_NAME.v.gz -top $DESIGN_NAME
-    
+    # Read netlist files
+    set files $DATA_OUT_DIR/$DESIGN_NAME.v.gz
+    foreach file $PARTITIONS_NETLIST_FILES {lappend files $file}
+    foreach file $files {
+        if {[file exists $file]} {
+            puts "Netlist file: $file"
+            lappend files $file
+        } else {
+            puts "\033\[41m \033\[0m Netlist file $file not found"
+            suspend
+        }
+    }
+    read_netlist $files -top $DESIGN_NAME
+
     # Initialize design with MMMC configuration
     init_design
     
@@ -104,13 +116,39 @@ gf_add_tool_commands '
     }
     redirect ./reports/$TASK_NAME.derate.rpt {report_timing_derate}
     
-    # Read parasitics
-    gf_read_parasitics $SPEF_OUT_DIR/$DESIGN_NAME
-    
     # Initialize tool environment
     `@tempus_post_init_design_project`
     `@tempus_post_init_design`
+    `@procs_tempus_reports`
 
+    # Read design parasitics files
+    set processed {}; set missing 0
+    foreach view $MMMC_VIEWS {
+        set rc_corner [gconfig::get extract_corner_name -view $view]
+        if {[lsearch -exact $processed $rc_corner] < 0} {
+            lappend processed $rc_corner
+            set files $SPEF_OUT_DIR/$DESIGN_NAME.$rc_corner.spef.gz
+            foreach file [gconfig::get_files spef -view $view] {lappend files $file}
+            foreach file $files {
+                if {[file exists $file]} {
+                    puts "SPEF file: $file"
+                } else {
+                    puts "\033\[41m \033\[0m SPEF file $file not found"
+                    incr missing
+                }
+            }
+            if {$missing == 0} {
+                read_spef -rc_corner $rc_corner $files
+            }
+        }
+    }
+    if {$missing > 0} {
+        puts "\033\[41m \033\[0m SPEF files not found for some RC corners"
+        suspend
+    }
+    report_annotated_parasitics > ./reports/$TASK_NAME.annotation.rpt
+    puts [exec cat ./reports/$TASK_NAME.annotation.rpt]
+    
     # Path groups for analysis
     if {[catch create_basic_path_groups]} {
         set registers [all_registers]
@@ -128,7 +166,8 @@ gf_add_tool_commands '
     }
 
     # Timing analysis
-    `@reports_sta_tempus`
+    exec mkdir -p ./reports/$TASK_NAME
+    `@tempus_sta_reports`
     
     # Report collected metrics
     `@report_metrics`
@@ -168,37 +207,11 @@ gf_add_tool_commands -comment '#' -file ./scripts/$TASK_NAME.procs.tcl '
     `@procs_tempus_read_data`
 '
 
-# # Postprocess timing summary file
-# gf_add_shell_commands -post '
-    # cat ./reports/$TASK_NAME/timing.summary | perl -e '"'"'
-        # my $view = "";
-        # my $type = "";
-        # while (<STDIN>) {
-            # if (/View:(\w+)/) {
-                # $view = $1;
-                # $type = "";
-                # print "  | $view\n";
-            # } elsif ($view ne "") {
-                # if (/GroupType:(\w+)/) {
-                    # $type = $1;
-                # } elsif ($type ne "") {
-                    # s/\s+/ /g;
-                    # if (s/[-\d\.]+:[-\d\.]+:[-\d\.]+\s+[-\d\.]+:[-\d\.]+:[-\d\.]+\s+[-\d\.]+:[-\d\.]+:[-\d\.]+\s+([-\d\.]+):([-\d\.]+):([-\d\.]+)\s+[-\d\.]+:[-\d\.]+:[-\d\.]+\s+/sprintf("%7s:%-7s:%-10s", $1, $2, $3)/ge) {
-                        # # print "  | ".sprintf("%-10s", $type)." $_\n";
-                        # print "  | $_\n";
-                    # }
-                # }
-            # }
-        # }
-    # '"'"'
-# '
+# Statuses
+gf_add_status_marks '^\s*Writing'
 
 # Failed if some files not found
-gf_add_failed_marks '^\*\*ERROR:.\+file.\+not'
-
-# # Print summary
-# gf_add_status_marks '(Group|View) : '  'Check : .*[1-9\-]' 
-# gf_add_status_marks -1 +1 '^# (SETUP|HOLD|DRV)' '^  \|'
+gf_add_failed_marks '^\*\*ERROR:.+file\s+not'
 
 # Run task
 gf_submit_task

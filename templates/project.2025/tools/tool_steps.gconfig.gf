@@ -1,8 +1,8 @@
 ################################################################################
-# Generic Flow v5.1 (May 2023)
+# Generic Flow v5.5.1 (February 2025)
 ################################################################################
 #
-# Copyright 2011-2023 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
+# Copyright 2011-2025 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@
 # limitations under the License.
 #
 ################################################################################
-# Filename: templates/tools_template.2023/tool_steps.gconfig.gf
+# Filename: templates/project.2025/tools/tool_steps.gconfig.gf
 # Purpose:  TCL procedures to work with file lists
 ################################################################################
 
@@ -34,10 +34,10 @@ gf_create_step -name init_gconfig_mmmc '
     gconfig::define_switches -group "OCV derate factor presets" -required -switches {no_derates flat_derates vt_derates user_derates}
 
     # Variables storing files to use
-    gconfig::define_variables -group "Project MMMC files" {sdc_files lib_files lvf_files cdb_files aocv_files socv_files qrc_files}
+    gconfig::define_variables -group "Project MMMC files" {sdc_files lib_files lvf_files cdb_files aocv_files socv_files cap_table_files qrc_files pgv_files spef_files twf_files}
 
     # Operating conditions for create_timing_condition command
-    gconfig::define_variables -group "MMMC operating conditions" -variables {opcond opcond_lib}
+    gconfig::define_variables -group "MMMC operating conditions" -variables {power_domain_timing_conditions opcond opcond_lib}
 
     # Variables to store MMMC object names
     gconfig::define_variables -group "MMMC object names" -variables {
@@ -50,7 +50,7 @@ gf_create_step -name init_gconfig_mmmc '
 
     # Variables to store MMMC commands
     gconfig::define_variables -group "MMMC commands" -variables {
-        constraint_mode_commands library_set_commands timing_condition_commands extract_corner_commands delay_corner_commands analysis_view_commands
+        constraint_mode_commands library_set_commands timing_condition_commands extract_corner_commands delay_corner_commands update_delay_corner_commands analysis_view_commands
     }
     gconfig::define_variables -group "OCV commands" -variables {
         set_timing_derate_commands set_clock_uncertainty_commands
@@ -58,7 +58,7 @@ gf_create_step -name init_gconfig_mmmc '
 
     # Variables to store file arguments used in MMMC commands
     gconfig::define_variables -group "MMMC file lists" -variables {
-        sdc_argument opcond_argument lib_argument cdb_argument aocv_argument socv_argument qrc_argument
+        sdc_argument opcond_argument lib_argument cdb_argument aocv_argument socv_argument cap_table_argument qrc_argument
     }
 
     # Analysis view types
@@ -79,7 +79,7 @@ gf_create_step -name init_gconfig_mmmc '
         -auto_name $library_set_name {$library_set_commands}
         -auto_name $timing_condition_name {$timing_condition_commands}
         -auto_name $extract_corner_name {$extract_corner_commands}
-        -auto_name $delay_corner_name {$delay_corner_commands $set_timing_derate_commands}
+        -auto_name $delay_corner_name {$delay_corner_commands $update_delay_corner_commands $set_timing_derate_commands}
         -auto_name $constraint_mode_name {$constraint_mode_commands $set_clock_uncertainty_commands}
         -auto_name $analysis_view_name {$analysis_view_commands}
     }
@@ -111,6 +111,10 @@ gf_create_step -name init_gconfig_mmmc '
         -when {socv_libraries && $socv_files}  $socv_argument {[regsub -all "\n" {$socv_files} "\n    "]} 
         -when {!socv_libraries || !$socv_files} $socv_argument {} 
         
+        # Cap Table file
+        -when {$cap_table_files}  $cap_table_argument {[regsub -all "\n" {$cap_table_files} " "]} 
+        -when {!$cap_table_files} $cap_table_argument {} 
+
         # QRC file
         -when {$qrc_files}  $qrc_argument {[regsub -all "\n" {$qrc_files} " "]} 
         -when {!$qrc_files} $qrc_argument {} 
@@ -149,8 +153,10 @@ gf_create_step -name init_gconfig_mmmc '
 
         # RC corner
         $extract_corner_commands {
-            create_rc_corner -name $extract_corner_name -temperature {$temperature} \\
-                -qrc_tech {$qrc_argument}
+            create_rc_corner -name $extract_corner_name \\
+                -cap_table {$cap_table_argument} \\
+                -qrc_tech {$qrc_argument} \\
+                -temperature {$temperature}
             puts \"INFO: RC corner ${COLOR}$extract_corner_name${NO_COLOR} created.\"
         }
 
@@ -158,6 +164,12 @@ gf_create_step -name init_gconfig_mmmc '
         $delay_corner_commands {
             create_delay_corner -name $delay_corner_name -timing_condition $timing_condition_name -rc_corner $extract_corner_name
             puts \"INFO: Delay corner ${COLOR}$delay_corner_name${NO_COLOR} created.\"
+        }
+
+        # Update delay corner for low power MMMC
+        $update_delay_corner_commands {
+            update_delay_corner -name $delay_corner_name -timing_condition {$timing_condition_name \$power_domain_conditions} -rc_corner $extract_corner_name
+            puts \"INFO: Delay corner ${COLOR}$delay_corner_name${NO_COLOR} updated.\"
         }
 
         # Analysis view
@@ -228,6 +240,11 @@ gf_create_step -name init_gconfig_mmmc '
         return [add_section "-merge \\\$set_clock_uncertainty_commands $args"]
     }
 
+    # Define extraction temperatures for RC corners
+    proc gconfig::add_power_domain_timing_conditions {args} {
+        return [add_section "\\\$power_domain_timing_conditions $args"]
+    }
+
     # Get MMMC commands to evaluate or dump
     proc gconfig::get_mmmc_commands {args} {
 
@@ -237,8 +254,9 @@ gf_create_step -name init_gconfig_mmmc '
         # Parse arguments
         set analysis_views {}
         set active_views {}
+        set all_active_views 0
         set out_file {}
-        foreach arg_pair [parse_proc_arguments -parameters "-views -active_views -dump_to_file" $args] {
+        foreach arg_pair [parse_proc_arguments -parameters "-views -active_views -dump_to_file" -options "-all_active" $args] {
             set arg [lindex $arg_pair 0]
             
             # Specify analysis views
@@ -248,6 +266,8 @@ gf_create_step -name init_gconfig_mmmc '
             # Specify active analysis views
             } elseif {$arg == {-active_views}} {
                 set active_views [concat $active_views [lindex $arg_pair 1]]
+            } elseif {$arg == {-all_active}} {
+                set all_active_views 1
                 
             # Dump mmmc configuration to file
             } elseif {$arg == {-dump_to_file}} {
@@ -275,8 +295,30 @@ gf_create_step -name init_gconfig_mmmc '
         # Remove view duplicates
         set views {}
         foreach view $analysis_views {
-           if {[lsearch -exact $views $view] == -1} {
+            if {[lsearch -exact $views $view] == -1} {
                 lappend views $view
+            }
+        }
+
+        # Timing conditions views for low power MMMC file
+        set tc_views {}
+        foreach view $views {
+            set pd_conditions [get -variable power_domain_timing_conditions -view $view]
+            foreach {pd sub_view} $pd_conditions {
+                set tc_view {}
+                set i 0
+                while {$i < [llength $view]} {
+                    set mask [lindex $sub_view $i]
+                    if {($mask == "") || ($mask == "*")} {
+                        lappend tc_view [lindex $view $i]
+                    } else {
+                        lappend tc_view $mask
+                    }
+                    incr i
+                }
+                if {[lsearch -exact [concat $views $tc_views] $tc_view] == -1} {
+                    lappend tc_views $tc_view
+                }
             }
         }
 
@@ -293,6 +335,7 @@ gf_create_step -name init_gconfig_mmmc '
         set timing_condition_commands {}
         set extract_corner_commands {}
         set delay_corner_commands {}
+        set update_delay_corner_commands {}
         set constraint_mode_commands {}
         set analysis_view_commands {}
         
@@ -305,14 +348,14 @@ gf_create_step -name init_gconfig_mmmc '
         # Process every view in the list
         puts {}
         print_subtitle "Configuring MMMC views"
-        foreach view $views {
+        foreach view [concat $tc_views $views] {
             
             # Queue messages
             catch {
                 queue_messages
 
                 # Get all config records relative to current view
-                set view_records [get_records -variables {*_name *_commands is_*} -view $view -evaluate]
+                set view_records [get_records -variables {*_name *_commands is_* power_domain_timing_conditions} -view $view -evaluate]
 
                 # Get unique MMMC objects names for current view
                 set library_set_name [get library_set_name -records $view_records]
@@ -322,8 +365,14 @@ gf_create_step -name init_gconfig_mmmc '
                 set constraint_mode_name [get constraint_mode_name -records $view_records]
                 set analysis_view_name [get analysis_view_name -records $view_records]
                 
-                # Print information
-                puts "=> \033\[97m$analysis_view_name\033\[0m {$view} (mode $constraint_mode_name, delay corner $delay_corner_name, RC corner $extract_corner_name, library set $library_set_name)"
+                # Print information - timing conditions
+                if {[lsearch -exact $views $view] == -1} {
+                    puts "=> Timing condition \033\[97m$timing_condition_name\033\[0m {$view} (library set $library_set_name)"
+
+                # Print information - analysis views
+                } else {
+                    puts "=> Analysis view \033\[97m$analysis_view_name\033\[0m {$view} (mode $constraint_mode_name, delay corner $delay_corner_name, RC corner $extract_corner_name, library set $library_set_name)"
+                }
                 
                 # Add new library set if not added already
                 if {[lsearch -exact $library_set_names $library_set_name] == -1} {
@@ -369,89 +418,123 @@ gf_create_step -name init_gconfig_mmmc '
                     append timing_condition_commands [regsub {\s*$} $command "\n"]
                 }
 
-                # Add new constraint mode if not added already
-                if {[lsearch -exact $constraint_mode_names $constraint_mode_name] == -1} {
-                    lappend constraint_mode_names $constraint_mode_name
+                # True views
+                if {[lsearch -exact $views $view] != -1} {
                     
-                    # Remove leading indent and evaluate expressions
-                    set command [subst [regsub -line -all {^ {8}} \
-                        [get -variable constraint_mode_commands -records $view_records] \
-                    {}]]
-                    
-                    # Remove empty arguments
-                    set command [regsub -all {\s+\-[a-z_]+\s+\{\s*\}} $command {}]
-                    
-                    # Argument -sdc_files should exist
-                    if {![regexp { -sdc_files } $command]} {
-                        print_message {ERROR} "\033\[91mNo SDC files\033\[0m configured for view {\033\[97m$view\033\[0m}. Please use gconfig::\033\[97madd_files sdc\033\[0m command."
+                    # Add new constraint mode if not added already
+                    if {[lsearch -exact $constraint_mode_names $constraint_mode_name] == -1} {
+                        lappend constraint_mode_names $constraint_mode_name
+                        
+                        # Remove leading indent and evaluate expressions
+                        set command [subst [regsub -line -all {^ {8}} \
+                            [get -variable constraint_mode_commands -records $view_records] \
+                        {}]]
+                        
+                        # Remove empty arguments
+                        set command [regsub -all {\s+\-[a-z_]+\s+\{\s*\}} $command {}]
+                        
+                        # Argument -sdc_files should exist
+                        if {![regexp { -sdc_files } $command]} {
+                            print_message {ERROR} "\033\[91mNo SDC files\033\[0m configured for view {\033\[97m$view\033\[0m}. Please use gconfig::\033\[97madd_files sdc\033\[0m command."
+                        }
+                        
+                        # Add constraint mode commands
+                        append constraint_mode_commands [regsub {\s*$} $command "\n"]
                     }
-                    
-                    # Add constraint mode commands
-                    append constraint_mode_commands [regsub {\s*$} $command "\n"]
-                }
 
-                # Add new extraction corner if not added already
-                if {[lsearch -exact $extract_corner_names $extract_corner_name] == -1} {
-                    lappend extract_corner_names $extract_corner_name
-                    
-                    # Remove leading indent and evaluate expressions
-                    set command [subst [regsub -line -all {^ {8}} \
-                        [get -variable extract_corner_commands -records $view_records] \
-                    {}]]
-                    
-                    # Remove empty arguments
-                    set command [regsub -all {\s+\-[a-z_]+\s+\{\s*\}} $command {}]
-                    
-                    # Argument -timing should exist
-                    if {![regexp { -qrc_tech } $command]} {
-                        print_message {ERROR} "\033\[91mNo QRC tech file\033\[0m configured for view {\033\[97m$view\033\[0m}. Please use gconfig::\033\[97madd_files qrc\033\[0m command."
+                    # Add new extraction corner if not added already
+                    if {[lsearch -exact $extract_corner_names $extract_corner_name] == -1} {
+                        lappend extract_corner_names $extract_corner_name
+                        
+                        # Remove leading indent and evaluate expressions
+                        set command [subst [regsub -line -all {^ {8}} \
+                            [get -variable extract_corner_commands -records $view_records] \
+                        {}]]
+                        
+                        # Remove empty arguments
+                        set command [regsub -all {\\\s*\\} [regsub -all {\s+\-[a-z_]+\s+\{\s*\}\s*} $command {}] {\\}]
+                        
+                        # Argument -timing should exist
+                        if {![regexp { -cap_table } $command] && ![regexp { -qrc_tech } $command]} {
+                            print_message {ERROR} "\033\[91mNo QRC tech or CapTbl file\033\[0m configured for view {\033\[97m$view\033\[0m}. Please use gconfig::\033\[97madd_files qrc\033\[0m or  gconfig::\033\[97madd_files cap_table\033\[0mcommand."
+                        }
+                        
+                        # Add etraction corner commands
+                        append extract_corner_commands [regsub {\s*$} $command "\n"]
                     }
-                    
-                    # Add etraction corner commands
-                    append extract_corner_commands [regsub {\s*$} $command "\n"]
-                }
 
-                # Add new delay corner if not added already
-                if {[lsearch -exact $delay_corner_names $delay_corner_name] == -1} {
-                    lappend delay_corner_names $delay_corner_name
-                    
-                    # Remove leading indent and evaluate expressions
-                    set command [subst [regsub -line -all {^ {8}} \
-                        [get -variable delay_corner_commands -records $view_records] \
-                    {}]]
-                    
-                    # Add delay corner commands
-                    append delay_corner_commands [regsub {\s*$} $command "\n"]
-                }
+                    # Add new delay corner if not added already
+                    if {[lsearch -exact $delay_corner_names $delay_corner_name] == -1} {
+                        lappend delay_corner_names $delay_corner_name
+                        
+                        # Remove leading indent and evaluate expressions
+                        set command [subst [regsub -line -all {^ {8}} \
+                            [get -variable delay_corner_commands -records $view_records] \
+                        {}]]
+                        
+                        # Add delay corner commands
+                        append delay_corner_commands [regsub {\s*$} $command "\n"]
 
-                # Add new analysis view if not added already
-                if {[lsearch -exact $analysis_view_names $analysis_view_name] == -1} {
-                    lappend analysis_view_names $analysis_view_name
-                    
-                    # Remove leading indent and evaluate expressions
-                    set command [subst [regsub -line -all {^ {8}} \
-                        [get -variable analysis_view_commands -records $view_records] \
-                    {}]]
-                    
-                    # Add analysis view commands
-                    append analysis_view_commands [regsub {\s*$} $command "\n"]
-                }
+                        # Low power MMMC
+                        set power_domain_conditions {}
+                        foreach {pd sub_view} [get -variable power_domain_timing_conditions -records $view_records] {
+                            set tc_view {}
+                            set i 0
+                            while {$i < [llength $view]} {
+                                set mask [lindex $sub_view $i]
+                                if {($mask == "") || ($mask == "*")} {
+                                    lappend tc_view [lindex $view $i]
+                                } else {
+                                    lappend tc_view $mask
+                                }
+                                incr i
+                            }
+                            lappend power_domain_conditions "$pd@[get -variable timing_condition_name -view $tc_view]"
+                        }
 
-                set is_view_active [expr {[lsearch -exact $active_views $view] != -1}]
-                
-                # Update view sets
-                if {$is_view_active} {
-                    if {[get -records $view_records -variable is_setup_view] != {}} {
-                        lappend setup_views $analysis_view_name
+                        # Update delay corner
+                        if {[llength $power_domain_conditions] > 0} {
+                            
+                            # Remove leading indent and evaluate expressions
+                            set command [subst [regsub -line -all {^ {8}} \
+                                [get -variable update_delay_corner_commands -records $view_records] \
+                            {}]]
+                            set command [regsub -line -all {\$power_domain_conditions} $command $power_domain_conditions]
+                            
+                            # Add delay corner commands
+                            append update_delay_corner_commands [regsub {\s*$} $command "\n"]
+                        }
                     }
-                    if {[get -records $view_records -variable is_hold_view] != {}} {
-                        lappend hold_views $analysis_view_name
+
+                    # Add new analysis view if not added already
+                    if {[lsearch -exact $analysis_view_names $analysis_view_name] == -1} {
+                        lappend analysis_view_names $analysis_view_name
+                        
+                        # Remove leading indent and evaluate expressions
+                        set command [subst [regsub -line -all {^ {8}} \
+                            [get -variable analysis_view_commands -records $view_records] \
+                        {}]]
+                        
+                        # Add analysis view commands
+                        append analysis_view_commands [regsub {\s*$} $command "\n"]
                     }
-                    if {[get -records $view_records -variable is_leakage_view] != {}} {
-                        set leakage_view $analysis_view_name
-                    }
-                    if {[get -records $view_records -variable is_dynamic_view] != {}} {
-                        set dynamic_view $analysis_view_name
+
+                    set is_view_active [expr {[lsearch -exact $active_views $view] != -1}]
+                    
+                    # Update view sets
+                    if {$is_view_active} {
+                        if {$all_active_views || ([get -records $view_records -variable is_setup_view] != {})} {
+                            lappend setup_views $analysis_view_name
+                        }
+                        if {$all_active_views || ([get -records $view_records -variable is_hold_view] != {})} {
+                            lappend hold_views $analysis_view_name
+                        }
+                        if {[get -records $view_records -variable is_leakage_view] != {}} {
+                            set leakage_view $analysis_view_name
+                        }
+                        if {[get -records $view_records -variable is_dynamic_view] != {}} {
+                            set dynamic_view $analysis_view_name
+                        }
                     }
                 }
             }
@@ -469,11 +552,6 @@ gf_create_step -name init_gconfig_mmmc '
         # Compose result MMMC commands
         set result {}
         
-        append result "##################################################\n"
-        append result "# Constraint modes\n"
-        append result "##################################################\n"
-        append result "$constraint_mode_commands\n"
-
         append result "##################################################\n"
         append result "# Library sets\n"
         append result "##################################################\n"
@@ -495,6 +573,11 @@ gf_create_step -name init_gconfig_mmmc '
         append result "# Delay corners\n"
         append result "##################################################\n"
         append result "$delay_corner_commands\n"
+
+        append result "##################################################\n"
+        append result "# Constraint modes\n"
+        append result "##################################################\n"
+        append result "$constraint_mode_commands\n"
 
         append result "##################################################\n"
         append result "# Analysis views\n"
@@ -524,7 +607,15 @@ gf_create_step -name init_gconfig_mmmc '
         append result "##################################################\n"
         append result "# Active views\n"
         append result "##################################################\n"
-        append result [regsub {[\s\\]*$} $command "\n"]
+        append result "[regsub {[\s\\]*$} $command "\n"]\n"
+
+        # Update delay corner commands for low power designs
+        if {$update_delay_corner_commands != {}} {
+            append result "##################################################\n"
+            append result "# Update delay corners\n"
+            append result "##################################################\n"
+            append result "$update_delay_corner_commands\n"
+        }
 
         # Dump commands to file
         if {$out_file != {}} {

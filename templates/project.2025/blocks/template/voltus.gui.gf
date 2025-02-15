@@ -1,10 +1,10 @@
 #!../../gflow/bin/gflow
 
 ################################################################################
-# Generic Flow v5.1 (May 2023)
+# Generic Flow v5.5.1 (February 2025)
 ################################################################################
 #
-# Copyright 2011-2023 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
+# Copyright 2011-2025 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,7 +19,7 @@
 # limitations under the License.
 #
 ################################################################################
-# Filename: templates/project_template.2023/blocks/block_template/voltus.gui.gf
+# Filename: templates/project.2025/blocks/template/voltus.gui.gf
 # Purpose:  Interactive power results debug flow
 ################################################################################
 
@@ -44,7 +44,8 @@ gf_create_task -name DebugVoltus
 gf_use_voltus
 
 # Voltus rail data
-gf_choose_file_dir_task -variable VOLTUS_RAIL_DATA -keep -prompt "Choose rail data to load:" -dirs '
+gf_choose_file_dir_task -variable VOLTUS_RAIL_DATA -prompt "Choose rail data to load:" -dirs '
+    '"$VOLTUS_RAIL_DATA"'
     ../work_*/*/out/*.rail/*
 '
 gf_spacer
@@ -53,7 +54,7 @@ gf_spacer
 gf_add_tool_commands '
 
     # Current design variables
-    set LEF_FILES {`$CADENCE_TLEF_FILES` `$LEF_FILES`}
+    set LEF_FILES {`$CADENCE_TLEF_FILES` `$LEF_FILES` `$PARTITIONS_LEF_FILES -optional`}
     set VOLTUS_RAIL_DATA {`$VOLTUS_RAIL_DATA`} 
     set DESIGN_NAME {`$DESIGN_NAME`} 
 
@@ -61,7 +62,7 @@ gf_add_tool_commands '
     `@collect_metrics`
 
     # Design variables
-    `@voltus_pre_init_variables`
+    `@voltus_pre_init_design_variables`
 
     # Load design files
     read_physical -lefs [join $LEF_FILES]
@@ -69,6 +70,9 @@ gf_add_tool_commands '
     
     # Design initialization
     init_design
+    `@voltus_post_init_design_project`
+    `@voltus_post_init_design_variables`
+    `@voltus_post_init_design`
     
     # Load physical data
     read_def [regsub {/out/(.*)\.rail/.*?$} $VOLTUS_RAIL_DATA {/in/\1.def.gz}]  -skip_signal_nets 
@@ -78,10 +82,6 @@ gf_add_tool_commands '
         -rail_directory $VOLTUS_RAIL_DATA \
         -instance_voltage_window {timing whole} \
         -instance_voltage_method {worst best avg worstavg}
-
-    # Initialize tool environment
-    `@voltus_post_init_design_project`
-    `@voltus_post_init_variables`
 
     # GUI commands
     `@voltus_pre_gui -optional`

@@ -1,8 +1,8 @@
 ################################################################################
-# Generic Flow v5.1 (May 2023)
+# Generic Flow v5.5.1 (February 2025)
 ################################################################################
 #
-# Copyright 2011-2023 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
+# Copyright 2011-2025 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,14 +17,14 @@
 # limitations under the License.
 #
 ################################################################################
-# Filename: templates/tools_template.2023/gflow_plugin.voltus.gf
+# Filename: templates/project.2025/tools/gflow_plugin.voltus.gf
 # Purpose:  Generic Flow Voltus plugin
 ################################################################################
 
 gf_info "Loading Voltus plugin ..."
 
 ##################################################
-gf_help_section "Voltus Common UI plugin v5.1"
+gf_help_section "Voltus Common UI plugin v5.5.1"
 ##################################################
 
 ##################################################
@@ -76,11 +76,13 @@ function gf_use_voltus {
     fi
 
     # Status marks
-    gf_add_success_marks 'Exiting Voltus' 'Ending.*Voltus'
-    gf_add_status_marks 'Run directory:' 'Analysis view:' 'RC corner:' 'SPEF file:'
+    gf_add_status_marks -1 -from 'Annotated \(%\)' -to '^\+\-+\+$'
+    gf_add_status_marks '^Run directory:' '^Analysis view:' '^RC corner:' '^SPEF file:'
     gf_add_status_marks 'Voltage Source.*%' 'Current Tap.*%'
+    gf_add_status_marks 'Total annotation coverage' 'Names in file' 'Unique nets'
     gf_add_status_marks 'annotated' 'disconnected nodes'
     gf_add_status_marks 'Total.*Power:' 'Total .* coverage:' 'Num Violations:' 'Instance.* IR Drop:'
+    gf_add_success_marks 'Exiting Voltus' 'Ending.*Voltus'
     gf_add_failed_marks ' pstack ' 'terminated by user interrupt'
 }
 
@@ -133,11 +135,14 @@ function gf_use_voltus_batch {
     fi
 
     # Status marks
-    gf_add_success_marks 'Exiting Voltus' 'Ending.*Voltus'
+    gf_add_status_marks 'Names in file' 'Unique nets'
+    gf_add_status_marks -1 -from 'Annotated \(%\)' -to '^\+\-+\+$'
     gf_add_status_marks 'Run directory:' 'SPEF file:' 'QRC file:' 'MMMC file:'
     gf_add_status_marks 'Voltage Source.*%' 'Current Tap.*%'
+    gf_add_status_marks 'Total annotation coverage' 'Names in file' 'Unique nets'
     gf_add_status_marks 'annotated' 'disconnected nodes'
     gf_add_status_marks 'Total.*Power:' 'Total .* coverage:' 'Num Violations:' 'Instance.* IR Drop:'
+    gf_add_success_marks 'Exiting Voltus' 'Ending.*Voltus'
     gf_add_failed_marks ' pstack ' 'terminated by user interrupt'
 
     # Failed mark

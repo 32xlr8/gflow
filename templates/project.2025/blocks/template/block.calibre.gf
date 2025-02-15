@@ -1,8 +1,8 @@
 ################################################################################
-# Generic Flow v5.1 (May 2023)
+# Generic Flow v5.5.1 (February 2025)
 ################################################################################
 #
-# Copyright 2011-2023 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
+# Copyright 2011-2025 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@
 # limitations under the License.
 #
 ################################################################################
-# Filename: templates/project_template.2023/blocks/block_template/block.calibre.gf
+# Filename: templates/project.2025/blocks/template/block.calibre.gf
 # Purpose:  Block-specific Calibre configuration and flow steps
 ################################################################################
 
@@ -25,19 +25,18 @@
 # gf_set_task_options 'Fill*' DRC LVS -group Heavy -parallel 1
 
 # Tasks to run
-gf_set_task_options -disable *
-gf_set_task_options -enable Fill*
-# gf_set_task_options -enable Bumps*
-# gf_set_task_options -enable Antenna*
-gf_set_task_options -enable DRC*
-gf_set_task_options -enable LVS*
+# gf_set_task_options -disable DRC
+# gf_set_task_options -disable LVS
+gf_set_task_options -disable Bumps
+gf_set_task_options -disable Antenna
 
 ################################################################################
 # Flow variables
 ################################################################################
 
 # # Nets to connect virtually during LVS
-# LVS_VIRTUAL_NET_CONNECT="<PLACEHOLDER>POC VDD VSS VSSPST VDDPST AVDD AVSS"
+# <PLACEHOLDER>
+# LVS_VIRTUAL_NET_CONNECT="POC VDD VSS VSSPST VDDPST AVDD AVSS"
 
 # Sed commands to replace LEF metal layer names with GDS text layer numbers 
 MAP_PORT_NAMES_SED_SCRIPT='
@@ -55,4 +54,10 @@ gf_create_step -name lvs_user_port_labels '
     # LAYOUT TEXT "POC" 0.0 0.0 M5 `$DESIGN_NAME`
     # LAYOUT TEXT "ESD" 0.0 0.0 M5 `$DESIGN_NAME`
     # LAYOUT TEXT "RTE" 0.0 0.0 M5 `$DESIGN_NAME`
+'
+
+# Empty cells spice for LVS
+gf_create_step -name lvs_empty_cells_spice '
+    .SUBCKT `$DESIGN_NAME`_dummy_fill
+    .ENDS
 '

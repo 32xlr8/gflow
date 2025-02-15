@@ -1,8 +1,8 @@
 ################################################################################
-# Generic Flow v5.1 (May 2023)
+# Generic Flow v5.5.1 (February 2025)
 ################################################################################
 #
-# Copyright 2011-2023 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
+# Copyright 2011-2025 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@
 # limitations under the License.
 #
 ################################################################################
-# Filename: templates/tools_template.2023/tool_steps.tempus.gf
+# Filename: templates/project.2025/tools/tool_steps.tempus.gf
 # Purpose:  Tempus steps to use in the Generic Flow
 ################################################################################
 
@@ -29,9 +29,6 @@ gf_info "Loading tool-specific Tempus steps ..."
 
 # Create timing summary report
 gf_create_step -name procs_tempus_reports '
-
-    # Create reports directory
-    exec mkdir -p ./reports/$TASK_NAME
  
     # Print report_timing file summary
     proc gf_print_report_timing_summary {file} {
@@ -49,8 +46,12 @@ gf_create_step -name procs_tempus_reports '
                 }
             }
             close FILE;
-            $avg /= $count if ($count > 0);
-            print sprintf("WNS = %+.03f, AVG = %+.03f, %d of %d violated", $wns, $avg, $neg_count, $count);
+            if ($count > 0) {
+                $avg /= $count;
+                print sprintf("WNS = %+.03f, AVG = %+.03f, %d of %d violated", $wns, $avg, $neg_count, $count);
+            } else {
+                print "No timing paths\n";
+            }
         } $file]
     }
     
@@ -244,7 +245,7 @@ gf_create_step -name procs_tempus_reports '
 
         # Summary constraint reports
         report_constraint -drv_violation_type {min_transition min_capacitance min_fanout pulse_clock_min_transition} > ./reports/$::TASK_NAME/constraint.early.gba.rpt
-        report_constraint -check_type {clock_period skew pulse_width pulse_clock_min_width} -verbose >> ./reports/$::TASK_NAME/constraint.early.gba.rpt
+        report_constraint -check_type {pulse_clock_min_width} -verbose >> ./reports/$::TASK_NAME/constraint.early.gba.rpt
         gf_print_report_contraint_summary ./reports/$::TASK_NAME/constraint.early.gba.rpt "GBA early constraint violations:"
         
         # Violated summary
@@ -252,9 +253,6 @@ gf_create_step -name procs_tempus_reports '
         report_constraint -drv_violation_type min_capacitance -all_violators > ./reports/$::TASK_NAME/constraint.early.gba.min_capacitance.violated.rpt
         report_constraint -drv_violation_type min_fanout -all_violators > ./reports/$::TASK_NAME/constraint.early.gba.min_fanout.violated.rpt
         report_constraint -drv_violation_type pulse_clock_min_transition -all_violators > ./reports/$::TASK_NAME/constraint.early.gba.pulse_clock_min_transition.violated.rpt
-        report_constraint -check_type clock_period -all_violators > ./reports/$::TASK_NAME/constraint.early.gba.clock_period.violated.rpt
-        report_constraint -check_type skew -all_violators > ./reports/$::TASK_NAME/constraint.early.gba.skew.violated.rpt
-        report_constraint -check_type pulse_width -all_violators > ./reports/$::TASK_NAME/constraint.early.gba.pulse_width.violated.rpt
         report_constraint -check_type pulse_clock_min_width -all_violators > ./reports/$::TASK_NAME/constraint.early.gba.pulse_clock_min_width.violated.rpt
     }
 

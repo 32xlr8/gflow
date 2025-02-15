@@ -1,8 +1,8 @@
 ################################################################################
-# Generic Flow v5.5.0 (December 2024)
+# Generic Flow v5.5.1 (February 2025)
 ################################################################################
 #
-# Copyright 2011-2024 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
+# Copyright 2011-2025 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -38,8 +38,8 @@ gf_create_step -name init_quantus_environment '
     export PATH="${PATH}:/PATH_TO_EXT/bin"
 
     # # Path to the libraries in case they are missing in Linux
-    # export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:<PLACEHOLDER>/PATH_TO_EXT/tools/lib64"
-    # export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:<PLACEHOLDER>/PATH_TO_EXT/tools/lib"
+    # export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/PATH_TO_EXT/tools/lib64"
+    # export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/PATH_TO_EXT/tools/lib"
 '
 
 # Project-specific tool environment

@@ -1,10 +1,10 @@
 #!/bin/bash
 
 ################################################################################
-# Generic Flow v5.5.0 (December 2024)
+# Generic Flow v5.5.1 (February 2025)
 ################################################################################
 #
-# Copyright 2011-2024 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
+# Copyright 2011-2025 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -31,7 +31,7 @@
 #    * HOST HOSTNAME CPU RAM LOAD
 #    * 01 ssh-host01 32 512 +0.000
 
-# File queue.grid used to store infromation on running tasks
+# File queue.grid used to store information on running tasks
 # Several files can be used
 
 # Host to report

@@ -1,8 +1,8 @@
 ################################################################################
-# Generic Flow v5.1 (May 2023)
+# Generic Flow v5.5.1 (February 2025)
 ################################################################################
 #
-# Copyright 2011-2023 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
+# Copyright 2011-2025 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@
 # limitations under the License.
 #
 ################################################################################
-# Filename: templates/tools_template.2023/tool_steps.innovus.gf
+# Filename: templates/project.2025/tools/tool_steps.innovus.gf
 # Purpose:  Innovus steps to use in the Generic Flow
 ################################################################################
 
@@ -61,175 +61,6 @@ gf_create_step -name innovus_set_propagated_clocks '
 gf_create_step -name innovus_update_io_latency '
     `@innovus_reset_propagated_clocks`
     update_io_latency
-'
-
-################################################################################
-# Report timing steps for Innovus
-################################################################################
-
-# Create late timing reports
-gf_create_step -name innovus_report_timing_late '
-    
-    # All timing reports
-    report_timing -late -max_paths 150 -path_type full_clock -split_delay > ./reports/$TASK_NAME/timing.late.gba.all.tarpt
-    report_timing -late -max_paths 1000 -max_slack 0.0 -path_type summary > ./reports/$TASK_NAME/timing.late.gba.all.violated.tarpt
-
-    # Register to register reports
-    set registers [all_registers]
-    report_timing -late -max_paths 150 -path_type full_clock -split_delay -from $registers -to $registers > ./reports/$TASK_NAME/timing.late.gba.reg2reg.tarpt
-    report_timing -late -max_paths 150 -output_format gtd -from $registers -to $registers > ./reports/$TASK_NAME/timing.late.gba.reg2reg.mtarpt
-    report_constraint -late -drv_violation_type max_capacitance -all_violators > ./reports/$TASK_NAME/drv.max.capacitance.all.rpt
-    report_constraint -late -drv_violation_type max_transition -all_violators > ./reports/$TASK_NAME/drv.max.transition.all.rpt
-    foreach view [get_db [get_db analysis_views -if .is_setup] .name] {
-        report_timing -late -max_paths 150 -path_type full_clock -split_delay -from $registers -to $registers -view $view > ./reports/$TASK_NAME/timing.late.gba.reg2reg.$view.tarpt
-        report_constraint -late -drv_violation_type max_capacitance -all_violators -view $view > ./reports/$TASK_NAME/drv.max.capacitance.$view.rpt
-        report_constraint -late -drv_violation_type max_transition -all_violators -view $view > ./reports/$TASK_NAME/drv.max.transition.$view.rpt
-    }
-    
-    # Path group reports
-    foreach_in_collection path_group [get_path_groups] {
-        set group [get_db $path_group .name]
-        report_timing -late -max_paths 150 -path_type full_clock -split_delay -group $group > ./reports/$TASK_NAME/timing.late.gba.$group.tarpt
-    }
-'
-
-# Create late timing reports
-gf_create_step -name innovus_report_timing_early '
-    
-    # All timing reports
-    report_timing -early -max_paths 150 -path_type full_clock -split_delay > ./reports/$TASK_NAME/timing.early.gba.all.tarpt
-    report_timing -early -max_paths 10000 -max_slack 0.0 -path_type summary > ./reports/$TASK_NAME/timing.early.gba.summary.violated.tarpt
-
-    # Register to register reports
-    set registers [all_registers]
-    report_timing -early -max_paths 150 -path_type full_clock -split_delay -from $registers -to $registers > ./reports/$TASK_NAME/timing.early.gba.reg2reg.tarpt
-    report_timing -early -max_paths 150 -output_format gtd -from $registers -to $registers > ./reports/$TASK_NAME/timing.early.gba.reg2reg.mtarpt
-    foreach view [get_db [get_db analysis_views -if .is_hold] .name] {
-        report_timing -early -max_paths 150 -path_type full_clock -split_delay -from $registers -to $registers -view $view > ./reports/$TASK_NAME/timing.early.gba.reg2reg.$view.tarpt
-    }
-
-    # Path group reports
-    foreach_in_collection path_group [get_path_groups] {
-        set group [get_db $path_group .name]
-        report_timing -early -max_paths 150 -path_type full_clock -split_delay -group $group > ./reports/$TASK_NAME/timing.early.gba.$group.tarpt
-    }
-'
-
-# Create late worst timing reports
-gf_create_step -name innovus_report_timing_late_worst '
-    set collection [report_timing -late -collection -max_paths 1000]
-    redirect ./reports/$TASK_NAME/timing.late.worst.rpt {
-        gf_report_timing_worst_slack $collection 1000
-        gf_report_timing_worst_path_delay $collection 1000
-        gf_report_timing_best_path_delay $collection 1000
-        gf_report_timing_worst_skew $collection 1000
-        gf_report_timing_worst_net_length $collection 1000
-        gf_report_timing_worst_delay $collection 1000
-        gf_report_timing_worst_delta_delay $collection 1000
-        gf_report_timing_worst_slew $collection 1000
-    }
-'
-
-# Create early worst timing reports
-gf_create_step -name innovus_report_timing_early_worst '
-    set collection [report_timing -early -collection -max_paths 1000]
-    redirect ./reports/$TASK_NAME/timing.early.worst.rpt {
-        gf_report_timing_worst_slack $collection 1000
-        gf_report_timing_worst_path_delay $collection 1000
-        gf_report_timing_best_path_delay $collection 1000
-        gf_report_timing_worst_skew $collection 1000
-        gf_report_timing_worst_net_length $collection 1000
-        gf_report_timing_worst_delay $collection 1000
-        gf_report_timing_worst_delta_delay $collection 1000
-        gf_report_timing_worst_slew $collection 1000
-    }
-'
-
-# Create late timing reports histogram
-gf_create_step -name innovus_report_timing_late_histograms '
-    set collection [report_timing -late -collection -max_paths 10000]
-    redirect ./reports/$TASK_NAME/timing.late.histograms.rpt {
-        gf_report_histogram_slack $collection
-        gf_report_histogram_delay $collection
-        gf_report_histogram_skew $collection
-        gf_report_histogram_worst_manhattan_length $collection
-        gf_report_histogram_worst_cell_delay $collection
-        gf_report_histogram_slew $collection
-        gf_report_histogram_datapath $collection
-    }
-'
-
-# Create early timing reports histogram
-gf_create_step -name innovus_report_timing_early_histograms '
-    set collection [report_timing -early -collection -max_paths 10000]
-    redirect ./reports/$TASK_NAME/timing.early.histograms.rpt {
-        gf_report_histogram_slack $collection
-        gf_report_histogram_delay $collection
-        gf_report_histogram_skew $collection
-        gf_report_histogram_worst_manhattan_length $collection
-        gf_report_histogram_worst_cell_delay $collection
-        gf_report_histogram_slew $collection
-        gf_report_histogram_datapath $collection
-    }
-'
-
-################################################################################
-# Report steps
-################################################################################
-
-gf_create_step -name innovus_report_area '
-    report_summary -no_html -out_dir $TASK_NAME -out_file ./reports/$TASK_NAME/qor.rpt
-    report_area  -min_count 1000 -out_file ./reports/$TASK_NAME/area.summary.rpt
-'
-
-gf_create_step -name innovus_report_clock_timing '
-    report_clock_timing -type summary > ./reports/$TASK_NAME/clock.summary.rpt
-    report_clock_timing -type latency > ./reports/$TASK_NAME/clock.latency.rpt
-    report_clock_timing -type skew > ./reports/$TASK_NAME/clock.skew.rpt
-'
-
-gf_create_step -name innovus_report_power '
-    # Ensure leakage power view is active when specified
-    if {([get_db power_leakage_power_view] != "") && \
-            ([lsearch -exact [get_db [concat [get_db analysis_views -if {.is_setup}] [get_db analysis_views -if {.is_hold}]] .name] [get_db power_leakage_power_view]] == -1)} {
-        set_analysis_view \
-            -setup [lsort -unique [concat [get_db power_leakage_power_view] [get_db [get_db analysis_views -if {.is_setup}] .name]]] \
-            -hold [get_db [get_db analysis_views -if {.is_hold}] .name]
-    }
-    report_power -no_wrap -out_file ./reports/$TASK_NAME/power.all.rpt
-'
-
-gf_create_step -name innovus_report_route_drc '
-    check_drc -out_file ./reports/$TASK_NAME/route.drc.rpt
-    check_connectivity -out_file ./reports/$TASK_NAME/route.open.rpt
-'
-
-gf_create_step -name innovus_report_route_process '
-    check_process_antenna -out_file ./reports/$TASK_NAME/route.antenna.rpt
-    check_filler -out_file ./reports/$TASK_NAME/route.filler.rpt
-'
-
-gf_create_step -name innovus_report_density '
-    check_metal_density -report ./reports/$TASK_NAME/route.metal_density.rpt
-    check_cut_density -out_file ./reports/$TASK_NAME/route.cut_density.rpt
-'
-
-# Pre-place Innovus reports
-gf_create_step -name innovus_time_design_late_early_summary '
-
-    # Enable simultaneous setup and hold analysis mode
-    set_db timing_enable_simultaneous_setup_hold_mode true
-
-    # Create path groups if not created
-    if {[sizeof_collection [get_path_groups]] == 0} {
-        create_basic_path_groups -expanded
-    }
-    
-    # Timing summary
-    time_design -expanded_views -report_only -report_dir ./time_design -report_prefix $TASK_NAME
-    exec mv ./time_design/${TASK_NAME}.summary ./reports/${TASK_NAME}/timing.late.summary
-    exec mv ./time_design/${TASK_NAME}_hold.summary ./reports/${TASK_NAME}/timing.early.summary
-    exec rm -Rf ./time_design
 '
 
 ################################################################################
@@ -309,6 +140,29 @@ gf_create_step -name innovus_procs_power_grid '
         close $FH
     }
 
+    # Write def for specific net
+    proc gf_duplicate_routes {net_name shapes layer_name width {unit 10000}} {
+        set FH [open "./.duplicate.def" "w"]
+        puts $FH {VERSION 5.8 ;}
+        puts $FH {DIVIDERCHAR "/" ;}
+        puts $FH {BUSBITCHARS "[]" ;}
+        puts $FH "DESIGN [get_db current_design .name] ;"
+        puts $FH "UNITS DISTANCE MICRONS $unit ;"
+        puts $FH {}
+        puts $FH "SPECIALNETS [llength $shapes] ;"
+        puts $FH "- $net_name"
+        foreach shape $shapes {
+            set path [get_db $shape .path]
+            puts $FH "+ [get_db $shape .status] $layer_name [expr int($width*$unit)] + SHAPE [get_db $shape .shape] ( [expr int([lindex $path 0 0]*$unit)] [expr int([lindex $path 0 1]*$unit)] ) ( [expr int([lindex $path 1 0]*$unit)] [expr int([lindex $path 1 1]*$unit)] )"
+        }
+        puts $FH {;}
+        puts $FH {END SPECIALNETS}
+        puts $FH {}
+        puts $FH {END DESIGN}
+        close $FH
+        read_def "./.duplicate.def"
+    }
+
     # Resize list of bboxes
     proc gf_resize_bbox {bbox offsets} {
         return [list \
@@ -329,25 +183,6 @@ gf_create_step -name innovus_procs_power_grid '
         ]
     }
 
-    # Create power stripes over macro areas
-    proc gf_init_power_stripes_area {nets layer width pitch direction bottom_layer area {create_pins 0} {snap grid} {merge 0.070}} {
-        set_db add_stripes_stacked_via_top_layer $layer
-        set_db add_stripes_stacked_via_bottom_layer $bottom_layer
-        
-        #delete_routes -layer $layer -shapes stripe
-        add_stripes \
-            -layer $layer \
-            -width $width \
-            -spacing [expr $pitch-$width] \
-            -set_to_set_distance [expr $pitch * 2] \
-            -direction $direction \
-            -snap_wire_center_to_grid $snap \
-            -nets $nets \
-            -create_pins $create_pins \
-            -merge_stripes_value $merge \
-            -area $area 
-    }
-    
     # Get areas where endcap cells placed
     proc gf_get_endcap_areas {} {
         set bboxes [get_db [get_db insts [get_db add_endcaps_prefix]*] .bbox]
@@ -396,39 +231,8 @@ gf_create_step -name innovus_procs_power_grid '
         return $results
     }
 
-    # Create power stripes over endcap cells
-    proc gf_init_power_stripes_over_endcaps {nets endcap_left endcap_right layer bottom_layer width spacing direction} {
- 
-        set_db add_stripes_stacked_via_top_layer $layer
-        set_db add_stripes_stacked_via_bottom_layer $bottom_layer
-       
-        foreach area [gf_get_endcap_areas] {
-            set insts [get_obj_in_area -area $area -obj_type inst]
-            set endcaps_left_count [llength [get_db $insts -if .base_cell.name==$endcap_left]]
-            set endcaps_right_count [llength [get_db $insts -if .base_cell.name==$endcap_right]]
-            if {($endcaps_left_count >= 5) || ($endcaps_right_count >= 5)} {
-                if {$endcaps_left_count < $endcaps_right_count} {
-                    set x2 [lindex $area 2]
-                    set x1 [expr $x2 - 2 * $width - $spacing]
-                } else {
-                    set x1 [lindex $area 0]
-                    set x2 [expr $x1 + 2 * $width + $spacing]
-                }
-                set area [list $x1 [expr [lindex $area 1] - 0.1]  $x2 [expr [lindex $area 3] + 0.1]]
-                create_marker -description "Endcap area for $layer power stripes" -type "Endcap area" -bbox $area
-                add_stripes \
-                    -number_of_sets 1 \
-                    -layer $layer \
-                    -width $width \
-                    -area $area \
-                    -nets $nets \
-                    -spacing $spacing  \
-                    -direction $direction
-            }
-        }
-    } 
-
-    proc gf_init_corner_blockage {size name} {
+    # Create hard place blockages at design corners
+    proc gf_init_corner_place_blockage {size name} {
         set x0 [get_db current_design .bbox.ll.x]
         set y0 [get_db current_design .bbox.ll.y]
         set x1 [get_db current_design .bbox.ur.x]
@@ -441,26 +245,90 @@ gf_create_step -name innovus_procs_power_grid '
         ]
     }
 
-    # Check standard cell legalization
-    proc gf_check_legalization {x y dy {area 100}} {
+    # Reset cells 
+    set gf_check_legalization_insts {}
+    proc gf_check_legalization_reset {} {
+        upvar gf_check_legalization_insts gf_check_legalization_insts
+        get_db insts .name gf_check_legalization_* -foreach {delete_inst -inst $object}
+        if {[llength $gf_check_legalization_insts]} {
+            unplace_obj [get_db $gf_check_legalization_insts .name]
+        }
+        set gf_check_legalization_insts {}
+    }
+    
+    
+    # Check standard cell legalization - all cells
+    proc gf_check_legalization {{x ""} {y ""} {dx ""} {dy ""} {max_y ""} {site ""}} {
+        if {$site == ""} {set site [get_db rows .site.name -u]}
+        if {$x == ""} {set x [expr [get_db current_design .core_bbox.ll.x]+0.25*[get_db current_design .core_bbox.length]]}
+        if {$y == ""} {set y [expr [get_db current_design .core_bbox.ll.y]+0.25*[get_db current_design .core_bbox.width]]}
+        if {$max_y == ""} {set max_y [expr [get_db current_design .core_bbox.ur.y]-0.25*[get_db current_design .core_bbox.width]]}
+        if {$dx == ""} {set dx [expr 25.0*[lindex [get_db [get_db sites $site] .size.x] 0]]}
+        if {$dy == ""} {set dy [lindex [get_db [get_db sites $site] .size.y] 0]}
+
         set insts {}
-        foreach base_cell [get_db insts .base_cell -if .area<$area -u] {
-            if {[set inst [lindex [get_db insts -if .base_cell==$base_cell&&.place_status!=fixed] 0]] != ""} {
-                lappend insts $inst
+        get_db insts .name gf_check_legalization_* -foreach {delete_inst -inst $object}
+        foreach base_cell [get_db base_cells -if .site.name==$site] {
+            set name [get_db $base_cell .name]
+            create_inst -cell $name -inst gf_check_legalization_$name
+            lappend insts inst:gf_check_legalization_$name
+        }
+
+        set xc $x; set yc $y
+        foreach inst $insts {
+            set_db $inst .location [list $xc $yc]
+            set yc [expr $yc+$dy]
+            if {$yc > $max_y} {
+                set xc [expr $xc+$dx]
+                set yc $y
             }
         }
-        foreach inst $insts {
-            set_db $inst .location [list $x $y]
-            set y [expr $y+$dy]
-        }
+
         place_detail -inst [get_db $insts .name]
         check_place
     }
 
+    # Check standard cell legalization - design cells only
+    proc gf_check_legalization_design {{x ""} {y ""} {dx ""} {dy ""} {max_y ""} {site ""}} {
+        upvar gf_check_legalization_insts gf_check_legalization_insts
+        
+        if {$site == ""} {set site [get_db rows .site.name -u]}
+        if {$x == ""} {set x [expr [get_db current_design .core_bbox.ll.x]+0.25*[get_db current_design .core_bbox.length]]}
+        if {$y == ""} {set y [expr [get_db current_design .core_bbox.ll.y]+0.25*[get_db current_design .core_bbox.width]]}
+        if {$max_y == ""} {set max_y [expr [get_db current_design .core_bbox.ur.y]-0.25*[get_db current_design .core_bbox.width]]}
+        if {$dx == ""} {set dx [expr 25.0*[lindex [get_db [get_db sites $site] .size.x] 0]]}
+        if {$dy == ""} {set dy [lindex [get_db [get_db sites $site] .size.y] 0]}
+        
+        set insts {}
+        foreach base_cell [get_db [get_db insts .base_cell -u] -if .site.name==$site] {
+            if {[set inst [lindex [get_db insts -if .base_cell==$base_cell&&.place_status!=fixed] 0]] != ""} {
+                lappend insts $inst
+                lappend gf_check_legalization_insts $inst
+            }
+        }
+
+        set xc $x; set yc $y
+        foreach inst $insts {
+            set_db $inst .location [list $xc $yc]
+            set yc [expr $yc+$dy]
+            if {$yc > $max_y} {
+                set xc [expr $xc+$dx]
+                set yc $y
+            }
+        }
+
+        place_detail -inst [get_db $insts .name]
+        check_place
+    }
 '
 
 # Objects manipulation procedures
 gf_create_step -name innovus_procs_objects '
+
+    # Print cells groups
+    proc gf_base_cell_groups {{pattern *}} {
+        foreach name [lsort -u [regsub -all {[0-9]+} [get_db base_cells .name $pattern] {*}]] { puts "$name {[get_db base_cells .name $name]}"}
+    }
 
     # Initialize unplaced ports interactive procedure
     proc gf_init_ports_on_edge {layers {edge_in 0} {edge_out 2} {spacing 2}} {
@@ -698,6 +566,37 @@ gf_create_step -name innovus_procs_objects '
         }
     }
 
+    # Manual bump assignment procs
+    proc gf_assign_next_bumps {{bumps {}}} {
+        if {[llength $bumps]} {
+            set ::bumps_to_assign $bumps
+        }
+        set count 0
+        foreach bump [get_db [get_db selected -if .obj_type==bump] -if .net==""] {
+            set nets [get_db bumps .net.name -u]
+            foreach net $::bumps_to_assign {
+                if {[lsearch -exact $nets $net]<0} {
+                    puts "\033\[32;42m \033\[0m [get_db $bump .name] -> $net"
+                    assign_signal_to_bump -bumps [get_db $bump .name] -net $net
+                    incr count
+                    break
+                }
+            }
+        }
+        if {$count<1} {
+            if {[llength $::bumps_to_assign]} {
+                puts "\033\[31;41m \033\[0m No more unassigned bumps"
+            } else {
+                puts "\033\[31;41m \033\[0m Please provide list of bumps to assign\nset ::bumps_to_assign {...}"
+            }
+        }
+    }
+
+    # Shortcut to unassign selected bump
+    proc gf_unassign_selected_bumps {} {
+        unassign_bumps -selected
+    }
+
     # Swap several bumps
     proc gf_swap_bumps {{bumps {}}} {
         set bumps [get_db $bumps -if .obj_type==bump]
@@ -750,6 +649,103 @@ gf_create_step -name innovus_procs_objects '
 
 # Visual reports procedures
 gf_create_step -name innovus_procs_reports '
+
+    # Dont use cells
+    proc gf_report_dont_use_cells {} {
+        set cells_all [lsort [get_db base_cells -u]]
+        set cells_used [get_db insts .base_cell -u]
+        set cells_netlist_er {}
+        set cells_netlist_ok {}
+        foreach cell $cells_used {
+            if {[get_db $cell .dont_use]} {
+                lappend cells_netlist_er $cell
+            } else {
+                lappend cells_netlist_ok $cell
+            }
+        }
+        puts "\[\033\[32m[gf_get_symbols [llength $cells_all] 80 0 {#} [llength $cells_netlist_ok]]\033\[31m[gf_get_symbols [llength $cells_all] 80 0 {X} [llength $cells_netlist_er]]\033\[0m[gf_get_symbols [llength $cells_all] 80 0 {.} [expr [llength $cells_all]-[llength $cells_used]]]\] \033\[32m[llength $cells_netlist_ok]\033\[0m/\033\[31m[llength $cells_netlist_er]\033\[0m of [llength $cells_all] active/dont_use cells used"
+    }
+    
+    # Summary reports
+    proc gf_report_simultaneous_time_design {dir} {
+
+        # Enable simultaneous setup and hold analysis mode
+        set_db timing_enable_simultaneous_setup_hold_mode true
+        
+        # Timing summary
+        time_design -expanded_views -report_only -report_dir ./time_design -report_prefix timing
+        exec mv ./time_design/timing.summary $dir/timing.late.summary
+        exec mv ./time_design/timing_hold.summary $dir/timing.early.summary
+        exec rm -Rf ./time_design
+    }
+
+    # Create timing reports
+    proc gf_report_timing {dir {check late} {count_full 150} {count_all 1000} {count_short 10000}} {
+    
+        # All timing reports
+        report_timing -$check -max_paths $count_all -path_type full_clock -split_delay > $dir/timing.$check.full.all.tarpt
+        report_timing -$check -max_paths $count_all -output_format gtd > $dir/timing.$check.mtarpt
+        report_timing -$check -max_paths $count_short -path_type endpoint > $dir/timing.$check.short.all.tarpt
+
+        # Path groups reports
+        if {[sizeof_collection [set path_groups [get_path_groups]]] > 0} {
+            foreach_in_collection path_group [get_path_groups] {
+                set group [get_db $path_group .name]
+                report_timing -$check -max_paths $count_full -path_type full_clock -split_delay -group $group > $dir/timing.$check.full.group.$group.tarpt
+                report_timing -$check -max_paths $count_short -path_type endpoint -group $group > $dir/timing.$check.short.group.$group.tarpt
+            }
+
+        # Register to register reports
+        } else {
+            if {![info exists ::gf_all_registers]} { set ::gf_all_registers [all_registers] }
+            report_timing -$check -max_paths $count_full -path_type full_clock -split_delay -from $::gf_all_registers -to $::gf_all_registers > $dir/timing.$check.full.group.reg2reg.tarpt
+            report_timing -$check -max_paths $count_short -path_type endpoint -from $::gf_all_registers -to $::gf_all_registers > $dir/timing.$check.short.group.reg2reg.tarpt
+        }
+
+        # Clock reports
+        foreach clock [get_db clocks .base_name -u] {
+            report_timing -$check -max_paths $count_full -path_type full_clock -split_delay -from $clock > $dir/timing.$check.full.clock.$clock.tarpt
+            report_timing -$check -max_paths $count_short -path_type endpoint -from $clock > $dir/timing.$check.short.clock.$clock.tarpt
+        }
+    }
+    
+    # Create PBA timing reports
+    proc gf_report_timing_pba {dir {check late} {count 1000}} {
+        if {[get_db timing_analysis_aocv]} {
+            report_timing -$check -max_paths $count -path_type full_clock -split_delay -retime aocv_path_slew_propagation > $dir/timing.$check.full.pba.tarpt
+        } else {
+            report_timing -$check -max_paths $count -path_type full_clock -split_delay -retime path_slew_propagation > $dir/timing.$check.full.pba.tarpt
+        }
+    }
+    
+    # Create worst timing reports
+    proc gf_report_timing_worst {dir {check late} {count 1000}} {
+        set collection [report_timing -$check -collection -max_paths $count]
+        redirect $dir/worst.$check.worst.rpt {
+            gf_report_timing_worst_slack $collection $count
+            gf_report_timing_worst_path_delay $collection $count
+            gf_report_timing_best_path_delay $collection $count
+            gf_report_timing_worst_skew $collection $count
+            gf_report_timing_worst_net_length $collection $count
+            gf_report_timing_worst_delay $collection $count
+            gf_report_timing_worst_delta_delay $collection $count
+            gf_report_timing_worst_slew $collection $count
+        }
+    }
+
+    # Create timing reports histogram
+    proc gf_report_timing_histograms {dir {check late} {count 10000}} {
+        set collection [report_timing -$check -collection -max_paths $count]
+        redirect $dir/histograms.$check.histograms.rpt {
+            gf_report_histogram_slack $collection
+            gf_report_histogram_delay $collection
+            gf_report_histogram_skew $collection
+            gf_report_histogram_worst_manhattan_length $collection
+            gf_report_histogram_worst_cell_delay $collection
+            gf_report_histogram_slew $collection
+            gf_report_histogram_datapath $collection
+        }
+    }
 
     # Returns bar line for {symbol value} pairs 
     proc gf_get_symbols {max_value spaces is_limit args} {
@@ -818,10 +814,11 @@ gf_create_step -name innovus_procs_reports '
                 set worst_point ""
                 set worst_value 0.0
                 foreach timing_point [get_db $timing_path .timing_points] {
-                    set value [get_db $timing_point .delay]
-                    if {$worst_value < $value} {
-                        set worst_value $value
-                        set worst_point [get_db $timing_point .hierarchical_name]
+                    if {[string is double [set value [get_db $timing_point .delay]]]} {
+                        if {$worst_value < $value} {
+                            set worst_value $value
+                            set worst_point [get_db $timing_point .hierarchical_name]
+                        }
                     }
                 }
                 if {$worst_point != ""} {
@@ -834,10 +831,11 @@ gf_create_step -name innovus_procs_reports '
                 set worst_point ""
                 set worst_value 0.0
                 foreach timing_point [get_db $timing_path .timing_points] {
-                    set value [get_db $timing_point .delta_delay]
-                    if {$worst_value < $value} {
-                        set worst_value $value
-                        set worst_point [get_db $timing_point .hierarchical_name]
+                    if {[string is double [set value [get_db $timing_point .delta_delay]]]} {
+                        if {$worst_value < $value} {
+                            set worst_value $value
+                            set worst_point [get_db $timing_point .hierarchical_name]
+                        }
                     }
                 }
                 if {$worst_point != ""} {
@@ -850,10 +848,11 @@ gf_create_step -name innovus_procs_reports '
                 set worst_point ""
                 set worst_value 0.0
                 foreach timing_point [get_db $timing_path .timing_points] {
-                    set value [get_db $timing_point .slew]
-                    if {$worst_value < $value} {
-                        set worst_value $value
-                        set worst_point [get_db $timing_point .hierarchical_name]
+                    if {[string is double [set value [get_db $timing_point .slew]]]} {
+                        if {$worst_value < $value} {
+                            set worst_value $value
+                            set worst_point [get_db $timing_point .hierarchical_name]
+                        }
                     }
                 }
                 if {$worst_point != ""} {
@@ -872,8 +871,9 @@ gf_create_step -name innovus_procs_reports '
     proc gf_report_timing_worst_slack {collection {count 20}} {
         set values {}
         foreach_in_collection timing_path $collection {
-            set value [get_db $timing_path .slack]
-            lappend values [list $value [get_db $timing_path .launching_point.name] [get_db $timing_path .capturing_point.name]]
+            if {[string is double [set value [get_db $timing_path .slack]]]} {
+                lappend values [list $value [get_db $timing_path .launching_point.name] [get_db $timing_path .capturing_point.name]]
+            }
         }
         foreach result [lsort -index 0 -real -increasing $values] {
             incr index
@@ -886,8 +886,9 @@ gf_create_step -name innovus_procs_reports '
     proc gf_report_timing_worst_path_delay {collection {count 20}} {
         set values {}
         foreach_in_collection timing_path $collection {
-            set value [get_db $timing_path .path_delay]
-            lappend values [list $value [get_db $timing_path .launching_point.name] [get_db $timing_path .capturing_point.name]]
+            if {[string is double [set value [get_db $timing_path .path_delay]]]} {
+                lappend values [list $value [get_db $timing_path .launching_point.name] [get_db $timing_path .capturing_point.name]]
+            }
         }
         foreach result [lsort -index 0 -real -decreasing $values] {
             incr index
@@ -900,8 +901,9 @@ gf_create_step -name innovus_procs_reports '
     proc gf_report_timing_best_path_delay {collection {count 20}} {
         set values {}
         foreach_in_collection timing_path $collection {
-            set value [get_db $timing_path .path_delay]
-            lappend values [list $value [get_db $timing_path .launching_point.name] [get_db $timing_path .capturing_point.name]]
+            if {[string is double [set value [get_db $timing_path .path_delay]]]} {
+                lappend values [list $value [get_db $timing_path .launching_point.name] [get_db $timing_path .capturing_point.name]]
+            }
         }
         foreach result [lsort -index 0 -real -increasing $values] {
             incr index
@@ -914,9 +916,10 @@ gf_create_step -name innovus_procs_reports '
     proc gf_report_timing_worst_skew {collection {count 20}} {
         set values {}
         foreach_in_collection timing_path $collection {
-            set value [get_db $timing_path .skew]
-            set sort_value [expr abs($value)]
-            lappend values [list $sort_value $value [get_db $timing_path .launching_point.name] [get_db $timing_path .capturing_point.name]]
+            if {[string is double [set value [get_db $timing_path .skew]]]} {
+                set sort_value [expr abs($value)]
+                lappend values [list $sort_value $value [get_db $timing_path .launching_point.name] [get_db $timing_path .capturing_point.name]]
+            }
         }
         foreach result [lsort -index 0 -real -decreasing $values] {
             incr index
@@ -929,8 +932,9 @@ gf_create_step -name innovus_procs_reports '
     proc gf_report_timing_worst_net_length {collection {count 20}} {
         set values {}
         foreach_in_collection timing_path $collection {
-            set value [get_db $timing_path .worst_manhattan_length]
-            lappend values [list $value [get_db $timing_path .worst_manhattan_length_net_name]]
+            if {[string is double [set value [get_db $timing_path .worst_manhattan_length]]]} {
+                lappend values [list $value [get_db $timing_path .worst_manhattan_length_net_name]]
+            }
         }
         foreach result [lsort -index 0 -real -decreasing $values] {
             incr index
@@ -943,8 +947,9 @@ gf_create_step -name innovus_procs_reports '
     proc gf_report_timing_worst_delay {collection {count 20}} {
         set values {}
         foreach timing_point [get_db $collection .timing_points] {
-            set value [get_db $timing_point .delay]
-            lappend values [list $value [get_db $timing_point .hierarchical_name]]
+            if {[string is double [set value [get_db $timing_point .delay]]]} {
+                lappend values [list $value [get_db $timing_point .hierarchical_name]]
+            }
         }
         set results {}
         foreach result [lsort -index 0 -real -decreasing $values] {
@@ -962,8 +967,9 @@ gf_create_step -name innovus_procs_reports '
     proc gf_report_timing_worst_delta_delay {collection {count 20}} {
         set values {}
         foreach timing_point [get_db $collection .timing_points] {
-            set value [get_db $timing_point .delta_delay]
-            lappend values [list $value [get_db $timing_point .hierarchical_name]]
+            if {[string is double [set value [get_db $timing_point .delta_delay]]]} {
+                lappend values [list $value [get_db $timing_point .hierarchical_name]]
+            }
         }
         set results {}
         foreach result [lsort -index 0 -real -decreasing $values] {
@@ -981,8 +987,9 @@ gf_create_step -name innovus_procs_reports '
     proc gf_report_timing_worst_slew {collection {count 20}} {
         set values {}
         foreach timing_point [get_db $collection .timing_points] {
-            set value [get_db $timing_point .slew]
-            lappend values [list $value [get_db $timing_point .hierarchical_name]]
+            if {[string is double [set value [get_db $timing_point .slew]]]} {
+                lappend values [list $value [get_db $timing_point .hierarchical_name]]
+            }
         }
         set results {}
         foreach result [lsort -index 0 -real -decreasing $values] {
@@ -997,109 +1004,140 @@ gf_create_step -name innovus_procs_reports '
     }
 
     # Histogram reporting
-    proc gf_report_histogram {values {spaces 80} {bins 10}} {
-        set count 0
-        set min_value ""
-        set max_value ""
-        foreach value $values {
-            incr count
-            if {$min_value == ""} {set min_value $value} elseif {$min_value > $value} {set min_value $value}
-            if {$max_value == ""} {set max_value $value} elseif {$max_value < $value} {set max_value $value}
-        }
+    proc gf_report_histogram {values {spaces 80} {bins 10} {cut_ratio 0.0}} {
 
-        set bin_limit ""
-        set bin_limits {}
-        set title_length 0
-        if {[llength $bins] > 1} {
-            foreach right_limit [lsort -real -increasing $bins] {
-                if {$bin_limit == ""} {
-                    set bin_limit $right_limit
-                } else {
-                    if {$right_limit > $max_value} {break}
-                    set title "$bin_limit:$right_limit"
-                    if {$title_length < [string length $title]} {set title_length [string length $title]}
-                    set bin_limit $right_limit
-                    lappend bin_limits [list $bin_limit $title]
-                }
-            }
-            set bins [llength $bin_limits]
-        } else {
-            set bin_limit $min_value
-            set bin_step [expr 1.0/$bins*($max_value-$min_value)]
-            for {set i 0} {$i<$bins} {incr i} {
-                set right_limit [expr $bin_limit+$bin_step]
-                set title "$bin_limit:$right_limit"
-                if {$title_length < [string length $title]} {set title_length [string length $title]}
-                set bin_limit $right_limit
-                lappend bin_limits [list $bin_limit $title]
+        # Filter and sort values
+        set filtered_values {}
+        foreach value $values {
+            if {($value != "") && [string is double $value]} {
+                lappend filtered_values $value
             }
         }
         
-        set categories {}
-        foreach value $values {
-            set index 0
-            while {$index < $bins} {
-                if {$value < [lindex $bin_limits $index 0]} {
-                    break
-                }
-                incr index
-            }
-            lappend categories [list $index $value]
-        }
+        # Data amount is not enough to report histogram
+        if {[set count [llength [set values [lsort -increasing -real $filtered_values]]]] < 2} {
+            puts "\033\[41m \033\[0m Not enough data to report histogram"
 
-        for {set i 0} {$i<$bins} {incr i} {
-            set value 0
-            foreach category $categories {
-                if {[lindex $category 0]==$i} {incr value}
+        # Report histogram
+        } else {
+        
+            # Cut edge values
+            if {$cut_ratio > 0.5} {set cut_ratio 0.0}
+            if {$cut_ratio < 0.0} {set cut_ratio 0.0}
+            set min_value [lindex $values [expr int($cut_ratio*($count-1))]]
+            set max_value [lindex $values [expr int((1.0-$cut_ratio)*($count-1))]]
+
+            # Calculate ranges
+            set lvalue [lindex $values 0]
+            set rvalue [lindex $values end]
+            if {[llength $bins] < 2} {
+                set step [expr 1.0/$bins*($max_value-$min_value)]
+                set value $min_value
+                set new_bins {}
+                for {set i 1} {$i<$bins} {incr i} {
+                    set value [expr $step+$value]
+                    lappend new_bins $value
+                }
+                set bins $new_bins
             }
-            if {$value > 0} {
-                puts " [format "%${title_length}s" [lindex $bin_limits $i 1]] [gf_get_symbols $count $spaces 0 {#} $value {.} [expr $count-$value]] $value"
+
+            # Calculate ranges
+            set ranges {}
+            foreach bin [concat [lsort -real -increasing $bins] $rvalue] {
+                if {($lvalue < $bin) && ($bin <= $rvalue)} {
+                    lappend ranges [list $lvalue $bin]
+                    set lvalue $bin
+                }
+            }
+            set ranges_count [llength $ranges]
+
+            # Categorize values
+            set categories {}
+            set index 0
+            set bin [lindex $ranges $index 1]
+            set count 0
+            foreach value $values {
+                while {$value > $bin} {
+                    if {$index >= $ranges_count} {break}
+                    lappend categories $count
+                    set count 0
+                    incr index
+                    set bin [lindex $ranges $index 1]
+                }
+                incr count
+            }
+            if {$count > 0} {lappend categories $count}
+
+            # Detect number of digits
+            set digits 8
+            set value [expr 1000.0*$max_value]
+            while {$value > 1.0} {
+                set value [expr $value/10.0]
+                set digits [expr $digits-1]
+            }
+            if {$digits < 0} {
+                set digits 0
+            }
+
+            # Print histogram
+            set title_length 0
+            set max_count 1
+            set histogram {}
+            for {set i 0} {$i<$ranges_count} {incr i} {
+                if {[set count [lindex $categories $i]] > $max_count} {set max_count $count}
+                set title "[format "%0.${digits}f" [lindex $ranges $i 0]]:[format "%0.${digits}f" [lindex $ranges $i 1]]"
+                if {$title_length < [string length $title]} {set title_length [string length $title]}
+                lappend histogram [list $title $count]
+            }
+            for {set i 0} {$i<$ranges_count} {incr i} {
+                set value [lindex $histogram $i 1]
+                puts " [format "%${title_length}s" [lindex $histogram $i 0]] [gf_get_symbols $max_count $spaces 0 {#} $value {.} [expr $max_count-$value]] $value"
             }
         }
     }
 
     # Slack histogram
-    proc gf_report_histogram_slack {collection {spaces 80} {bins 10}} {
+    proc gf_report_histogram_slack {collection {spaces 100} {bins 25} {cut_ratio 0.0}} {
         set values [get_db $collection .slack]
 
         puts "# Slack histogram ([llength $values] values)"
-        gf_report_histogram $values $spaces $bins; puts ""
+        gf_report_histogram $values $spaces $bins $cut_ratio; puts ""
     }
 
     # Path delay histogram
-    proc gf_report_histogram_delay {collection {spaces 80} {bins 10}} {
+    proc gf_report_histogram_delay {collection {spaces 100} {bins 25} {cut_ratio 0.0}} {
         set values [get_db $collection .path_delay]
 
         puts "# Path delay histogram ([llength $values] values)"
-        gf_report_histogram $values $spaces $bins; puts ""
+        gf_report_histogram $values $spaces $bins $cut_ratio; puts ""
     }
 
     # Clock skew histogram
-    proc gf_report_histogram_skew {collection {spaces 80} {bins 10}} {
+    proc gf_report_histogram_skew {collection {spaces 100} {bins 25} {cut_ratio 0.0}} {
         set values [get_db $collection .skew]
         
         puts "# Clock skew histogram ([llength $values] values)"
-        gf_report_histogram $values $spaces $bins; puts ""
+        gf_report_histogram $values $spaces $bins $cut_ratio; puts ""
     }
 
     # Worst manhattan net length histogram
-    proc gf_report_histogram_worst_manhattan_length {collection {spaces 80} {bins {0 10 20 30 50 80 130 210 340 550 890 1440 2330}}} {
+    proc gf_report_histogram_worst_manhattan_length {collection {spaces 100} {bins {0 10 20 30 50 80 130 210 340 550 890 1440 2330}} {cut_ratio 0.0}} {
         set values [get_db $collection .worst_manhattan_length]
 
         puts "# Worst manhattan net length histogram ([llength $values] values)"
-        gf_report_histogram $values $spaces $bins; puts ""
+        gf_report_histogram $values $spaces $bins $cut_ratio; puts ""
     }
 
     # Worst cell delay histogram
-    proc gf_report_histogram_worst_cell_delay {collection {spaces 80} {bins 10}} {
+    proc gf_report_histogram_worst_cell_delay {collection {spaces 100} {bins 25} {cut_ratio 0.0}} {
         set values [get_db $collection .worst_cell_delay]
         
         puts "# Worst cell delay histogram ([llength $values] values)"
-        gf_report_histogram $values $spaces $bins; puts ""
+        gf_report_histogram $values $spaces $bins $cut_ratio; puts ""
     }
 
     # Data path transition histogram
-    proc gf_report_histogram_slew {collection {spaces 80} {bins 10}} {
+    proc gf_report_histogram_slew {collection {spaces 100} {bins 25} {cut_ratio 0.0}} {
         set values {}
         foreach_in_collection timing_path $collection {
             lappend values [get_db $timing_path .timing_points.slew]
@@ -1107,25 +1145,124 @@ gf_create_step -name innovus_procs_reports '
         set values [eval "concat $values"]
         
         puts "# Data path transition histogram ([llength $values] values)"
-        gf_report_histogram $values $spaces $bins; puts ""
+        gf_report_histogram $values $spaces $bins $cut_ratio; puts ""
     }
 
     # Data path histogram
-    proc gf_report_histogram_datapath {collection {spaces 80} {bins 10}} {
+    proc gf_report_histogram_datapath {collection {spaces 100} {bins 25} {cut_ratio 0.0}} {
         set values {}
         foreach_in_collection timing_path $collection {
             lappend values [llength [get_db $timing_path .timing_points]]
         }
 
         puts "# Data path histogram ([llength $values] values)"
-        gf_report_histogram $values $spaces $bins; puts ""
+        gf_report_histogram $values $spaces $bins $cut_ratio; puts ""
     }
 
+    # IR-drop histogram
+    proc gf_report_histogram_ivdd {{spaces 100} {bins 25} {cut_ratio 0.0}} {
+        set values {}
+        foreach inst [get_db insts] {
+            lappend values [lindex [get_db $inst .rail_domain_voltage_drop] 3]
+        }
+        gf_report_histogram $values $spaces $bins $cut_ratio; puts ""
+    }
+    
+    # Interactive IR-drop histogram
+    proc gf_report_histogram_ivdd_gui {{spaces 100} {bins 25} {cut_ratio 0.0}} {
+        set values {}
+        foreach inst [get_obj_in_area -obj_type inst -area [gui_get_box]] {
+            lappend values [lindex [get_db $inst .rail_domain_voltage_drop] 3]
+        }
+        gf_report_histogram $values $spaces $bins $cut_ratio; puts ""
+    }
+    
+    # Report timing paths in groups
+    proc gf_report_timing_groups {args} {
+        set command "report_timing -collection $args"
+        redirect paths.txt {
+            foreach_in_collection path [eval $command] {
+                set launching_pin [get_db $path .launching_point]
+                if {[get_db $launching_pin] .obj_type==pin} {set launching_pin [lindex [get_db $path .timing_points.pin] 1]}
+                puts "[get_db $path .slack]\t[get_db $path .path_delay]\t[get_db $launching_pin .name]\t[get_db $path .capturing_point.name]"
+            }
+        }
+        puts [exec cat paths.txt | perl -e {
+            my %paths; my %slacks;
+            while (<STDIN>) {
+                if (/^(\-?\d*\.?\d+)\t(\-?\d*\.?\d+)\t([^\t]+)\t([^\t]+)$/) {
+                    my $slack = $1 * 1000;
+                    my $delay = $2 * 1000;
+                    my $from = $3; 
+                    my $to = $4;
+
+                    $from =~ s/\d+/\*/g;
+                    $to =~ s/\d+/\*/g;
+
+                    my $id = $from.":".$to;
+                    $paths{$id}{F} = $from;
+                    $paths{$id}{T} = $to;
+                    $paths{$id}{count}++;
+                    $paths{$id}{min} = $slack if (!defined $paths{$id}{min} || ($slack < $paths{$id}{min}));
+                    $paths{$id}{max} = $slack if (!defined $paths{$id}{max} || ($slack > $paths{$id}{max}));
+                    $paths{$id}{dmin} = $delay if (!defined $paths{$id}{dmin} || ($delay < $paths{$id}{dmin}));
+                    $paths{$id}{dmax} = $delay if (!defined $paths{$id}{dmax} || ($delay > $paths{$id}{dmax}));
+                }
+            }
+            my $count; my $limit = 10;
+            $count = 0; 
+            print "\e[32;42m \e[0m Worst $limit groups sorted by slack\n\n";
+            foreach my $id (sort {$paths{$a}{min}<=>$paths{$b}{min}} keys %paths) {
+                my @path_slacks = (sort {$a<=>$b} @{$paths{$from}{$to}{slacks}});
+                print sprintf("\e[34;44m \e[0m Group %d: slack %0.0f .. %0.0f ps, delay %0.0f .. %0.0f ps, \e[1m%d\e[0m paths\n  %s\n  %s\n", ++$count, $paths{$id}{min}, $paths{$id}{max}, $paths{$id}{dmin}, $paths{$id}{dmax}, $paths{$id}{count}, $paths{$id}{F}, $paths{$id}{T});
+                last if ($count == $limit);
+            }
+            $count = 0;
+            print "\e[32;42m \e[0m Worst $limit groups sorted by paths count\n\n";
+            foreach my $id (sort {$paths{$b}{count}<=>$paths{$a}{count}} keys %paths) {
+                my @path_slacks = (sort {$a<=>$b} @{$paths{$from}{$to}{slacks}});
+                print sprintf("\e[34;44m \e[0m Group %d: slack %0.0f .. %0.0f ps, delay %0.0f .. %0.0f ps, \e[1m%d\e[0m paths\n  %s\n  %s\n", ++$count, $paths{$id}{min}, $paths{$id}{max}, $paths{$id}{dmin}, $paths{$id}{dmax}, $paths{$id}{count}, $paths{$id}{F}, $paths{$id}{T});
+                last if ($count == $limit);
+            }
+        }]
+        rm paths.txt
+    }
 '
 
 # ECO automation procedures
 gf_create_step -name innovus_procs_eco_common '
 
+    # Get design parts to highlight
+    proc gf_get_hinsts_to_highlight {{hinst {}} {threshold 0}} {
+        if {$hinst == ""} {set hinst [get_db current_design]}
+
+        # Highlight if threshold crossed
+        if {$threshold <= 0} {set threshold [expr [get_db $hinst .area]/100]}
+        if {$threshold < 1} {set threshold [expr [get_db $hinst .area]*$threshold]}
+        
+        # Check if childs are bigger than threshold
+        set results {}
+        if {[get_db $hinst .area] >= $threshold} {
+
+            # Check childs
+            foreach child [get_db $hinst .hinsts] {
+                set results [concat $results [gf_get_hinsts_to_highlight $child $threshold]]
+            }
+            
+            # Current hinst should b highlighted
+            if {$results == {}} {
+                set results $hinst
+            }
+        }
+        
+        return $results
+    }
+
+    # Highlight parts of the design
+    proc gf_gui_highlight_design_parts {{area_threshold 0}} {
+        get_db -u [gf_get_hinsts_to_highlight [get_db current_design] $area_threshold] -foreach { gui_highlight -auto_color $object }
+    }
+    
     # Select power vias with DRC based on the marker
     proc gf_select_follow_pin_vias_near_drc_markers {} {
         get_db current_design .markers -foreach {
@@ -1137,6 +1274,7 @@ gf_create_step -name innovus_procs_eco_common '
         }
     }
 
+    # Select vias of the same tipe as selected
     proc gf_select_same_vias {} {
         set selected_vias [get_db selected -if .obj_type==special_via]
         set modified_vias {}
@@ -1443,6 +1581,35 @@ gf_create_step -name innovus_procs_eco_common '
         }
     }
     
+
+    # Write out insts statistics matching pattern per hinst
+    proc gf_report_hinst_pattern_statistics {file pattern {depth 5} {threshold 10}} {
+        puts "\033\[36;46m \033\[0m Creating $file ..."
+        
+        # Statistics collection
+        proc gf_report_hinst_pattern_statistics_recursive {hinst pattern depth tab threshold} {
+            if {$depth>0} {
+                set num_insts [llength [set insts [get_db $hinst .insts]]]
+                if {[set num_matched [llength [eval "get_db \$insts $pattern"]]] >= $threshold} {
+                    puts "$tab:[format {%3.0f%%} [expr 100.0*$num_matched/$num_insts]] = [format {%6d / %-6d} $num_matched $num_insts] [get_db $hinst .name] ([get_db $hinst .module.name])"
+                    foreach hinst [get_db $hinst .local_hinsts] {
+                        gf_report_hinst_pattern_statistics_recursive $hinst $pattern [expr $depth-1] "$tab  " $threshold
+                    }
+                }
+            }
+        }
+        
+        # Report generation
+        redirect $file {
+            set num_insts [llength [set insts [get_db current_design .insts]]]
+            set num_matched [llength [eval "get_db \$insts $pattern"]]
+            puts "[format {%3.0f%%} [expr 100.0*$num_matched/$num_insts]] $pattern = [format {%6d / %-6d} $num_matched $num_insts] [get_db current_design .name]"
+            foreach hinst [get_db current_design .local_hinsts] {
+                gf_report_hinst_pattern_statistics_recursive $hinst $pattern $depth "  " $threshold
+            }
+        }
+    }
+    
     # Fix glitches manually
     proc modify_net {name} {
         deselect_obj -all
@@ -1500,44 +1667,84 @@ gf_create_step -name innovus_procs_write_data '
         }
         close $FH
     }
-    
+
     # Write out current sources coordinates
-    proc gf_write_current_sources_locations {file_base_name {radius ""}} {
+    proc gf_write_current_sources_locations {file_base_name {pitch 0.0}} {
+        if {[catch {set pitch [expr 0.0+$pitch]}]} {set pitch 0.0} 
         set total_counter 0
+        
+        # Calculate locations for each power and ground net
         foreach net [concat [get_db init_power_nets] [get_db init_ground_nets]] {
-            set vias [get_db [get_db nets $net] .special_vias]
-            set layers [get_db $vias .via_def.top_layer -u]
-            set top_layer_name [get_db [lindex $layers 0] .name]
-            set top_layer_index [get_db [lindex $layers 0] .route_index]
-            foreach layer $layers {
-                if {[get_db $layer .route_index] > $top_layer_index} {
-                    set top_layer_name [get_db $layer .name]
-                    set top_layer_index [get_db $layer .route_index]
-                }
-            }
-            
-            # Filtered points
             set locations {}
-            
+
             # Based on PG pins coordinates
-            if {[llength [set shapes [get_db [get_db ports $net] .physical_pins.layer_shapes -if .layer.name==$top_layer_name]]]} {
-                foreach shape [get_db $shapes .shapes] {
-                    # lappend locations [list \
-                        # [expr 0.5*([get_db $shape .rect.ll.x]+[get_db $shape .rect.ur.x])] \
-                        # [expr 0.5*([get_db $shape .rect.ll.y]+[get_db $shape .rect.ur.y])] \
-                    # ]
-                    lappend locations [list \
-                        [get_db $shape .rect.ll.x] \
-                        [get_db $shape .rect.ll.y] \
-                    ]
-                    lappend locations [list \
-                        [get_db $shape .rect.ur.x] \
-                        [get_db $shape .rect.ur.y] \
-                    ]
+            if {[llength [set shapes [get_db [get_db ports $net] .physical_pins.layer_shapes]]]} {
+
+                # Detect top layer        
+                set layers [get_db $shapes .layer -u]
+                set top_layer_name [get_db [lindex $layers 0] .name]
+                set top_layer_index [get_db [lindex $layers 0] .route_index]
+                foreach layer $layers {
+                    if {[get_db $layer .route_index] > $top_layer_index} {
+                        set top_layer_name [get_db $layer .name]
+                        set top_layer_index [get_db $layer .route_index]
+                    }
+                }
+                
+                # Detect locations based on top layer pins
+                foreach shape [get_db [get_db $shapes -if .layer.name==$top_layer_name] .shapes] {
+
+                    # Distribute locations with specified pitch
+                    if {$pitch>0.0} {
+                        set x_length [expr abs([get_db $shape .rect.ur.x]-[get_db $shape .rect.ll.x])]
+                        set y_length [expr abs([get_db $shape .rect.ur.y]-[get_db $shape .rect.ll.y])]
+                        
+                        # Horizontal
+                        if {$x_length>$y_length} {
+                            set x [expr [get_db $shape .rect.ll.x]+$pitch*abs($x_length/$pitch-int($x_length/$pitch))/2]
+                            set y [expr ([get_db $shape .rect.ur.y]+[get_db $shape .rect.ll.y])/2]
+                            
+                            # Add locations
+                            while {$x<[get_db $shape .rect.ur.x]} {
+                                lappend locations "$x $y"
+                                set x [expr $x+abs($pitch)]
+                            }
+                        
+                        # Vertical
+                        } else {
+                            set x [expr ([get_db $shape .rect.ur.x]+[get_db $shape .rect.ll.x])/2]
+                            set y [expr [get_db $shape .rect.ll.y]+$pitch*abs($y_length/$pitch-int($y_length/$pitch))/2]
+                            
+                            # Add locations
+                            while {$y<[get_db $shape .rect.ur.y]} {
+                                lappend locations "$x $y"
+                                set y [expr $y+abs($pitch)]
+                            }
+                        }
+                    
+                    # Pin ends
+                    } else {
+                        lappend locations "[get_db $shape .rect.ll.x] [get_db $shape .rect.ll.y]"
+                        lappend locations "[get_db $shape .rect.ur.x] [get_db $shape .rect.ur.y]"
+                    }
                 }
              
             # Based on upper layer via coordinates
             } else {
+
+                # Detect top layer        
+                set vias [get_db [get_db nets $net] .special_vias]
+                set layers [get_db $vias .via_def.top_layer -u]
+                set top_layer_name [get_db [lindex $layers 0] .name]
+                set top_layer_index [get_db [lindex $layers 0] .route_index]
+                foreach layer $layers {
+                    if {[get_db $layer .route_index] > $top_layer_index} {
+                        set top_layer_name [get_db $layer .name]
+                        set top_layer_index [get_db $layer .route_index]
+                    }
+                }
+                
+                # Detect locations based on top layer vias
                 foreach via [get_db $vias -if .via_def.top_layer.name==$top_layer_name] {
                     lappend locations [list \
                         [get_db $via .point.x] \
@@ -1546,33 +1753,12 @@ gf_create_step -name innovus_procs_write_data '
                 }
             }
             
-            # Filter current source locations
-            set written_locations {}
-            foreach location $locations {
-                set x0 [lindex $location 0]
-                set y0 [lindex $location 1]
-                set is_print 1
-                if {$radius != ""} {
-                    foreach check_location $written_locations {
-                        set x [lindex $check_location 0]
-                        set y [lindex $check_location 1]
-                        if {[expr sqrt(($x-$x0)*($x-$x0)+($y-$y0)*($y-$y0))] < $radius} {
-                            set is_print 0
-                            break
-                        }
-                    }
-                }
-                if {$is_print} {
-                    lappend written_locations $location
-                    incr total_counter
-                }
-            }
-            
             # Write locations to file
-            puts "Writing $file_base_name.$net.pp - [llength $written_locations] locations"
+            puts "Writing $file_base_name.$net.pp - [llength $locations] locations"
             set FH [open "$file_base_name.$net.pp" w]
             set counter 0
-            foreach location $written_locations {
+            foreach location $locations {
+                incr total_counter
                 incr counter
                 puts $FH "${net}_${top_layer_name}_$counter [lindex $location 0] [lindex $location 1] $top_layer_name"
             }
@@ -1636,10 +1822,54 @@ gf_create_step -name innovus_procs_db '
         }
         puts "\033\[42m \033\[0m Writing floorplan $base.$tag.fp ..."
         write_floorplan $base.$tag.fp
-        write_def -floorplan -io_row -routing $base.$tag.fp.def.gz
         set ::FLOORPLAN_FILE_LAST $base.$tag.fp
     }
 
+    # Read floorplan and fix macros
+    proc gf_read_and_fix_floorplan {{FLOORPLAN_FILE {}}} {
+        if {$FLOORPLAN_FILE == ""} {
+            set FLOORPLAN_FILE $::FLOORPLAN_FILE_LAST
+        }
+    
+        # Macros detection
+        get_db ports .name -foreach {puts $object} > fix_floorplan.txt
+        get_db [get_db insts -if .area>100&&.base_cell.site==""] .name -foreach {puts $object} >> fix_floorplan.txt
+
+        # Copy floorplan files to current directory
+        eval "cp -v [glob $FLOORPLAN_FILE*] ."
+
+        # Fix floorplan
+        exec cat $FLOORPLAN_FILE | perl -e {
+            my %expr;
+            open FILE, "fix_floorplan.txt";
+            while (<FILE>) {
+                s/^\s+//;
+                s/\s+$//;
+                next if ($_ eq "");
+                my $correct = $_;
+
+                s|[\/\_\[\]]|[\/\_\\[\\]]|g;
+                $expr{$_} = $correct;
+                
+                # print STDERR $_."\n";
+                # print STDERR $correct."\n";
+            }
+            close FILE;
+
+            my $data = "";
+            $data .= $_ while (<STDIN>);
+            foreach my $from (keys %expr) {
+                my $to = $expr{$from};
+                $data =~ s|$from|$to|gem;
+            }
+
+            print $data;
+        } > fix_floorplan.fp
+
+        # Read fixed floorplan
+        read_floorplan fix_floorplan.fp
+    }
+    
     # Print last comnands
     proc gf_last_commands {} {
         ls -1tr ../../../*/tasks/*/*.logv* | tail -7 | perl -e {
@@ -2590,6 +2820,69 @@ gf_create_step -name innovus_procs_add_buffers '
             { -net_suffix "Suffix nets to delete" "default is gf_buf_net" string optional }
             { -verbose "Verbosity level" "default is 4" integer optional }
         }
+    }
+    
+    # Manual clock tree buffering
+    proc gf_add_clock_tree_buffers {base_cell name pins dx dy} {
+        set net_ext [get_db $pins .net -u]
+        set dir [get_db $pins .direction -u]
+
+        if {[llength $pins]<1} {
+            puts "\033\[31;41m \033\[0m No pins to bufferize"
+            return
+        }
+
+        if {[llength $dir]!=1} {
+            puts "\033\[31;41m \033\[0m Pins have different directions:"
+            foreach pin $pins {puts "  $pin => [get_db $pin .direction]"}
+            return
+        }
+
+        if {[llength $net_ext]!=1} {
+            puts "\033\[31;41m \033\[0m Pins connected to different nets:"
+            foreach pin $pins {puts "  $pin => [get_db $pin .net]"}
+            return
+        }
+
+        set pin_int [get_db $base_cell .base_pins -if .direction!=$dir]
+        set pin_ext [get_db $base_cell .base_pins -if .direction==$dir]
+
+        set inst_int [get_db insts ${name}_inst]
+        set net_int [get_db nets ${name}_net]
+        set is_exists 0
+        if {"$inst_int$net_int" != ""} {
+            puts "\033\[33;43m \033\[0m Net already bufferized:"
+            set is_exists 1
+        } else {
+            set inst_int [create_inst -name ${name}_inst -base_cell [get_db $base_cell .name]]
+            set net_int [create_net -name ${name}_net]
+        }
+
+        set x 0.0; set y 0.0
+        foreach connection $pins {
+            set x [expr $x+[get_db $connection .location.x]]
+            set y [expr $y+[get_db $connection .location.y]]
+            if {!$is_exists} {
+                disconnect_pin -inst [get_db $connection .inst.name] -pin [get_db $connection .base_name] -net [get_db $net_ext .name]
+                connect_pin -inst [get_db $connection .inst.name] -pin [get_db $connection .base_name] -net [get_db $net_int .name]
+            }
+        }
+        set x [expr $x/[llength $pins]+$dx]
+        set y [expr $y/[llength $pins]+$dy]
+
+        if {!$is_exists} {
+            puts "\033\[32;42m \033\[0m Net bufferized:"
+            connect_pin -inst [get_db $inst_int .name] -pin [get_db $pin_ext .base_name] -net [get_db $net_ext .name]
+            connect_pin -inst [get_db $inst_int .name] -pin [get_db $pin_int .base_name] -net [get_db $net_int .name]
+        }
+
+        set_db $inst_int .location [list $x $y]
+        set_db $net_int .dont_touch true
+
+        puts "  $net_ext"
+        puts "  [get_db $inst_int .location] => $inst_int $base_cell [get_db $pin_ext .base_name] => [get_db $pin_int .base_name]"
+        puts "  $net_int"
+        foreach pin $pins {puts "  => $pin"}
     }
 '
 

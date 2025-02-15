@@ -1,10 +1,10 @@
 #!../../gflow/bin/gflow
 
 ################################################################################
-# Generic Flow v5.1 (May 2023)
+# Generic Flow v5.5.1 (February 2025)
 ################################################################################
 #
-# Copyright 2011-2023 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
+# Copyright 2011-2025 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,7 +19,7 @@
 # limitations under the License.
 #
 ################################################################################
-# Filename: templates/project_template.2023/blocks/block_template/tempus.gui.gf
+# Filename: templates/project.2025/blocks/template/tempus.gui.gf
 # Purpose:  Interactive Tempus debug flow
 ################################################################################
 
@@ -44,7 +44,8 @@ gf_create_task -name DebugTempus
 gf_use_tempus
 
 # Innovus design database
-gf_choose_file_dir_task -variable REF_TASK -keep -prompt "Choose reference STA task:" -tasks '
+gf_choose_file_dir_task -variable REF_TASK -prompt "Choose reference STA task:" -tasks '
+    '"$REF_TASK"'
     ../work_*/*/tasks/STA*
 '
 gf_spacer
@@ -69,7 +70,7 @@ gf_add_tool_commands '
     '"$(grep -e '^\s*set\s\+\(SPEF_TASKS\|MOTHER_TASK_NAME\)\s\+' "$REF_RUN/scripts/$REF_TASK_NAME.tcl")"'
 
     # Current design variables
-    set LEF_FILES {`$CADENCE_TLEF_FILES` `$LEF_FILES`}
+    set LEF_FILES {`$CADENCE_TLEF_FILES` `$LEF_FILES` `$PARTITIONS_LEF_FILES -optional`}
     set POWER_NETS {`$POWER_NETS_CORE` `$POWER_NETS_OTHER -optional`}
     set GROUND_NETS {`$GROUND_NETS_CORE` `$GROUND_NETS_OTHER -optional`}
     set IGNORE_IO_TIMING {`$IGNORE_IO_TIMING`}

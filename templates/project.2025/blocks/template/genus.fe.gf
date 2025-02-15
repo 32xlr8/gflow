@@ -1,10 +1,10 @@
 #!../../gflow/bin/gflow
 
 ################################################################################
-# Generic Flow v5.1 (May 2023)
+# Generic Flow v5.5.1 (February 2025)
 ################################################################################
 #
-# Copyright 2011-2023 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
+# Copyright 2011-2025 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,7 +19,7 @@
 # limitations under the License.
 #
 ################################################################################
-# Filename: templates/project_template.2023/blocks/block_template/genus.fe.gf
+# Filename: templates/project.2025/blocks/template/genus.fe.gf
 # Purpose:  Batch synthesis flow
 ################################################################################
 
@@ -55,9 +55,6 @@ if [ "$PHYSICAL_MODE" == "Y" ]; then
         ../work_*/*/out/*.fp.def
         ../work_*/*/out/*.fp.def.gz
     '
-
-    # Create floorplan files copy in the run directory
-    [[ -n "$GENUS_FLOORPLAN_FILE" ]] && gf_save_files -copy $(dirname $GENUS_FLOORPLAN_FILE)/$(basename $GENUS_FLOORPLAN_FILE .gz)*
 fi
 
 # TCL commands
@@ -65,7 +62,7 @@ gf_add_tool_commands '
 
     # Transfer flow variables to the tool
     set PHYSICAL_MODE {`$PHYSICAL_MODE`}
-    set LEF_FILES {`$CADENCE_TLEF_FILES` `$LEF_FILES`}
+    set LEF_FILES {`$CADENCE_TLEF_FILES` `$LEF_FILES` `$PARTITIONS_LEF_FILES -optional`}
     set DESIGN_NAME {`$DESIGN_NAME`}
     set ELAB_DESIGN_NAME {`$ELAB_DESIGN_NAME`}
     set POWER_NETS {`$POWER_NETS_CORE` `$POWER_NETS_OTHER -optional`}
@@ -286,6 +283,9 @@ gf_add_tool_commands '
     # Close interactive session
     exit
 '
+
+# Task marks
+gf_add_status_marks -1 'Worst cost_group:'
 
 # Run task
 gf_add_status_marks Error

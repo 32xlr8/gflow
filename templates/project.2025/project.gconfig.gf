@@ -1,8 +1,8 @@
 ################################################################################
-# Generic Flow v5.5.0 (December 2024)
+# Generic Flow v5.5.1 (February 2025)
 ################################################################################
 #
-# Copyright 2011-2024 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
+# Copyright 2011-2025 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -208,9 +208,9 @@ gf_create_step -name gconfig_project_settings '
         # STA check variants to use in file name patterns
         -views {* * * * * s} {$check {s setup}}
         -views {* * * * * h} {$check {h hold}}
-        -views {* * * * * p} {$check {p power}}
-        -views {* * * * * l} {$check {l leakage power}}
-        -views {* * * * * d} {$check {d dynamic power}}
+        -views {* * * * * p} {$check {p power setup hold}}
+        -views {* * * * * l} {$check {l leakage power setup hold}}
+        -views {* * * * * d} {$check {d dynamic power setup hold}}
     }
 
     # Default OCV margins for not covered views

@@ -1,8 +1,8 @@
 ################################################################################
-# Generic Flow v5.5.0 (December 2024)
+# Generic Flow v5.5.1 (February 2025)
 ################################################################################
 #
-# Copyright 2011-2024 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
+# Copyright 2011-2025 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -29,9 +29,10 @@ gf_info "Loading project-specific Calibre settings ..."
 
 # Tool initialization in Linux environment
 gf_create_step -name init_calibre_environment '
-    export MGC_HOME=<PLACEHOLDER>/PATH_TO_AOI_CAL
+    <PLACEHOLDER>
+    export MGC_HOME=/PATH_TO_AOI_CAL
     export PATH=$MGC_HOME/bin:$PATH
-    export MGLS_LICENSE_FILES=<PLACEHOLDER>29700@$HOSTNAME
+    export MGLS_LICENSE_FILES=29700@$HOSTNAME
     export MGC_DISABLE_BACKING_STORE=true
     export USE_CALIBRE_VCO=aoi
 '

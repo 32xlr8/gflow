@@ -1,10 +1,10 @@
 #!/bin/bash
 
 ################################################################################
-# Generic Flow v5.5.0 (December 2024)
+# Generic Flow v5.5.1 (February 2025)
 ################################################################################
 #
-# Copyright 2011-2024 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
+# Copyright 2011-2025 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -24,7 +24,7 @@
 ################################################################################
 
 ##################################################
-GF_TITLE="Generic Flow v5.5.0 (December 2024)"
+GF_TITLE="Generic Flow v5.5.1 (February 2025)"
 ##################################################
 
 # Generic Flow binary
@@ -9996,9 +9996,9 @@ if [ -n "$GF_HELP_MODE" ]; then
 
     # Interactive help mode
     if [ -e "$GF_SCRIPT" ]; then
-        gf_set_window_title "Interactive help ($GF_SCRIPT_NAME) - Generic Flow v5.5.0 (December 2024)" "GF help ($GF_SCRIPT_NAME)"
+        gf_set_window_title "Interactive help ($GF_SCRIPT_NAME) - Generic Flow v5.5.1 (February 2025)" "GF help ($GF_SCRIPT_NAME)"
     else
-        gf_set_window_title "Interactive help - Generic Flow v5.5.0 (December 2024)" "GF help"
+        gf_set_window_title "Interactive help - Generic Flow v5.5.1 (February 2025)" "GF help"
     fi
     gf_show_cursor
     echo
@@ -10018,7 +10018,7 @@ elif [ -n "$GF_INTERACTIVE_MODE" -o -z "$GF_SCRIPT" ]; then
     trap -- SIGHUP
     trap 'gf_restore_title' EXIT
     gf_show_cursor
-    gf_set_window_title "Generic Flow Utilities v5.5.0 (December 2024)" "GF utilities"
+    gf_set_window_title "Generic Flow Utilities v5.5.1 (February 2025)" "GF utilities"
 
     # Environment initialization
     export PATH="$GF_UTILS:$(gf_full_path "$GF_BIN/.."):${PATH}"

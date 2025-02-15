@@ -1,8 +1,8 @@
 ################################################################################
-# Generic Flow v5.1 (May 2023)
+# Generic Flow v5.5.1 (February 2025)
 ################################################################################
 #
-# Copyright 2011-2023 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
+# Copyright 2011-2025 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@
 # limitations under the License.
 #
 ################################################################################
-# Filename: templates/project_template.2023/blocks/block_template/block.voltus.gf
+# Filename: templates/project.2025/blocks/template/block.voltus.gf
 # Purpose:  Block-specific Voltus configuration and flow steps
 ################################################################################
 
@@ -55,9 +55,9 @@ gf_set_task_options -disable SignalEM
 
 # Static and dynamic power analysis scenarios
 POWER_SCENARIOS='
+    VCD: Default mode
     Switching activity 0.2
     Switching activity 0.4
-    VCD: Default mode
 '
 
 # # Select scenario automatically
@@ -67,8 +67,8 @@ POWER_SCENARIOS='
 # Flow steps
 ################################################################################
 
-# MMMC and OCV settings
-gf_create_step -name voltus_gconfig_design_settings '
+# MMMC and OCV settings for power and rail
+gf_create_step -name voltus_gconfig_power_rail_design_settings '
     <PLACEHOLDER> Review signoff settings for power analysis
     
     # Choose analysis views patterns:
@@ -80,29 +80,65 @@ gf_create_step -name voltus_gconfig_design_settings '
     #   - DYNAMIC_POWER_VIEW - Dynamic power analysis view (worst cells currents)
     #   - STATIC_RAIL_VIEW - Static rail analysis view (worst RC parasitics)
     #   - DYNAMIC_RAIL_VIEW - Dynamic rail analysis view (worst RC parasitics)
-    #   - SIGNAL_EM_VIEW - Signal electromigration analysis view (worst cells currents, worst C parasitics)
     
     set PGV_RC_CORNER {* * * 125 rcw *}
             
     set SIGNAL_SPEF_CORNER {* * * m40 rcb *}
     set POWER_SPEF_CORNER {* * * 125 cw *}
 
-    set STATIC_POWER_VIEW {func ff 1p100v 125 cw h}
-    set DYNAMIC_POWER_VIEW {func ff 1p100v 125 cw h}
+    set STATIC_POWER_VIEW {func ff 1p100v 125 cw p}
+    set DYNAMIC_POWER_VIEW {func ff 1p100v 125 cw p}
 
-    set STATIC_RAIL_VIEW {func ss 0p900v 125 rcw h}
-    set DYNAMIC_RAIL_VIEW {func ss 0p900v 125 rcw h}
-
-    set SIGNAL_EM_VIEW {func ff 1p100v 125 cw h}
+    set STATIC_RAIL_VIEW {func ff 1p100v 125 rcw p}
+    set DYNAMIC_RAIL_VIEW {func ff 1p100v 125 rcw p}
 
     # Choose standard cell libraries:
     # - nldm_libraries - NLDM (Liberty) + CDB (Celtic) files used for fast runtime
     # - ecsm_libraries - ECSM (Liberty) + AOCV/SOCV files used for precise delay calculation
     # - ccs_libraries - CCS (Liberty) + AOCV/SOCV files used for precise delay calculation
     # - lvf_libraries - LVF (Liberty) files used for most precise delay calculation
+    # - ldb_libraries - LDB compiled binary files for fast load
     # - ecsm_p_libraries - ECSM-P (Liberty) files used for precise power calculation
     # - ccs_p_libraries - CCS-P (Liberty) files used for precise power calculation
     gconfig::enable_switches ccs_p_libraries
+   
+    # Choose separate variation libraries (optional with ecsm_libraries or ccs_libraries):
+    # - aocv_libraries - AOCV (advanced, SBOCV)
+    # - socv_libraries - SOCV (statistical)
+    gconfig::enable_switches aocv_libraries
+
+    # Choose derating scenarios (additional variations):
+    # - flat_derates - used with NLDM (see process node documentation)
+    # - no_derates - zero derates (optimistic for prototyping mode)
+    # - user_derates - same as flat_derates, but user-specified values used (customize below)
+    # - vt_derates - used with ESCM/CCS if additional Voltage/Temparature derates required (see standard cell documentation, customize IR-drop below)
+    gconfig::enable_switches no_derates
+'
+
+# MMMC and OCV settings for signal electromigration
+gf_create_step -name voltus_gconfig_electromigration_design_settings '
+    <PLACEHOLDER> Review signoff settings for power analysis
+    
+    # Choose analysis views patterns:
+    # - {mode process voltage temperature rc_corner timing_check}
+    #   - SIGNAL_EM_VIEW - Signal electromigration analysis view (worst cells currents, worst C parasitics)
+    
+    set SIGNAL_EM_VIEW {func ff 1p100v 125 cw p}
+
+    # Choose standard cell libraries:
+    # - nldm_libraries - NLDM (Liberty) + CDB (Celtic) files used for fast runtime
+    # - ecsm_libraries - ECSM (Liberty) + AOCV/SOCV files used for precise delay calculation
+    # - ccs_libraries - CCS (Liberty) + AOCV/SOCV files used for precise delay calculation
+    # - lvf_libraries - LVF (Liberty) files used for most precise delay calculation
+    # - ldb_libraries - LDB compiled binary files for fast load
+    # - ecsm_p_libraries - ECSM-P (Liberty) files used for precise power calculation
+    # - ccs_p_libraries - CCS-P (Liberty) files used for precise power calculation
+    gconfig::enable_switches ccs_libraries
+   
+    # Choose separate variation libraries (optional with ecsm_libraries or ccs_libraries):
+    # - aocv_libraries - AOCV (advanced, SBOCV)
+    # - socv_libraries - SOCV (statistical)
+    gconfig::enable_switches aocv_libraries
    
     # Choose derating scenarios (additional variations):
     # - flat_derates - used with NLDM (see process node documentation)
@@ -113,7 +149,7 @@ gf_create_step -name voltus_gconfig_design_settings '
 '
 
 # Commands after design initialized
-gf_create_step -name voltus_pre_init_variables '
+gf_create_step -name voltus_pre_init_design_variables '
     set DESIGN_NAME {`$DESIGN_NAME`}
 
     # Power/ground pins with voltage values pairs
@@ -126,12 +162,29 @@ gf_create_step -name voltus_pre_init_variables '
     }
     
     # IR-drop thresholds
-    set IR_THRESHOLD_STATIC 0.015
-    set IR_THRESHOLD_DYNAMIC 0.050
+    set IR_THRESHOLD_STATIC 0.020
+    set IR_THRESHOLD_DYNAMIC 0.075
+
+    # Dynamic rail options
+    set DYNAMIC_RAIL_RESULTS_START_TIME 0.100ns
+
+    # EM options
+    set EM_TEMPERATURE 105
+    set EM_DELTA_TEMPERATURE 5.0
+    set EM_THRESHOLD 1.0
+    set EM_LIFE_TIME 100000
+
+    # Design-specific options
+    set STOP_VIA VIA1
+    set CLUSTER_VIA_RULE {{VIA1 1} {VIA2 1} .. {RV 1}}
+
+    # Currents generation methods (peak or avg)
+    set STATIC_POWER_CURRENT_METHOD "avg"
+    set DYNAMIC_POWER_CURRENT_METHOD "avg"
 '
 
 # Commands after design initialized
-gf_create_step -name voltus_post_init_variables '
+gf_create_step -name voltus_post_init_design_variables '
 
     # Filler and decap cells for PGV
     <PLACEHOLDER>
@@ -146,8 +199,10 @@ gf_create_step -name voltus_post_init_variables '
 '
 
 # Commands after design initialized
-gf_create_step -name voltus_post_init '
-    `@voltus_post_init_variables`
+gf_create_step -name voltus_post_init_design '
+
+    # Increase message limit
+    set_message -limit 1000
 
     # Library settings
     if {1} {
@@ -168,8 +223,8 @@ gf_create_step -name voltus_post_init '
         # set_db delaycal_enable_quiet_receivers_for_hold true
         # set_db delaycal_advanced_pin_cap_mode true
 
-        # # AOCV libraries (see TSMCHOME/digital/Front_End/SBOCV/documents/GL_SBOCV_*.pdf)
-        <PLACEHOLDER> Choice 1 of 3
+        # # Choice 1 of 3: AOCV libraries (see TSMCHOME/digital/Front_End/SBOCV/documents/GL_SBOCV_*.pdf)
+        <PLACEHOLDER>
         # set_db timing_analysis_aocv true
         # set_db timing_extract_model_aocv_mode graph_based
         # set_db timing_aocv_analysis_mode combine_launch_capture
@@ -177,8 +232,8 @@ gf_create_step -name voltus_post_init '
         # # set_db timing_aocv_slack_threshold 0.0
         # set_db timing_enable_aocv_slack_based true
 
-        # # LVF/SOCV libraries (see TSMCHOME/digital/Front_End/LVF/documents/GL_LVF_*.pdf)
-        <PLACEHOLDER> Choice 2 of 3
+        # # Choice 2 of 3: LVF/SOCV libraries (see TSMCHOME/digital/Front_End/LVF/documents/GL_LVF_*.pdf)
+        <PLACEHOLDER>
         # # set_limited_access_feature socv 1
         # set_db timing_analysis_socv true
         # set_db delaycal_socv_accuracy_mode ultra
@@ -196,28 +251,14 @@ gf_create_step -name voltus_post_init '
         # set_socv_rc_variation_factor 0.1 -early
         # set_socv_rc_variation_factor 0.1 -late
 
-        # Flat STA settings
-        <PLACEHOLDER> Choice 3 of 3
+        # Choice 3 of 3: Flat STA settings
+        <PLACEHOLDER>
 
         # # Spatial OCV settings (see TSMCHOME/digital/Front_End/timing_margin/SPM)
         # set_db timing_enable_spatial_derate_mode true
         # set_db timing_spatial_derate_chip_size 1000
         # set_db timing_spatial_derate_distance_mode bounding_box
     }
-    
-    # Advanced SI analysis settings (see foundry recommendations)
-    # set_db si_analysis_type aae 
-    # set_db si_delay_separate_on_data true
-    # set_db si_delay_delta_annotation_mode lumpedOnNet
-    # set_db si_individual_aggressor_simulation_filter true
-    # set_db si_reselection all 
-    # set_db si_glitch_input_voltage_high_threshold 0.2
-    # set_db si_glitch_input_voltage_low_threshold 0.2
-    set_db si_aggressor_alignment timing_aware_edge
-
-    # SI settings
-    set_db delaycal_enable_si true
-    # set_db si_use_infinite_timing_window true
 '
 
 # LEF to DEF layer map file
@@ -234,7 +275,7 @@ gf_create_step -name voltus_pgv_lef_def_map_file '
 '
 
 # GDS layer mapping for PGV connectivity
-gf_create_step -name voltus_pgv_layer_connect_file '
+gf_create_step -name voltus_pgv_lef_gds_map_file '
     <PLACEHOLDER>
     metal  M0    gds    30  1
     metal  M0    gds    30  2
@@ -272,7 +313,9 @@ gf_create_step -name voltus_pre_write_pgv_tech_only '
         -extraction_tech_file [gconfig::get_files qrc -view $PGV_RC_CORNER] \
         -temperature [gconfig::get temperature -view $PGV_RC_CORNER] \
         -current_distribution propagation \
-        -cell_type techonly
+        -cell_type techonly \
+        -power_pins $VOLTUS_POWER_NETS_PAIRS \
+        -ground_pins $VOLTUS_GROUND_NETS \
 
     # PGV generation advanced options
     set_advanced_pg_library_mode \
@@ -329,7 +372,7 @@ gf_create_step -name voltus_pre_write_pgv_standard_cells '
 
 # Commands before generating PGV models for macros
 gf_create_step -name voltus_pre_write_pgv_macros '
-    set GDS_FILES {`$GDS_FILES`}
+    set GDS_FILES {`$GDS_FILES` `$PARTITIONS_GDS_FILES -optional`}
     set VOLTUS_PGV_SPICE_MODELS {`$VOLTUS_PGV_SPICE_MODELS`}
     set VOLTUS_PGV_SPICE_CORNERS {`$VOLTUS_PGV_SPICE_CORNERS`}
     set VOLTUS_PGV_SPICE_FILES {`$VOLTUS_PGV_SPICE_FILES`}
@@ -348,9 +391,10 @@ gf_create_step -name voltus_pre_write_pgv_macros '
         -ground_pins $VOLTUS_GROUND_NETS \
         -cells_file ./in/$TASK_NAME.cells \
         -lef_layer_map ./in/$TASK_NAME.lef.map \
-        -stream_layer_map ./scripts/$TASK_NAME.connect.map \
-        -cell_type macros
-
+        -stream_layer_map ./in/$TASK_NAME.connect.map \
+        -cell_type macros \
+        -stop_via $STOP_VIA
+        
     # Macro cells list
     redirect ./in/$TASK_NAME.cells {
         
@@ -373,12 +417,58 @@ gf_create_step -name voltus_pre_write_pgv_macros '
 
 # Commands before performing static power analysis
 gf_create_step -name voltus_run_report_power_static '
+    set VOLTUS_PGV_LIBS [join [concat {`$VOLTUS_PGV_LIBS`} [gconfig::get_files pgv -view $DYNAMIC_RAIL_VIEW]]]
 
-    # Static power analysis settings
+    # Reset options
+    set_power -reset
+    reset_db -category power
+    set_switching_activity -reset
+    set_default_switching_activity -reset
+
+    # Input files
+    set_db power_grid_libraries $VOLTUS_PGV_LIBS
+    set_db power_include_file [join {`$VOLTUS_STATIC_POWER_INCLUDE_FILE -optional`}]
+    catch {set_db power_extractor_include [join {`$VOLTUS_EXTRACTOR_INCLUDE_FILE -optional`}]}
+
+    # Libraries settings
+    set_db power_library_preference ecsm_ccsp
+    set_db power_disable_ecsm_interpolation true
+    set_db power_multibit_flop_toggle_behavior sbff 
+    # set_db power_honor_negative_energy true
+    set_db power_use_lef_for_missing_cells true
+    # set_db power_read_rcdb true
+
+    # Analysis settings
     set_db power_method static
+    set_db power_disable_static false
+    set_db power_current_generation_method $STATIC_POWER_CURRENT_METHOD
+    # set_db power_x_transition_factor 1.0
+    # set_db power_z_transition_factor 1.0
+    
+    # Design settings
+    <PlACEHOLDER>
+    set_db power_default_frequency 1000.0
+    set_db power_default_slew 0.150
+    set_db power_default_supply_voltage [lindex $VOLTUS_POWER_NETS_PAIRS 1]
+    # set_db power_ignore_control_signals false
+    # set_db power_static_netlist def
+
+    # Reporting options
+    set_db power_report_idle_instances true
+    set_db power_report_missing_input true
+    set_db power_report_statistics true
+
+    # Output data
     set_db power_write_static_currents true
-    set_db power_ignore_control_signals false
-    set_db power_read_rcdb true
+    set_db power_write_db true
+
+    # Power nets settings
+    foreach {net value} $VOLTUS_POWER_NETS_PAIRS {
+        set_pg_nets -force -net $net -voltage $value -threshold [expr -$IR_THRESHOLD_STATIC+$value]
+    }
+    foreach {net value} $VOLTUS_GROUND_NETS_PAIRS {
+        set_pg_nets -force -net $net -voltage $value -threshold [expr $IR_THRESHOLD_STATIC+$value]
+    }
 
     # Default activity analysis
     if {$POWER_SCENARIO == "Switching activity 0.2"} {
@@ -391,16 +481,23 @@ gf_create_step -name voltus_run_report_power_static '
         set_default_switching_activity -sequential_activity 0.4
         set_default_switching_activity -clock_gates_output 2
 
-    # VCD-based analysis
-    } elseif {$POWER_SCENARIO == "VCD: Default mode"} {
-        read_activity_file <PLACEHOLDER>/PATH_TO/ACTIVITY_FILE.vcd -format <PLACEHOLDER>VCD \
-            -scope <PLACEHOLDER>/design_instance/scope/in/vcd \
-            -start <PLACEHOLDER>10ns -end <PLACEHOLDER>20ns
-        set_db power_scale_to_sdc_clock_frequency true
+    # # VCD-based analysis
+    # <PLACEHOLDER>
+    # } elseif {$POWER_SCENARIO == "VCD: Default mode"} {
+    #     read_activity_file /PATH_TO/ACTIVITY_FILE.vcd -format VCD \
+    #         -scope /design_instance/scope/in/vcd \
+    #         -start 10ns -end 20ns
+    #     set_db power_scale_to_sdc_clock_frequency true
+    #     set_db power_use_zero_delay_vector_file true
         
     # Unknown scenario
     } else {
         error "Incorrect scenario: $POWER_SCENARIO"
+    }
+
+    # Report tool options
+    redirect ./reports/$TASK_NAME.settings.rpt {
+        get_db power_*
     }
 
     # Generate power database
@@ -410,17 +507,43 @@ gf_create_step -name voltus_run_report_power_static '
 
 # Commands before performing static rail analysis
 gf_create_step -name voltus_run_report_rail_static '
-    set VOLTUS_PGV_LIBS {`$VOLTUS_PGV_LIBS`}
-    set VOLTUS_ICT_EM_RULE {`$VOLTUS_ICT_EM_RULE`}
+    set VOLTUS_PGV_LIBS [join [concat {`$VOLTUS_PGV_LIBS`} [gconfig::get_files pgv -view $DYNAMIC_RAIL_VIEW]]]
+    set VOLTUS_ICT_EM_RULE [join {`$VOLTUS_ICT_EM_RULE -optional`}]
+
+    # Reset options
+    set_power_pads -reset
+    set_power_data -reset
 
     # Static rail analysis settings
-    set_rail_analysis_mode \
+    set_rail_analysis_config \
         -extraction_tech_file [gconfig::get_files qrc -view $STATIC_RAIL_VIEW] \
-        -temperature [gconfig::get temperature -view $STATIC_RAIL_VIEW] \
-        -power_grid_libraries [join $VOLTUS_PGV_LIBS] \
-        -ict_em_models [join $VOLTUS_ICT_EM_RULE] \
-        -accuracy hd -method static -ignore_shorts true
-   
+            -temperature [gconfig::get temperature -view $STATIC_RAIL_VIEW] \
+        -power_grid_libraries $VOLTUS_PGV_LIBS \
+        -cluster_via_rule $CLUSTER_VIA_RULE \
+            -cluster_via_size 1 \
+            -cluster_via1_ports false \
+        -em_peak_analysis true \
+            -process_techgen_em_rules false \
+            -ict_em_models $VOLTUS_ICT_EM_RULE \
+            -em_temperature $EM_TEMPERATURE \
+            -em_threshold $EM_THRESHOLD \
+            -lifetime $EM_LIFE_TIME \
+        -enable_manufacturing_effects true \
+        -enable_rlrp_analysis true \
+            -rlrp_detail_report true \
+            -enable_reff_analysis true \
+            -rlrp_eval_nodes port \
+        -ignore_incomplete_net true \
+        -ignore_nets_without_voltage_sources true \
+        -ignore_shorts true \
+            -report_shorts true \
+        -verbosity true \
+        -method static \
+            -accuracy hd
+
+        # # Alternative options
+            # -process_techgen_em_rules true \
+
     # Power nets settings
     foreach {net value} $VOLTUS_POWER_NETS_PAIRS {
         set_pg_nets -force -net $net -voltage $value -threshold [expr -$IR_THRESHOLD_STATIC+$value]
@@ -433,34 +556,104 @@ gf_create_step -name voltus_run_report_rail_static '
     foreach net [concat $VOLTUS_POWER_NETS $VOLTUS_GROUND_NETS] {
         set_power_pads -format xy -net $net -file $DATA_OUT_DIR/$DESIGN_NAME.$net.pp
     }
+
     # # Option 2: Tap coordinates files specified manually
     # set_power_pads -format xy -net VDD -file /PATH/TO/VDD.pp
     # set_power_pads -format xy -net VSS -file /PATH/TO/VSS.pp
 
+    # # Option 3: Tap coordinates of bumps
+    # foreach net [concat $VOLTUS_POWER_NETS $VOLTUS_GROUND_NETS] {
+    #     redirect ./$DESIGN_NAME.$net.pp {
+    #         set i 0
+    #         foreach bump [get_db bumps -if .net.name==${net}] {
+    #             incr i; puts "${net}_${i} [get_db $bump .center.x] [get_db $bump .center.y] [get_db $bump .port.layer.name]"
+    #         }
+    #     }
+    #     set_power_pads -format xy -net $net -file ./$DESIGN_NAME.$net.pp
+    # }
+
     # Power data
     set power_files {}
     foreach net [concat $VOLTUS_POWER_NETS $VOLTUS_GROUND_NETS] {
-        lappend power_files ./out/$STATIC_POWER_TASK.power/static_${net}.ptiavg
+        lappend power_files ./out/$POWER_TASK_NAME.power/static_${net}.pti${STATIC_POWER_CURRENT_METHOD}
     }
     set_power_data -format current -scale 1 $power_files
+
+    # Report tool options
+    redirect ./reports/$TASK_NAME.settings.rpt {
+        get_rail_analysis_config
+        get_db power_*
+    }
 
     # Analyze IR-drop
     set_rail_analysis_domain -domain_name PDCore -power_nets $VOLTUS_POWER_NETS -ground_nets $VOLTUS_GROUND_NETS
     report_rail -type domain -output_dir ./out/$TASK_NAME.rail PDCore
-    
+
     # Open latest directory
-    ::read_power_rail_results -rail_directory [exec sed -ne {s|^.*Run directory\s*:\s*./out/|./out/|p} [get_db log_file]] -instance_voltage_window {timing whole} -instance_voltage_method {worst best avg worstavg}
+    set results_directories [concat \
+        [exec sed -ne {s|^.*Run directory\s*:\s*./out/|./out/|ip} [get_db log_file]] \
+        [exec sed -ne {s|^.*State directory\s*:\s*out/|./out/|ip} [get_db log_file]] \
+    ]
+    ::read_power_rail_results -rail_directory [lindex $results_directories 0] -instance_voltage_window {timing whole} -instance_voltage_method {worst best avg worstavg}
+
+    # # Clean power data
+    # exec rm -Rf ./out/$POWER_TASK_NAME.power/PTIData
 '
 
 # Commands before performing dynamic power analysis
 gf_create_step -name voltus_run_report_power_dynamic '
+    set VOLTUS_PGV_LIBS [join [concat {`$VOLTUS_PGV_LIBS`} [gconfig::get_files pgv -view $DYNAMIC_RAIL_VIEW]]]
 
-    # Dynamic power analysis settings
-    set_db power_write_static_currents true
+    # Reset options
+    set_power -reset
+    reset_db -category power
+    set_switching_activity -reset
+    set_default_switching_activity -reset
+
+    # Input files
+    set_db power_grid_libraries $VOLTUS_PGV_LIBS
+    set_db power_include_file [join {`$VOLTUS_DYNAMIC_POWER_INCLUDE_FILE -optional`}]
+    catch {set_db power_extractor_include [join {`$VOLTUS_EXTRACTOR_INCLUDE_FILE -optional`}]}
+    
+    # Libraries settings
+    # set_db power_library_preference ecsm_ccsp
+    # set_db power_disable_ecsm_interpolation true
+    set_db power_multibit_flop_toggle_behavior sbff 
     set_db power_honor_negative_energy true
-    set_db power_ignore_control_signals false
-    set_db power_read_rcdb true
+    set_db power_use_lef_for_missing_cells true
+    # set_db power_read_rcdb true
+
+    # Analysis settings
     set_db power_disable_static false
+    set_db power_current_generation_method $DYNAMIC_POWER_CURRENT_METHOD
+    # set_db power_x_transition_factor 1.0
+    # set_db power_z_transition_factor 1.0
+
+    # Design settings
+    <PlACEHOLDER>
+    set_db power_default_frequency 1000.0
+    set_db power_default_slew 0.150
+    set_db power_default_supply_voltage [lindex $VOLTUS_POWER_NETS_PAIRS 1]
+    # set_db power_ignore_control_signals false
+    # set_db power_static_netlist def
+
+    # Reporting options
+    set_db power_report_idle_instances true
+    set_db power_report_missing_input true
+    set_db power_report_statistics true
+
+    # Output data
+    # set_db power_write_static_currents true
+    # set_db power_write_dynamic_currents true 
+    set_db power_write_db true
+
+    # Power nets settings
+    foreach {net value} $VOLTUS_POWER_NETS_PAIRS {
+        set_pg_nets -force -net $net -voltage $value -threshold [expr -$IR_THRESHOLD_DYNAMIC+$value]
+    }
+    foreach {net value} $VOLTUS_GROUND_NETS_PAIRS {
+        set_pg_nets -force -net $net -voltage $value -threshold [expr $IR_THRESHOLD_DYNAMIC+$value]
+    }
 
     # Default activity analysis
     if {$POWER_SCENARIO == "Switching activity 0.2"} {
@@ -477,17 +670,25 @@ gf_create_step -name voltus_run_report_power_dynamic '
         set_db power_method dynamic_vectorless
         set_dynamic_power_simulation -resolution 10ps -period 10ns
 
-    # VCD-based analysis
-    } elseif {$POWER_SCENARIO == "VCD: Default mode"} {
-        read_activity_file <PLACEHOLDER>/PATH_TO/ACTIVITY_FILE.vcd -format <PLACEHOLDER>VCD \
-            -scope <PLACEHOLDER>/design_instance/scope/in/vcd \
-            -start <PLACEHOLDER>10ns -end <PLACEHOLDER>20ns
-        set_db power_method dynamic_vectorbased
-        set_dynamic_power_simulation -resolution <PLACEHOLDER>10ps
+    # # VCD-based analysis
+    # <PLACEHOLDER>
+    # } elseif {$POWER_SCENARIO == "VCD: Default mode"} {
+    #     read_activity_file /PATH_TO/ACTIVITY_FILE.vcd -format VCD \
+    #         -scope /design_instance/scope/in/vcd \
+    #         -start 10ns -end 20ns
+    #     set_db power_method dynamic_vectorbased
+    #     set_dynamic_power_simulation -resolution 10ps
+    #     set_db power_scale_to_sdc_clock_frequency true
+    #     set_db power_use_zero_delay_vector_file true
 
     # Unknown scenario
     } else {
         error "Incorrect scenario: $POWER_SCENARIO"
+    }
+
+    # Report tool options
+    redirect ./reports/$TASK_NAME.settings.rpt {
+        get_db power_*
     }
 
     # Generate power database
@@ -497,20 +698,46 @@ gf_create_step -name voltus_run_report_power_dynamic '
 
 # Commands before performing dynamic rail analysis
 gf_create_step -name voltus_run_report_rail_dynamic '
-    set VOLTUS_PGV_LIBS {`$VOLTUS_PGV_LIBS`}
-    set VOLTUS_ICT_EM_RULE {`$VOLTUS_ICT_EM_RULE`}
+    set VOLTUS_PGV_LIBS [join [concat {`$VOLTUS_PGV_LIBS`} [gconfig::get_files pgv -view $DYNAMIC_RAIL_VIEW]]]
+    set VOLTUS_ICT_EM_RULE {`$VOLTUS_ICT_EM_RULE -optional`}
+
+    # Reset options
+    set_power_pads -reset
+    set_power_data -reset
 
     # Dynamic rail analysis settings
-    set_rail_analysis_mode \
+    set_rail_analysis_config \
         -extraction_tech_file [gconfig::get_files qrc -view $DYNAMIC_RAIL_VIEW] \
-        -temperature [gconfig::get temperature -view $DYNAMIC_RAIL_VIEW] \
-        -power_grid_libraries [join $VOLTUS_PGV_LIBS] \
-        -ict_em_models [join $VOLTUS_ICT_EM_RULE] \
-        -accuracy hd -method dynamic -ignore_shorts true -limit_number_of_steps false
-   
-    # # Optional GIF creation
+            -temperature [gconfig::get temperature -view $DYNAMIC_RAIL_VIEW] \
+        -power_grid_libraries $VOLTUS_PGV_LIBS \
+        -cluster_via_rule $CLUSTER_VIA_RULE \
+            -cluster_via_size 1 \
+            -cluster_via1_ports false \
+        -ignore_decaps false \
+            -decap_cell_list $PGV_DECAP_CELLS \
+            -filler_cell_list $PGV_FILLER_CELLS \
+        -enable_manufacturing_effects true \
+        -enable_rlrp_analysis true \
+            -rlrp_eval_nodes port \
+        -eiv_method worstavg \
+            -eiv_eval_window both \
+            -eiv_eval_nodes port \
+            -eiv_pin_based_report true \
+        -ignore_incomplete_net true \
+        -ignore_nets_without_voltage_sources true \
+        -ignore_shorts true \
+            -report_shorts true \
+        -verbosity true \
+        -method dynamic \
+            -record_results_start_time $DYNAMIC_RAIL_RESULTS_START_TIME \
+            -limit_number_of_steps false \
+            -accuracy hd
+
+    # # Additional options
     #     -write_movies true \
-   
+    #     -enable_xp true \
+    #     -write_voltage_waveforms true \
+
     # Power nets settings
     foreach {net value} $VOLTUS_POWER_NETS_PAIRS {
         set_pg_nets -force -net $net -voltage $value -threshold [expr -$IR_THRESHOLD_DYNAMIC+$value]
@@ -523,38 +750,88 @@ gf_create_step -name voltus_run_report_rail_dynamic '
     foreach net [concat $VOLTUS_POWER_NETS $VOLTUS_GROUND_NETS] {
         set_power_pads -format xy -net $net -file $DATA_OUT_DIR/$DESIGN_NAME.$net.pp
     }
+
     # # Option 2: Tap coordinates files specified manually
     # set_power_pads -format xy -net VDD -file /PATH/TO/VDD.pp
     # set_power_pads -format xy -net VSS -file /PATH/TO/VSS.pp
 
+    # # Option 3: Tap coordinates of bumps
+    # foreach net [concat $VOLTUS_POWER_NETS $VOLTUS_GROUND_NETS] {
+    #     redirect ./$DESIGN_NAME.$net.pp {
+    #         set i 0
+    #         foreach bump [get_db bumps -if .net.name==${net}] {
+    #             incr i; puts "${net}_${i} [get_db $bump .center.x] [get_db $bump .center.y] [get_db $bump .port.layer.name]"
+    #         }
+    #     }
+    #     set_power_pads -format xy -net $net -file ./$DESIGN_NAME.$net.pp
+    # }
+
     # Power data
     set power_files {}
     foreach net [concat $VOLTUS_POWER_NETS $VOLTUS_GROUND_NETS] {
-        lappend power_files ./out/$DYNAMIC_POWER_TASK.power/dynamic_${net}.ptiavg
+        lappend power_files ./out/$POWER_TASK_NAME.power/dynamic_${net}.pti${DYNAMIC_POWER_CURRENT_METHOD}
     }
     set_power_data -format current -scale 1 $power_files
+
+    # Report tool options
+    redirect ./reports/$TASK_NAME.settings.rpt {
+        get_rail_analysis_config
+        get_db power_*
+    }
 
     # Analyze IR-drop
     set_rail_analysis_domain -domain_name PDCore -power_nets $VOLTUS_POWER_NETS -ground_nets $VOLTUS_GROUND_NETS
     report_rail -type domain -output_dir ./out/$TASK_NAME.rail PDCore
-    
-    # Open latest directory
-    ::read_power_rail_results -rail_directory [exec sed -ne {s|^.*Run directory\s*:\s*./out/|./out/|p} [get_db log_file]] -instance_voltage_window {timing whole} -instance_voltage_method {worst best avg worstavg}
+
+    # Clean power data
+    # exec rm -Rf ./out/$POWER_TASK_NAME.power/PTIData
 '
 
 # Commands before performing dynamic rail analysis
 gf_create_step -name voltus_run_signal_em '
-    set VOLTUS_ICT_EM_RULE {`$VOLTUS_ICT_EM_RULE`}
+    set VOLTUS_ICT_EM_RULE {`$VOLTUS_ICT_EM_RULE -optional`}
 
-    # Signal EM analysis settings
-    set_default_switching_activity -input_activity <PLACEHOLDER>0.2
-    set_default_switching_activity -sequential_activity <PLACEHOLDER>0.2
-    set_default_switching_activity -clock_gates_output <PLACEHOLDER>2
+    # Reset options
+    set_power -reset
+    set_switching_activity -reset
+    set_default_switching_activity -reset
+
+    set_db check_ac_limit_view [get_db [get_db analysis_views  -if .is_setup] .name]
+    set_db check_ac_limit_extraction_tech_file [gconfig::get_files qrc -view $SIGNAL_EM_VIEW]
+    set_db check_ac_limit_method {avg peak rms}
+    set_db check_ac_limit_effort_level high
+    set_db check_ac_limit_out_file ./reports/$TASK_NAME.rpt
+    set_db check_ac_limit_report_db true
+    set_db check_ac_limit_use_db_freq true
+    set_db check_ac_limit_lifetime $EM_LIFE_TIME
+    set_db check_ac_limit_em_temperature $EM_TEMPERATURE
+    set_db check_ac_limit_delta_temperature $EM_DELTA_TEMPERATURE
+    set_db check_ac_limit_em_threshold $EM_THRESHOLD
+    set_db check_ac_limit_current_scale_factor {{rms 1} {peak 1} {avg 1 } }
+    set_db check_ac_limit_em_limit_scale_factor {{rms 1} {peak 1} {avg 1} }    
+
+    # Default activity analysis
+    set_default_switching_activity -input_activity 1.0
+    set_default_switching_activity -sequential_activity 1.0
+    set_default_switching_activity -clock_gates_output 2.0
+
+    # Propagate and read back activities
+    propagate_activity -set_net_frequency true
+    write_tcf ./out/$TASK_NAME.tcf
+    read_activity_file -format tcf -write_net_freq true ./out/$TASK_NAME.tcf
+
+    # Report tool options
+    redirect ./reports/$TASK_NAME.settings.rpt {
+        get_db check_ac_*
+    }
 
     # Run analysis
-    check_ac_limits \
-        -ict_em_models [join $VOLTUS_ICT_EM_RULE] \
-        -method peak 
+    if {$VOLTUS_ICT_EM_RULE != ""} {
+        set_db check_ac_limit_ict_em_models $VOLTUS_ICT_EM_RULE
+    } else {
+        set_db check_ac_limit_use_qrc_tech true
+    }
+    check_ac_limits -detailed
 '
 
 # Commands before open GUI for debug

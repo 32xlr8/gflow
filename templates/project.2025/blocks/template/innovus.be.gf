@@ -1,10 +1,10 @@
 #!../../gflow/bin/gflow
 
 ################################################################################
-# Generic Flow v5.1 (May 2023)
+# Generic Flow v5.5.1 (February 2025)
 ################################################################################
 #
-# Copyright 2011-2023 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
+# Copyright 2011-2025 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,7 +19,7 @@
 # limitations under the License.
 #
 ################################################################################
-# Filename: templates/project_template.2023/blocks/block_template/innovus.be.gf
+# Filename: templates/project.2025/blocks/template/innovus.be.gf
 # Purpose:  Batch implementation flow
 ################################################################################
 
@@ -69,7 +69,7 @@ gf_check_files "$INNOVUS_FLOORPLAN_FILE"* "$INNOVUS_NETLIST_FILES"
 # Save input files
 gf_add_shell_commands -init '
     mkdir -p ./in/$TASK_NAME/
-    for file in `$INNOVUS_NETLIST_FILES` `$INNOVUS_FLOORPLAN_FILE` `$SCANDEF_FILE -optional` `$CPF_FILE -optional` `$UPF_FILE -optional`; do
+    for file in $(echo "`$INNOVUS_NETLIST_FILES` `$INNOVUS_SCANDEF_FILE -optional` `$CPF_FILE -optional` `$UPF_FILE -optional`" | xargs ls -1d); do
         cp $file* ./in/$TASK_NAME/
     done
 '
@@ -78,10 +78,9 @@ gf_add_shell_commands -init '
 gf_add_tool_commands '
 
     # Current design variables
-    set LEF_FILES {`$CADENCE_TLEF_FILES` `$LEF_FILES`}
+    set LEF_FILES {`$CADENCE_TLEF_FILES` `$LEF_FILES` `$PARTITIONS_LEF_FILES -optional`}
     set NETLIST_FILES {`$INNOVUS_NETLIST_FILES`}
-    set SCANDEF_FILE {`$SCANDEF_FILE -optional`}
-    set LDB_MODE {`$LDB_MODE -optional`}
+    set SCANDEF_FILE {`$INNOVUS_SCANDEF_FILE -optional`}
     set CPF_FILE {`$CPF_FILE -optional`}
     set UPF_FILE {`$UPF_FILE -optional`}
     set FLOORPLAN_FILE {`$INNOVUS_FLOORPLAN_FILE`}
@@ -148,6 +147,7 @@ gf_add_tool_commands '
     
     # Read floorplan
     read_floorplan $FLOORPLAN_FILE
+    write_floorplan ./in/$TASK_NAME.fp.gz
     
     # Read scan chain info
     if {[file exists $SCANDEF_FILE]} {
@@ -159,6 +159,19 @@ gf_add_tool_commands '
         set_db place_global_ignore_scan false
     }
     
+    # Read in ILM
+    if {[llength [set PARTITIONS_PRECTS_ILM_DIRECTORIES {`$PARTITIONS_PRECTS_ILM_DIRECTORIES -optional`}]]} {
+        set_db ilm_keep_flatten true
+        set_ilm_type -model timing
+        foreach dir $PARTITIONS_PRECTS_ILM_DIRECTORIES {
+            read_ilm -cell [regsub {\..*$} [file tail $dir] {}] -directory $dir
+        }
+        foreach constraint_mode [get_db constraint_modes] {
+            update_constraint_mode -name [get_db $constraint_mode .name] -ilm_sdc_files [get_db $constraint_mode .sdc_files]
+        }
+        flatten_ilm
+    }
+
     # Stage-specific options    
     `@innovus_post_init_design`
 
@@ -178,9 +191,6 @@ gf_add_tool_commands '
     # Stage-specific options    
     `@innovus_pre_place`
     
-    # Write Innovus database
-    write_db ./out/$TASK_NAME.intermediate.innovus.db
-    
     # Run placement
     set_db opt_new_inst_prefix Place
     place_opt_design -report_dir ./reports/$TASK_NAME -report_prefix place_opt_design
@@ -193,11 +203,7 @@ gf_add_tool_commands '
     `@report_metrics`
     
     # Write Innovus database
-    if {$LDB_MODE == "Y"} {
-        write_db -lib_to_ldb ./out/$TASK_NAME.innovus.db
-    } else {
-        write_db ./out/$TASK_NAME.innovus.db
-    }
+    write_db ./out/$TASK_NAME.innovus.db
 
     # Close interactive session
     exit
@@ -231,14 +237,13 @@ gf_add_tool_commands '
 # Common tool procedures
 gf_add_tool_commands -comment '#' -file ./scripts/$TASK_NAME.procs.tcl '
     `@innovus_procs_common`
-    `@innovus_procs_interactive_design`
-    `@innovus_procs_eco_design`
 '
 
 # Display status
-gf_add_status_marks -from 'Final .*Summary' -to 'Density:' WNS TNS max_tran -3 +3
-gf_add_status_marks -from '\|.*max hotspot.*\|' -expr '[\|\+]' -to '^[^\|\+]*$' -1
 gf_add_status_marks 'Could not legalize .* instances in the design' 'Violation at original loc'
+# gf_add_status_marks -from '\|.*max hotspot.*\|' -expr '[\|\+]' -to '^[^\|\+]*$' -1
+gf_add_status_marks 'Local HotSpot Analysis'
+gf_add_status_marks -from 'Final .*Summary' -to 'Density:' WNS TNS max_tran -3 +3
 
 # Failed if some files not found
 gf_add_failed_marks 'ERROR:.\+No files'
@@ -262,6 +267,19 @@ gf_add_tool_commands '
     # Load Innovus database
     read_db ./out/$MOTHER_TASK_NAME.innovus.db
 
+    # Read in ILM
+    if {[llength [set PARTITIONS_POSTCTS_ILM_DIRECTORIES {`$PARTITIONS_POSTCTS_ILM_DIRECTORIES -optional`}]]} {
+        set_db ilm_keep_flatten true
+        set_ilm_type -model timing
+        foreach dir $PARTITIONS_POSTCTS_ILM_DIRECTORIES {
+            read_ilm -cell [regsub {\..*$} [file tail $dir] {}] -directory $dir
+        }
+        foreach constraint_mode [get_db constraint_modes] {
+            update_constraint_mode -name [get_db $constraint_mode .name] -ilm_sdc_files [get_db $constraint_mode .sdc_files]
+        }
+        flatten_ilm
+    }
+
     # Start metric collection
     `@collect_metrics`
 
@@ -281,9 +299,6 @@ gf_add_tool_commands '
 
     # Stage-specific options    
     `@innovus_post_clock`
-    
-    # Write Innovus database
-    write_db ./out/$TASK_NAME.intermediate.innovus.db
 
     # Stage-specific options    
     `@innovus_pre_clock_opt_hold`
@@ -313,10 +328,13 @@ gf_add_status_marks -from 'CCOpt::Phase::PostConditioning done' -from 'Units' -1
 gf_add_status_marks -from 'CCOpt::Phase::PostConditioning done' -from 'Inst Area' -1 '\S' -to '^\s*$'
 
 # Display status
+# # gf_add_status_marks -1 +3 -from 'End ccopt_design' 'max hotspot'
+# # gf_add_status_marks -1 +3 -from 'HoldOpt .*finish' 'max hotspot'
+gf_add_status_marks 'Local HotSpot Analysis'
+gf_add_status_marks 'cells added for Phase'
+gf_add_status_marks 'Clock network insertion delays are now'
 gf_add_status_marks -from 'Hold Opt .*Summary' -from 'Hold mode' -to 'All Paths:' -1 +1
 gf_add_status_marks -from 'Final .*Summary' -to 'Density:' WNS TNS max_tran -3 +3
-gf_add_status_marks -1 +3 -from 'End ccopt_design' 'max hotspot'
-gf_add_status_marks -1 +3 -from 'HoldOpt .*finish' 'max hotspot'
 
 # Run task
 gf_submit_task
@@ -337,6 +355,19 @@ gf_add_tool_commands '
     # Load Innovus database
     read_db ./out/$MOTHER_TASK_NAME.innovus.db
 
+    # Read in ILM
+    if {[llength [set PARTITIONS_POSTROUTE_ILM_DIRECTORIES {`$PARTITIONS_POSTROUTE_ILM_DIRECTORIES -optional`}]]} {
+        set_db ilm_keep_flatten true
+        set_ilm_type -model timing
+        foreach dir $PARTITIONS_POSTROUTE_ILM_DIRECTORIES {
+            read_ilm -cell [regsub {\..*$} [file tail $dir] {}] -directory $dir
+        }
+        foreach constraint_mode [get_db constraint_modes] {
+            update_constraint_mode -name [get_db $constraint_mode .name] -ilm_sdc_files [get_db $constraint_mode .sdc_files]
+        }
+        flatten_ilm
+    }
+
     # Start metric collection
     `@collect_metrics`
 
@@ -350,9 +381,6 @@ gf_add_tool_commands '
 
     # Stage-specific Innovus options    
     `@innovus_post_route`
-
-    # Write Innovus database
-    write_db ./out/$TASK_NAME.intermediate.innovus.db
 
     # Stage-specific Innovus options    
     `@innovus_pre_route_opt_setup_hold`
@@ -377,9 +405,54 @@ gf_add_tool_commands '
 '
 
 # Display status
+gf_add_status_marks 'cells added for Phase'
 gf_add_status_marks -from 'Hold Opt .*Summary' -from 'Hold mode' -to 'All Paths:' -1 +1
 gf_add_status_marks -from 'Final .*Summary' -to 'Density:' WNS TNS max_tran -3 +3
 gf_add_status_marks 'number of DRC violations'
+
+# Run task
+gf_submit_task
+
+########################################
+# Innovus assemble design
+########################################
+
+gf_create_task -name Assemble -mother Route
+gf_use_innovus
+
+# TCL commands
+gf_add_tool_commands '
+    set PARTITIONS_DATABASES {`$INNOVUS_PARTITIONS_DATABASES -optional`}
+
+    # Pre-load settings
+    `@innovus_pre_read_libs`
+
+    # Load Innovus database
+    read_db ./out/$MOTHER_TASK_NAME.innovus.db
+
+    # Start metric collection
+    `@collect_metrics`
+
+    # Stage-specific options    
+    `@innovus_pre_assemble`
+    
+    # Assemble design
+    foreach database $PARTITIONS_DATABASES {
+        assemble_design -block_dir $database
+    }
+    
+    # Stage-specific options    
+    `@innovus_post_assemble`
+    
+    # Report collected metrics
+    `@report_metrics`
+        
+    # Write Innovus database
+    write_db ./out/$TASK_NAME.innovus.db
+
+    # Close interactive session
+    exit
+'
 
 # Run task
 gf_submit_task
@@ -466,19 +539,27 @@ gf_use_innovus_batch
 # TCL commands
 gf_add_tool_commands '
 
+    # Load Generic Config
+    source ./scripts/$TASK_NAME.gconfig.tcl
+
     # Pre-load settings
     `@innovus_pre_read_libs`
 
     # Load Innovus database
     read_db ./out/$MOTHER_TASK_NAME.innovus.db
 
-   # Start metric collection
+    # Top level design name
+    set DESIGN_NAME [get_db current_design .name]
+
+    # Start metric collection
     `@collect_metrics`
 
     # Create reports directory
     exec mkdir -p ./reports/$TASK_NAME
+    exec mkdir -p ./out/$TASK_NAME
     
     # Design-specific reports
+    `@innovus_gconfig_design_variables`
     `@innovus_procs_reports`
     `@innovus_design_reports_post_route`
 
@@ -488,6 +569,19 @@ gf_add_tool_commands '
 
 # Print timing summary
 gf_add_status_marks -from 'time_design Summary' -1 -from '(Setup|Hold) mode' -to 'Density:' -exclude '^\s*$'
+
+# Generic Config Environmnent
+gf_use_gconfig
+gf_add_tool_commands '
+    `@gconfig_project_settings`
+    `@gconfig_settings_common`
+    `@gconfig_cadence_mmmc_files`
+    `@innovus_gconfig_design_settings`
+    
+    # Print out summary
+    gconfig::show_variables
+    gconfig::show_switches
+'
 
 # Submit task
 gf_submit_task -silent

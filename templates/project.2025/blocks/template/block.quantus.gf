@@ -1,5 +1,5 @@
 ################################################################################
-# Generic Flow v5.5.1 (February 2025)
+# Generic Flow v5.5.2 (February 2025)
 ################################################################################
 #
 # Copyright 2011-2025 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
@@ -32,9 +32,14 @@ gf_info "Loading block-specific Quantus steps ..."
 
 # # Override resources for batch tasks
 # gf_set_task_options QuantusOut -cpu 8 -mem 15
+# gf_set_task_options 'QuantusOut_*' -cpu 4 -mem 15
 
 # # Limit simultaneous tasks count
 # gf_set_task_options QuantusOut -group Heavy -parallel 1
+gf_set_task_options 'QuantusOut_*' -group QuantusOut -parallel 8
+
+# Spread parallel tasks in time
+QUANTUS_WAIT_TIME_STEP=60
 
 ################################################################################
 # Flow variables
@@ -54,7 +59,7 @@ gf_create_step -name quantus_gconfig_design_settings '
 
     # Choose analysis view patterns:
     # - {mode process voltage temperature rc_corner timing_check}
-    set RC_CORNERS {
+    set RC_CORNERS [regsub -all -line {^\s*\#.*\n} {
         {* * * 85 ct *}
         
         {* * * m40 cwt *} 
@@ -77,7 +82,7 @@ gf_create_step -name quantus_gconfig_design_settings '
         {* * * 0 cw *} 
         {* * * 0 rcb *} 
         {* * * 0 rcw *}
-    }
+    } {}]
 '
 
 # CCL Commands before design initialized

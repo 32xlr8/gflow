@@ -1,7 +1,7 @@
 #!../../gflow/bin/gflow
 
 ################################################################################
-# Generic Flow v5.5.1 (February 2025)
+# Generic Flow v5.5.2 (February 2025)
 ################################################################################
 #
 # Copyright 2011-2025 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
@@ -65,6 +65,7 @@ gf_add_tool_commands '
 
     # Load input database
     read_db $DATA_OUT_DIR/$DESIGN_NAME.innovus.db
+    puts "Database: $DATA_OUT_DIR/$DESIGN_NAME.innovus.db"
     
     # Include STA metrics
     `@procs_stylus_metrics`
@@ -98,3 +99,11 @@ gf_add_status_marks -from 'Final .*Summary' -to 'Density:' WNS TNS max_tran -3 +
 
 # Run task
 gf_submit_task
+
+########################################
+# Generic Flow history
+########################################
+
+gf_create_task -name HistoryECO -mother ECO
+gf_set_task_command "../../../../../../tools/print_runs_history_html.pl ../.. > ./reports/$TASK_NAME.html"
+gf_submit_task -silent

@@ -1,5 +1,5 @@
 ################################################################################
-# Generic Flow v5.5.1 (February 2025)
+# Generic Flow v5.5.2 (February 2025)
 ################################################################################
 #
 # Copyright 2011-2025 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
@@ -31,22 +31,25 @@ gf_info "Loading block-specific Tempus steps ..."
 # gf_set_task_options -cpu 8 -mem 15
 
 # # Override resources for interactive tasks
-# gf_set_task_options 'Debug*' -cpu 4 -mem 10
+# gf_set_task_options DebugTempus -cpu 4 -mem 10
 
 # # Override resources for batch tasks
 # gf_set_task_options STA -cpu 8 -mem 15
 # gf_set_task_options TSO -cpu 8 -mem 15
-# gf_set_task_options STA_* -cpu 4 -mem 15
-# gf_set_task_options TempusOut_* -cpu 4 -mem 15
+# gf_set_task_options 'STA_*' -cpu 4 -mem 15
+# gf_set_task_options 'TempusOut_*' -cpu 4 -mem 15
 
 # Limit simultaneous tasks count
 gf_set_task_options STA TSO TempusOut -group Heavy -parallel 1
-gf_set_task_options STA_* -group STA -parallel 8
-gf_set_task_options TempusOut_* -group TempusOut -parallel 8
+gf_set_task_options 'STA_*' -group STA -parallel 8
+gf_set_task_options 'TempusOut_*' -group TempusOut -parallel 8
 
 # # Disable not needed tasks
 # gf_set_task_options -disable STA
 # gf_set_task_options -disable TSO
+
+# Spread parallel tasks in time
+TEMPUS_WAIT_TIME_STEP=60
 
 ################################################################################
 # Flow variables

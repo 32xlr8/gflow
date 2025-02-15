@@ -1,7 +1,7 @@
 #!../../gflow/bin/gflow
 
 ################################################################################
-# Generic Flow v5.5.1 (February 2025)
+# Generic Flow v5.5.2 (February 2025)
 ################################################################################
 #
 # Copyright 2011-2025 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
@@ -71,6 +71,12 @@ gf_choose -count 25 -keep -variable POWER_SCENARIO \
     -message "Which power scenario to run?" \
     -variants "$(echo "$POWER_SCENARIOS" | sed -e 's|^\s\+||g; s|\s\+$||g;')"
 
+
+# Select PGV to analyze if empty
+gf_choose_file_dir_task -variable VOLTUS_PGV_LIBS -keep -prompt "Choose PGV libraries:" -dirs '
+    ../work_*/*/out/TechPGV*/*.cl
+'
+
 # TCL commands
 gf_add_tool_commands '
 
@@ -121,6 +127,7 @@ gf_add_tool_commands '
         }
     }
     read_netlist $files -top $DESIGN_NAME
+    puts "Netlist files: [join $files]"
 
     # Design initialization
     init_design
@@ -224,17 +231,6 @@ gf_add_tool_commands '
     # Print out summary
     gconfig::show_variables
     gconfig::show_switches
-
-    # Generate timing configuration
-    try {
-        gconfig::get_mmmc_commands -views [list $STATIC_POWER_VIEW] -dump_to_file ./in/$TASK_NAME.mmmc.tcl
-
-    # Suspend on error
-    } on error {result options} {
-        exec rm -f ./in/$TASK_NAME.mmmc.tcl
-        puts "\033\[41;31m \033\[0m $result"
-        suspend
-    }
 '
 
 # Run task
@@ -296,7 +292,6 @@ gf_add_tool_commands '
 
     # Load MMMC configuration
     puts "Analysis view: {$STATIC_RAIL_VIEW}"
-    # read_mmmc ./in/$TASK_NAME.mmmc.tcl
 
     # Read physical files
     read_physical -lefs [join $LEF_FILES]
@@ -313,6 +308,7 @@ gf_add_tool_commands '
         }
     }
     read_netlist $files -top $DESIGN_NAME
+    puts "Netlist files: [join $files]"
 
     # Design initialization
     init_design
@@ -402,3 +398,11 @@ gf_add_success_marks 'Voltus Power Analysis exited successfully'
 gf_add_status_marks 'No such file'
 gf_add_failed_marks 'No such file'
 gf_submit_task
+
+########################################
+# Generic Flow history
+########################################
+
+gf_create_task -name HistoryStaticRail -mother StaticRail
+gf_set_task_command "../../../../../../tools/print_runs_history_html.pl ../.. > ./reports/$TASK_NAME.html"
+gf_submit_task -silent

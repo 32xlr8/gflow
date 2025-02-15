@@ -1,7 +1,7 @@
 #!../../gflow/bin/gflow
 
 ################################################################################
-# Generic Flow v5.5.1 (February 2025)
+# Generic Flow v5.5.2 (February 2025)
 ################################################################################
 #
 # Copyright 2011-2025 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
@@ -60,6 +60,7 @@ gf_add_tool_commands '
     # Read latest available database
     set GENUS_DATABASE {`$GENUS_DATABASE`}
     read_db $GENUS_DATABASE
+    puts "Database: $GENUS_DATABASE"
 
     # Top level design name
     set DESIGN_NAME [get_db current_design .name]

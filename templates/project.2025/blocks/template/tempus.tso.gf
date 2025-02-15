@@ -1,7 +1,7 @@
 #!../../gflow/bin/gflow
 
 ################################################################################
-# Generic Flow v5.5.1 (February 2025)
+# Generic Flow v5.5.2 (February 2025)
 ################################################################################
 #
 # Copyright 2011-2025 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
@@ -105,6 +105,7 @@ gf_add_tool_commands '
 
     # Load netlist
     read_netlist $DATA_OUT_DIR/$DESIGN_NAME.v.gz -top $DESIGN_NAME
+    puts "Netlist files: $DATA_OUT_DIR/$DESIGN_NAME.v.gz"
     
     # Initialize design with MMMC configuration
     init_design
@@ -112,8 +113,33 @@ gf_add_tool_commands '
     # Load physical data
     read_def $DATA_OUT_DIR/$DESIGN_NAME.lite.def.gz
     
-    # Read parasitics
-    gf_read_parasitics $SPEF_OUT_DIR/$DESIGN_NAME
+    # Read design parasitics files
+    set processed {}; set missing 0
+    foreach view $MMMC_VIEWS {
+        set rc_corner [gconfig::get extract_corner_name -view $view]
+        if {[lsearch -exact $processed $rc_corner] < 0} {
+            lappend processed $rc_corner
+            set files $SPEF_OUT_DIR/$DESIGN_NAME.$rc_corner.spef.gz
+            foreach file [gconfig::get_files spef -view $view] {lappend files $file}
+            foreach file $files {
+                if {[file exists $file]} {
+                    puts "SPEF file: $file"
+                } else {
+                    puts "\033\[41m \033\[0m SPEF file $file not found"
+                    incr missing
+                }
+            }
+            if {$missing == 0} {
+                read_spef -rc_corner $rc_corner $files
+            }
+        }
+    }
+    if {$missing > 0} {
+        puts "\033\[41m \033\[0m SPEF files not found for some RC corners"
+        suspend
+    }
+    report_annotated_parasitics > ./reports/$TASK_NAME.annotation.rpt
+    puts [exec cat ./reports/$TASK_NAME.annotation.rpt]
     
     # Initialize tool environment
     `@tempus_post_init_design_project`
@@ -187,3 +213,11 @@ gf_add_failed_marks '^\*\*ERROR:.+file\s+not'
 
 # Run task
 gf_submit_task
+
+########################################
+# Generic Flow history
+########################################
+
+gf_create_task -name HistoryTSO -mother TSO
+gf_set_task_command "../../../../../../tools/print_runs_history_html.pl ../.. > ./reports/$TASK_NAME.html"
+gf_submit_task -silent

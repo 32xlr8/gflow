@@ -1,5 +1,5 @@
 ################################################################################
-# Generic Flow v5.5.1 (February 2025)
+# Generic Flow v5.5.2 (February 2025)
 ################################################################################
 #
 # Copyright 2011-2025 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
@@ -33,16 +33,18 @@ gf_info "Loading block-specific Genus steps ..."
 # gf_set_task_options -cpu 8 -mem 15
 
 # # Override resources for interactive tasks
-# gf_set_task_options 'Debug*' -cpu 4 -mem 10
+# gf_set_task_options DebugGenus -cpu 4 -mem 10
 
 # # Override resources for batch tasks
 # gf_set_task_options SynGen -cpu 8 -mem 15
 # gf_set_task_options SynMap -cpu 8 -mem 15
 # gf_set_task_options SynOpt -cpu 8 -mem 15
-gf_set_task_options 'Report*' -cpu 4 -mem 10
+gf_set_task_options ReportSynGen -cpu 4 -mem 10
+gf_set_task_options ReportSynMap -cpu 4 -mem 10
+gf_set_task_options ReportSynOpt -cpu 4 -mem 10
 
 # Limit simultaneous tasks count
-gf_set_task_options 'Report*' -group Reports -parallel 1
+gf_set_task_options ReportSynGen ReportSynMap ReportSynOpt -group Reports -parallel 1
 # gf_set_task_options SynGen SynMap SynOpt -group Heavy -parallel 1
 
 # # Disable not needed tasks
@@ -209,7 +211,8 @@ gf_create_step -name genus_read_rtl '
     # # Flop settings
     # set_db optimize_constant_0_flops false
     # set_db optimize_constant_1_flops false
-    
+    # set_db optimize_merge_flops false
+
     # Read system verilog files
     if {[llength $RTL_FILES] > 0} {
         read_hdl -define $RTL_DEFINES -language sv $RTL_FILES
@@ -386,6 +389,8 @@ gf_create_step -name genus_post_init_design '
     # # Update clock gating margin
     # #set_clock_gating_check -setup 0.100
 
+    # # Write intermediate database
+    # write_db ./out/$TASK_NAME.intermediate.genus.db
 '
 
 # Commands before generic synthesis

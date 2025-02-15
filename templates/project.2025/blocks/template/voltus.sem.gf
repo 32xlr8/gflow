@@ -1,7 +1,7 @@
 #!../../gflow/bin/gflow
 
 ################################################################################
-# Generic Flow v5.5.1 (February 2025)
+# Generic Flow v5.5.2 (February 2025)
 ################################################################################
 #
 # Copyright 2011-2025 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
@@ -102,6 +102,7 @@ gf_add_tool_commands '
         }
     }
     read_netlist $files -top $DESIGN_NAME
+    puts "Netlist files: [join $files]"
 
     # Design initialization
     init_design
@@ -177,17 +178,6 @@ gf_add_tool_commands '
     # Print out summary
     gconfig::show_variables
     gconfig::show_switches
-
-    # Generate timing configuration
-    try {
-        gconfig::get_mmmc_commands -views [list $SIGNAL_EM_VIEW] -dump_to_file ./in/$TASK_NAME.mmmc.tcl
-
-    # Suspend on error
-    } on error {result options} {
-        exec rm -f ./in/$TASK_NAME.mmmc.tcl
-        puts "\033\[41;31m \033\[0m $result"
-        suspend
-    }
 '
 
 # Run task
@@ -197,3 +187,11 @@ gf_add_status_marks 'There is no'
 gf_add_status_marks 'No such file'
 gf_add_failed_marks 'No such file'
 gf_submit_task
+
+########################################
+# Generic Flow history
+########################################
+
+gf_create_task -name HistorySignalEM -mother SignalEM
+gf_set_task_command "../../../../../../tools/print_runs_history_html.pl ../.. > ./reports/$TASK_NAME.html"
+gf_submit_task -silent

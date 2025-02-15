@@ -1,7 +1,7 @@
 #!../../gflow/bin/gflow
 
 ################################################################################
-# Generic Flow v5.5.1 (February 2025)
+# Generic Flow v5.5.2 (February 2025)
 ################################################################################
 #
 # Copyright 2011-2025 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
@@ -34,17 +34,14 @@ gf_source -once "./block.common.gf"
 gf_source -once "./block.quantus.gf"
 
 # Run tasks in silent mode
-gf_set_task_options QuantusOut_* -silent
-
-# Spread tasks in time
-WAIT_TIME_STEP=60
+gf_set_task_options 'QuantusOut_*' -silent
 
 ########################################
 # Split tasks
 ########################################
 
 # Spread tasks in time
-[[ -n "$WAIT_TIME_STEP" ]] && WAIT_TIME=0
+[[ -n "$QUANTUS_WAIT_TIME_STEP" ]] && WAIT_TIME=0
 
 gf_create_task -name SplitQuantusOut -restart
 gf_set_task_command "sleep 10; grep -H set ./in/$TASK_NAME/*.tcl"
@@ -116,9 +113,9 @@ gf_create_task -name QuantusOut_$GROUP -mother SplitQuantusOut
 gf_use_quantus_batch
 
 # Spread tasks in time
-if [ -n "$WAIT_TIME_STEP" -a -z "$GF_SKIP_TASK" ]; then
+if [ -n "$QUANTUS_WAIT_TIME_STEP" -a -z "$GF_SKIP_TASK" ]; then
     gf_wait_time $WAIT_TIME
-    WAIT_TIME=$((WAIT_TIME+$WAIT_TIME_STEP))
+    WAIT_TIME=$((WAIT_TIME+$QUANTUS_WAIT_TIME_STEP))
 fi
 
 # Design data directory
@@ -313,3 +310,11 @@ gf_add_status_marks '\.spef\.gz'
 
 # Run task
 gf_submit_task
+
+########################################
+# Generic Flow history
+########################################
+
+gf_create_task -name HistoryQuantusOut -mother QuantusOut
+gf_set_task_command "../../../../../../tools/print_runs_history_html.pl ../.. > ./reports/$TASK_NAME.html"
+gf_submit_task -silent

@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 
 ################################################################################
-# Generic Flow v5.5.1 (February 2025)
+# Generic Flow v5.5.2 (February 2025)
 ################################################################################
 #
 # Copyright 2011-2025 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
@@ -19,7 +19,7 @@
 # limitations under the License.
 #
 ################################################################################
-# Filename: templates/project.2025/print_gconfig_voltage_variants.sh
+# Filename: templates/project.2025/tools/print_gconfig_voltage_variants.sh
 # Purpose:  Print voltage variants for gconfig
 ################################################################################
 

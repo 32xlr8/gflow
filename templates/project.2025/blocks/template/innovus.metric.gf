@@ -1,7 +1,7 @@
 #!../../gflow/bin/gflow
 
 ################################################################################
-# Generic Flow v5.5.1 (February 2025)
+# Generic Flow v5.5.2 (February 2025)
 ################################################################################
 #
 # Copyright 2011-2025 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
@@ -75,6 +75,7 @@ gf_add_tool_commands -comment '#' -file "./scripts/$TASK_NAME.tcl" '
     set sorted_files [lsort -index 0 -integer $unsorted_files]
     
     # Group metrics by task
+    set count 0
     foreach task $tasks {
 
         # Read metrics
@@ -98,24 +99,35 @@ gf_add_tool_commands -comment '#' -file "./scripts/$TASK_NAME.tcl" '
             catch {
                 puts "Writing html metrics ./reports/$TASK_NAME.$task.html ..."
                 report_metric -id $ids -format html -file ./reports/$TASK_NAME.$task.html
+                incr count
             }
             catch {
                 report_metric -id $ids -format vivid -file ./reports/$TASK_NAME.$task.vivid.html
                 puts "Writing vivid metrics ./reports/$TASK_NAME.$task.vivid.html ..."
+                incr count
             }
+
         } else {
             puts "ERROR: No metric files for $task tasks"
         }
         
         puts {}
     }
-    
+
+    # Print summary
+    if {$count > 0} {
+        puts "Total metrics written: $count"
+    } else {
+        puts "No metrics written"
+    }
+
+
     exit
 '
 
 # Check for success
-gf_add_status_marks 'Metric file included:' 'metrics written:' 'ERROR:'
-gf_add_success_marks 'metrics written:'
+gf_add_status_marks 'Metric file included:' 'Writing' 'Total metrics written:' 'ERROR:'
+gf_add_success_marks 'Total metrics written:'
 
 # Run task
 gf_submit_task

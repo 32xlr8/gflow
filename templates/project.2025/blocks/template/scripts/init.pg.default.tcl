@@ -41,6 +41,10 @@ delete_pg_pins -net $nets
 
 # Default special route options
 reset_db route_special_*
+set_db route_special_connect_broken_core_pin true
+# set_db route_special_core_pin_stop_route CellPinEnd
+# set_db route_special_core_pin_ignore_obs overlap_obs
+set_db route_special_via_connect_to_shape noshape
 
 # Default via generation options
 reset_db generate_special_via_*
@@ -105,7 +109,6 @@ add_rings -nets [concat $nets $nets $nets $nets] \
     -threshold 0 -jog_distance 0 -use_wire_group 1 -snap_wire_center_to_grid none
 
 # M1/M2 Pads routing
-reset_db route_special_*
 route_special \
     -connect {pad_pin} \
     -block_pin_target {nearest_target} \
@@ -119,11 +122,6 @@ route_special \
     -nets $nets 
 
 # M1 follow pins
-reset_db route_special_*
-set_db route_special_connect_broken_core_pin true
-# set_db route_special_core_pin_stop_route CellPinEnd
-# set_db route_special_core_pin_ignore_obs overlap_obs
-set_db route_special_via_connect_to_shape noshape
 route_special \
     -connect core_pin \
     -core_pin_layer M1 \

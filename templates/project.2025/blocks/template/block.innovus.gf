@@ -1,5 +1,5 @@
 ################################################################################
-# Generic Flow v5.5.1 (February 2025)
+# Generic Flow v5.5.2 (February 2025)
 ################################################################################
 #
 # Copyright 2011-2025 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
@@ -1109,9 +1109,6 @@ gf_create_step -name innovus_procs_interactive_design '
     proc gf_init_ports {} {
         gf_reset_ports
     
-        # Batch mode on
-        set_db assign_pins_edit_in_batch true
-
         # Source script
         set script [join {`$INNOVUS_INIT_PORTS_SCRIPT -optional`}]
         if {[file exists $script]} {
@@ -1120,9 +1117,6 @@ gf_create_step -name innovus_procs_interactive_design '
         } else {
             puts "\033\[31;41m \033\[0m Script $script not found"
         }
-
-        # Batch mode off
-        set_db assign_pins_edit_in_batch false
     }
 
     # External power grid creation script
@@ -1412,8 +1406,12 @@ gf_create_step -name innovus_design_reports_post_place '
 gf_create_step -name innovus_design_reports_post_clock '
 
     # Set of post-clock reports in simultaneous setup and hold mode
-    `@innovus_report_clock_timing`
     gf_report_simultaneous_time_design ./reports/$TASK_NAME
+
+    # Clock timing
+    report_clock_timing -type summary > ./reports/$TASK_NAME/clock.summary.rpt
+    report_clock_timing -type latency > ./reports/$TASK_NAME/clock.latency.rpt
+    report_clock_timing -type skew > ./reports/$TASK_NAME/clock.skew.rpt
 
     # Late timing
     gf_report_timing ./reports/$TASK_NAME late 150 1000 10000

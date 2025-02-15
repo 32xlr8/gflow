@@ -1,3 +1,5 @@
+#!../../gflow/bin/gflow
+
 ################################################################################
 # Generic Flow v5.5.2 (February 2025)
 ################################################################################
@@ -17,11 +19,21 @@
 # limitations under the License.
 #
 ################################################################################
-# Filename: templates/project.2025/tools/tool_steps.calibre.gf
-# Purpose:  Calibre steps to use in the Generic Flow
+# Filename: templates/project.2025/blocks/template/flow.gf
+# Purpose:  Synthesis, implementation and signoff flow
 ################################################################################
-gf_info "Loading tool-specific Calibre steps ..."
 
-################################################################################
-# Tool specific steps section reserved
-################################################################################
+########################################
+# Settings
+########################################
+
+# Project and block initialization scripts
+gf_source -once "../../project.common.gf"
+
+########################################
+# Generic Flow history
+########################################
+
+gf_create_task -name History
+gf_set_task_command "../../../../../../tools/print_runs_history_html.pl ../../../../work_*/*/ > ./reports/$TASK_NAME.html"
+gf_submit_task -silent

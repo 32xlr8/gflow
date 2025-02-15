@@ -3,6 +3,9 @@
 # Align macro ports
 align_pins
 
+# Batch mode on
+set_db assign_pins_edit_in_batch true
+
 # Clock port                
 edit_pin -pin CLOCK -layer_vertical M7 -edge 0 -snap track -assign {0.000 0.000} -pin_width 0.000 -pin_depth 0.000
 
@@ -54,6 +57,7 @@ edit_pin -snap track \
     -spacing 8 -unit track \
     -fixed_pin 1 -fix_overlap 1 \
     -pin [get_db [get_db ports -if .place_status==unplaced&&.direction==in] .name]
+
 # All the rest outputs
 edit_pin -snap track \
     -edge 2 \
@@ -64,3 +68,6 @@ edit_pin -snap track \
     -spacing 8 -unit track \
     -fixed_pin 1 -fix_overlap 1 \
     -pin [get_db [get_db ports -if .place_status==unplaced&&.direction==out] .name]
+
+# Batch mode off
+set_db assign_pins_edit_in_batch false

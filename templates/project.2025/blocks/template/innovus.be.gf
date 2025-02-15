@@ -1,7 +1,7 @@
 #!../../gflow/bin/gflow
 
 ################################################################################
-# Generic Flow v5.5.1 (February 2025)
+# Generic Flow v5.5.2 (February 2025)
 ################################################################################
 #
 # Copyright 2011-2025 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
@@ -109,6 +109,7 @@ gf_add_tool_commands '
 
     # Read netlist for current design
     read_netlist [join $NETLIST_FILES] -top $DESIGN_NAME
+    puts "Netlist files: [join $NETLIST_FILES]"
 
     # Initialize library and design information
     init_design
@@ -266,6 +267,7 @@ gf_add_tool_commands '
 
     # Load Innovus database
     read_db ./out/$MOTHER_TASK_NAME.innovus.db
+    puts "Database: ./out/$MOTHER_TASK_NAME.innovus.db"
 
     # Read in ILM
     if {[llength [set PARTITIONS_POSTCTS_ILM_DIRECTORIES {`$PARTITIONS_POSTCTS_ILM_DIRECTORIES -optional`}]]} {
@@ -354,6 +356,7 @@ gf_add_tool_commands '
 
     # Load Innovus database
     read_db ./out/$MOTHER_TASK_NAME.innovus.db
+    puts "Database: ./out/$MOTHER_TASK_NAME.innovus.db"
 
     # Read in ILM
     if {[llength [set PARTITIONS_POSTROUTE_ILM_DIRECTORIES {`$PARTITIONS_POSTROUTE_ILM_DIRECTORIES -optional`}]]} {
@@ -429,6 +432,7 @@ gf_add_tool_commands '
 
     # Load Innovus database
     read_db ./out/$MOTHER_TASK_NAME.innovus.db
+    puts "Database: ./out/$MOTHER_TASK_NAME.innovus.db"
 
     # Start metric collection
     `@collect_metrics`
@@ -472,6 +476,7 @@ gf_add_tool_commands '
 
     # Load Innovus database
     read_db ./out/$MOTHER_TASK_NAME.innovus.db
+    puts "Database: ./out/$MOTHER_TASK_NAME.innovus.db"
     
     # Start metric collection
     `@collect_metrics`
@@ -508,6 +513,7 @@ gf_add_tool_commands '
 
     # Load Innovus database
     read_db ./out/$MOTHER_TASK_NAME.innovus.db
+    puts "Database: ./out/$MOTHER_TASK_NAME.innovus.db"
 
     # Start metric collection
     `@collect_metrics`
@@ -547,6 +553,7 @@ gf_add_tool_commands '
 
     # Load Innovus database
     read_db ./out/$MOTHER_TASK_NAME.innovus.db
+    puts "Database: ./out/$MOTHER_TASK_NAME.innovus.db"
 
     # Top level design name
     set DESIGN_NAME [get_db current_design .name]
@@ -584,4 +591,12 @@ gf_add_tool_commands '
 '
 
 # Submit task
+gf_submit_task -silent
+
+########################################
+# Generic Flow history
+########################################
+
+gf_create_task -name HistoryRoute -mother Route
+gf_set_task_command "../../../../../../tools/print_runs_history_html.pl ../.. > ./reports/$TASK_NAME.html"
 gf_submit_task -silent

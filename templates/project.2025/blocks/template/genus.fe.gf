@@ -1,7 +1,7 @@
 #!../../gflow/bin/gflow
 
 ################################################################################
-# Generic Flow v5.5.1 (February 2025)
+# Generic Flow v5.5.2 (February 2025)
 ################################################################################
 #
 # Copyright 2011-2025 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
@@ -128,9 +128,6 @@ gf_add_tool_commands '
     #     source ./in/$TASK_NAME.ocv.tcl
     # }
     
-    # Write Genus database
-    write_db ./out/$TASK_NAME.intermediate.genus.db
- 
     # Run generic synthesis
     `@genus_pre_syn_gen`
     if {$PHYSICAL_MODE == "Y"} {
@@ -208,6 +205,7 @@ gf_add_tool_commands '
     
     # Read Genus database
     read_db ./out/$MOTHER_TASK_NAME.genus.db
+    puts "Database: ./out/$MOTHER_TASK_NAME.genus.db"
     
     # Run generic synthesis
     `@genus_pre_syn_map`
@@ -260,6 +258,7 @@ gf_add_tool_commands '
     
     # Read Genus database
     read_db ./out/$MOTHER_TASK_NAME.genus.db
+    puts "Database: ./out/$MOTHER_TASK_NAME.genus.db"
     
     # Run optimization
     `@genus_pre_syn_opt`
@@ -303,6 +302,7 @@ gf_add_tool_commands '
 
     # Load Genus database
     read_db ./out/$MOTHER_TASK_NAME.genus.db
+    puts "Database: ./out/$MOTHER_TASK_NAME.genus.db"
 
     # Start metric collection
     `@collect_metrics`
@@ -332,6 +332,7 @@ gf_add_tool_commands '
 
     # Load Genus database
     read_db ./out/$MOTHER_TASK_NAME.genus.db
+    puts "Database: ./out/$MOTHER_TASK_NAME.genus.db"
 
     # Start metric collection
     `@collect_metrics`
@@ -361,6 +362,7 @@ gf_add_tool_commands '
 
     # Load Genus database
     read_db ./out/$MOTHER_TASK_NAME.genus.db
+    puts "Database: ./out/$MOTHER_TASK_NAME.genus.db"
 
     # Start metric collection
     `@collect_metrics`
@@ -376,4 +378,12 @@ gf_add_tool_commands '
 '
 
 # Submit task
+gf_submit_task -silent
+
+########################################
+# Generic Flow history
+########################################
+
+gf_create_task -name HistorySynOpt -mother SynOpt
+gf_set_task_command "../../../../../../tools/print_runs_history_html.pl ../.. > ./reports/$TASK_NAME.html"
 gf_submit_task -silent

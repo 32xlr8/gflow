@@ -1,7 +1,7 @@
 #!../../gflow/bin/gflow
 
 ################################################################################
-# Generic Flow v5.5.1 (February 2025)
+# Generic Flow v5.5.2 (February 2025)
 ################################################################################
 #
 # Copyright 2011-2025 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
@@ -105,6 +105,7 @@ gf_add_tool_commands '
         }
     }
     read_netlist $files -top $DESIGN_NAME
+    puts "Netlist files: [join $files]"
 
     # Initialize design with MMMC configuration
     init_design
@@ -215,3 +216,11 @@ gf_add_failed_marks '^\*\*ERROR:.+file\s+not'
 
 # Run task
 gf_submit_task
+
+########################################
+# Generic Flow history
+########################################
+
+gf_create_task -name HistorySTA -mother STA
+gf_set_task_command "../../../../../../tools/print_runs_history_html.pl ../.. > ./reports/$TASK_NAME.html"
+gf_submit_task -silent

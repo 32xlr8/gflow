@@ -1,5 +1,5 @@
 ################################################################################
-# Generic Flow v5.5.1 (February 2025)
+# Generic Flow v5.5.2 (February 2025)
 ################################################################################
 #
 # Copyright 2011-2025 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
@@ -27,15 +27,19 @@ gf_info "Loading block-specific Voltus steps ..."
 # gf_set_task_options -cpu 8 -mem 15
 
 # # Override resources for tasks
-gf_set_task_options '*PGV' -cpu 1 -mem 15
-# gf_set_task_options 'Debug*' -cpu 4 -mem 10
-# gf_set_task_options '*Power' -cpu 8 -mem 15
-# gf_set_task_options '*Rail' -cpu 8 -mem 15
+gf_set_task_options TechPGV -cpu 1 -mem 15
+gf_set_task_options CellsPGV -cpu 1 -mem 15
+gf_set_task_options MacrosPGV -cpu 1 -mem 15
+# gf_set_task_options DebugVoltus -cpu 4 -mem 10
+# gf_set_task_options StaticPower -cpu 8 -mem 15
+# gf_set_task_options StaticRail -cpu 8 -mem 15
+# gf_set_task_options DynamicPower -cpu 8 -mem 15
+# gf_set_task_options DynamicRail -cpu 8 -mem 15
 # gf_set_task_options SignalEM -cpu 8 -mem 15
 
 # Limit simultaneous tasks count
-gf_set_task_options '*PGV' -group PGV -parallel 1
-# gf_set_task_options '*Power' '*Rail' SignalEM -group Heavy -parallel 1
+gf_set_task_options TechPGV CellsPGV MacrosPGV -group PGV -parallel 1
+# gf_set_task_options StaticPower StaticRail DynamicPower DynamicRail SignalEM -group Heavy -parallel 1
 
 # Disable not needed PGV generation tasks
 # gf_set_task_options -disable TechPGV
@@ -86,8 +90,8 @@ gf_create_step -name voltus_gconfig_power_rail_design_settings '
     set SIGNAL_SPEF_CORNER {* * * m40 rcb *}
     set POWER_SPEF_CORNER {* * * 125 cw *}
 
-    set STATIC_POWER_VIEW {func ff 1p100v 125 cw p}
-    set DYNAMIC_POWER_VIEW {func ff 1p100v 125 cw p}
+    set STATIC_POWER_VIEW {func ff 1p100v 125 rcw p}
+    set DYNAMIC_POWER_VIEW {func ff 1p100v 125 rcw p}
 
     set STATIC_RAIL_VIEW {func ff 1p100v 125 rcw p}
     set DYNAMIC_RAIL_VIEW {func ff 1p100v 125 rcw p}
@@ -112,7 +116,7 @@ gf_create_step -name voltus_gconfig_power_rail_design_settings '
     # - no_derates - zero derates (optimistic for prototyping mode)
     # - user_derates - same as flat_derates, but user-specified values used (customize below)
     # - vt_derates - used with ESCM/CCS if additional Voltage/Temparature derates required (see standard cell documentation, customize IR-drop below)
-    gconfig::enable_switches no_derates
+    gconfig::enable_switches vt_derates
 '
 
 # MMMC and OCV settings for signal electromigration
@@ -508,11 +512,20 @@ gf_create_step -name voltus_run_report_power_static '
 # Commands before performing static rail analysis
 gf_create_step -name voltus_run_report_rail_static '
     set VOLTUS_PGV_LIBS [join [concat {`$VOLTUS_PGV_LIBS`} [gconfig::get_files pgv -view $DYNAMIC_RAIL_VIEW]]]
-    set VOLTUS_ICT_EM_RULE [join {`$VOLTUS_ICT_EM_RULE -optional`}]
 
     # Reset options
     set_power_pads -reset
     set_power_data -reset
+
+    # EM rules (-ict_em_models with high priority)
+    set VOLTUS_EM_OPTION "-ict_em_models"
+    set VOLTUS_EM_RULES [join {`$VOLTUS_ICT_EM_MODELS -optional`}]
+    if {$VOLTUS_EM_RULES == ""} {
+        set VOLTUS_EM_RULES [join {`$VOLTUS_EM_MODELS -optional`}]
+        if {$VOLTUS_EM_RULES != ""} {
+            set VOLTUS_EM_OPTION "-em_models"
+        }
+    }
 
     # Static rail analysis settings
     set_rail_analysis_config \
@@ -524,9 +537,9 @@ gf_create_step -name voltus_run_report_rail_static '
             -cluster_via1_ports false \
         -em_peak_analysis true \
             -process_techgen_em_rules false \
-            -ict_em_models $VOLTUS_ICT_EM_RULE \
             -em_temperature $EM_TEMPERATURE \
             -em_threshold $EM_THRESHOLD \
+            $VOLTUS_EM_OPTION $VOLTUS_EM_RULES \
             -lifetime $EM_LIFE_TIME \
         -enable_manufacturing_effects true \
         -enable_rlrp_analysis true \
@@ -699,7 +712,6 @@ gf_create_step -name voltus_run_report_power_dynamic '
 # Commands before performing dynamic rail analysis
 gf_create_step -name voltus_run_report_rail_dynamic '
     set VOLTUS_PGV_LIBS [join [concat {`$VOLTUS_PGV_LIBS`} [gconfig::get_files pgv -view $DYNAMIC_RAIL_VIEW]]]
-    set VOLTUS_ICT_EM_RULE {`$VOLTUS_ICT_EM_RULE -optional`}
 
     # Reset options
     set_power_pads -reset
@@ -789,7 +801,6 @@ gf_create_step -name voltus_run_report_rail_dynamic '
 
 # Commands before performing dynamic rail analysis
 gf_create_step -name voltus_run_signal_em '
-    set VOLTUS_ICT_EM_RULE {`$VOLTUS_ICT_EM_RULE -optional`}
 
     # Reset options
     set_power -reset
@@ -826,12 +837,13 @@ gf_create_step -name voltus_run_signal_em '
     }
 
     # Run analysis
-    if {$VOLTUS_ICT_EM_RULE != ""} {
-        set_db check_ac_limit_ict_em_models $VOLTUS_ICT_EM_RULE
+    set VOLTUS_ICT_EM_MODELS {`$VOLTUS_ICT_EM_MODELS -optional`}
+    if {$VOLTUS_ICT_EM_MODELS != ""} {
+        set_db check_ac_limit_ict_em_models $VOLTUS_ICT_EM_MODELS
     } else {
         set_db check_ac_limit_use_qrc_tech true
     }
-    check_ac_limits -detailed
+    check_ac_limits -detailed -out_file ./reports/$TASK_NAME.rpt
 '
 
 # Commands before open GUI for debug

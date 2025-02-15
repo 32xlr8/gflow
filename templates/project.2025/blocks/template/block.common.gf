@@ -1,5 +1,5 @@
 ################################################################################
-# Generic Flow v5.5.1 (February 2025)
+# Generic Flow v5.5.2 (February 2025)
 ################################################################################
 #
 # Copyright 2011-2025 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
@@ -29,6 +29,9 @@ gf_info "Loading block-specific setup ..."
 
 # Default tasks resources
 gf_set_task_options -cpu 8 -mem 20
+
+# # Disable Generic Flow history tasks
+# gf_set_task_options -disable History*
 
 ################################################################################
 # Flow variables
@@ -342,7 +345,8 @@ INNOVUS_ROUTE_FLIPCHIP_SCRIPT='../../../../../template/scripts/route.flipchip.tc
 
 # # Signal EM analysis rule file (mandatory for signal elecromigration analysis)
 # <PLACEHOLDER>
-# VOLTUS_ICT_EM_RULE='/PATH_TO/VOLTUS_EM_RULE.ictem'
+# VOLTUS_EM_MODELS='/PATH_TO/VSTORM/EM.rules'
+# VOLTUS_ICT_EM_MODELS='/PATH_TO/VOLTUS_EM_RULE.ictem'
 
 # # Optional include files
 # VOLTUS_STATIC_POWER_INCLUDE_FILE=/PATH/TO/static.include.cmd

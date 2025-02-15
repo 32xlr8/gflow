@@ -1,5 +1,5 @@
 ################################################################################
-# Generic Flow v5.5.1 (February 2025)
+# Generic Flow v5.5.2 (February 2025)
 ################################################################################
 #
 # Copyright 2011-2025 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
@@ -296,38 +296,6 @@ gf_create_step -name procs_tempus_read_data '
                 puts "**ERROR: Latency file $latency_file not found for analysis view $analysis_view"
             }
         }
-    }
-
-    # Read parasitics data in SPEF format
-    proc gf_read_parasitics {qrc_task_names} {
-        set all_found 1
-        foreach corner [get_db -u [concat \
-            [get_db [get_db analysis_views -if .is_setup] .delay_corner.late_rc_corner] \
-            [get_db [get_db analysis_views -if .is_hold] .delay_corner.early_rc_corner] \
-        ] .name] {
-            set found_file {}
-            foreach qrc_task_name $qrc_task_names {
-                set file $qrc_task_name.$corner.spef.gz
-                if [file exists ${file}] {
-                    if {$found_file != {}} {
-                        puts "\033\[43m \033\[0m Several SPEF files found for RC corner $corner. Last $file used."
-                    } else {
-                        puts "\033\[42m \033\[0m SPEF file $file used for RC corner $corner."
-                    }
-                    set found_file $file
-                }
-            }
-            if {$found_file == {}} {
-                puts "\033\[41m \033\[0m SPEF file $file not found for RC corner $corner."
-                set all_found 0
-            } else {
-                eval "read_spef -rc_corner $corner $file"
-            }
-            if {$all_found == 0} {
-                error "\033\[41m \033\[0m SPEF files not found for some RC corners"
-            }
-        }
-        report_annotated_parasitics
     }
 '
 

@@ -1,5 +1,5 @@
 ################################################################################
-# Generic Flow v5.5.1 (February 2025)
+# Generic Flow v5.5.2 (February 2025)
 ################################################################################
 #
 # Copyright 2011-2025 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
@@ -22,9 +22,10 @@
 ################################################################################
 
 # # Limit simultaneous tasks count
-# gf_set_task_options 'Fill*' DRC LVS -group Heavy -parallel 1
+# gf_set_task_options Dummy DRC LVS -group Heavy -parallel 1
 
 # Tasks to run
+# gf_set_task_options -disable Dummy
 # gf_set_task_options -disable DRC
 # gf_set_task_options -disable LVS
 gf_set_task_options -disable Bumps

@@ -1,7 +1,7 @@
 #!../../gflow/bin/gflow
 
 ################################################################################
-# Generic Flow v5.5.1 (February 2025)
+# Generic Flow v5.5.2 (February 2025)
 ################################################################################
 #
 # Copyright 2011-2025 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
@@ -54,12 +54,13 @@ gf_choose_file_dir_task -variable INNOVUS_NETLIST_FILES -keep -prompt "Choose ne
 '
 
 # Innovus floorplan
-gf_choose_file_dir_task -variable INNOVUS_FLOORPLAN_FILE -keep -prompt "Choose floorplan (optional):" -files '
+gf_choose_file_dir_task -variable INNOVUS_FLOORPLAN_FILE -prompt "Choose floorplan (optional):" -files '
+    `$INNOVUS_FLOORPLAN_FILE`
     ../data/*.fp
     ../data/*.fp.gz
     ../data/*/*.fp
     ../data/*/*.fp.gz
-    ../work_*/*/out/*.fp
+    ./*/out/*.fp
 '
 
 # Ask user if need to load timing information
@@ -144,6 +145,7 @@ gf_add_tool_commands '
 
     # Read netlist for current design
     read_netlist [join $NETLIST_FILES] -top $DESIGN_NAME
+    puts "Netlist files: [join $NETLIST_FILES]"
 
     # Initialize library and design information
     init_design

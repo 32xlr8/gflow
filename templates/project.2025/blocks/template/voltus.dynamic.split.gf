@@ -20,7 +20,7 @@
 #
 ################################################################################
 # Filename: templates/project.2025/blocks/template/voltus.dynamic.gf
-# Purpose:  Batch dynamic power and rail analysis flow
+# Purpose:  Batch split dynamic power and rail analysis flow
 ################################################################################
 
 ########################################
@@ -34,10 +34,10 @@ gf_source -once "./block.common.gf"
 gf_source -once "./block.voltus.gf"
 
 ########################################
-# Dynamic power/rail calculation
+# Dynamic power calculation
 ########################################
 
-gf_create_task -name DynamicRail
+gf_create_task -name DynamicPower
 gf_use_voltus
 
 # Design data directory
@@ -213,9 +213,125 @@ gf_add_tool_commands '
     # Report missing power data
     catch {foreach file [glob ./out/$TASK_NAME.power/*missing*] {exec grep {:} $file}}
 
+    # Report collected metrics
+    `@report_metrics`
+    
+    # Close interactive session
+    exit
+'
+
+# Generic Config MMMC generation
+gf_use_gconfig
+gf_add_tool_commands '
+    `@gconfig_project_settings`
+    `@gconfig_settings_common`
+    `@gconfig_cadence_mmmc_files`
+    `@voltus_gconfig_power_rail_design_settings`
+    
+    # Print out summary
+    gconfig::show_variables
+    gconfig::show_switches
+'
+
+# Run task
+gf_add_status_marks '\(.*MHz\)' '^Cell.*:' 'Files:' 'Coverage:' 'SPEF:' 'TWF:'
+gf_add_success_marks 'Voltus Power Analysis exited successfully'
+gf_add_status_marks 'No such file'
+gf_add_failed_marks 'No such file'
+gf_submit_task
+
+########################################
+# Dynamic rail calculation
+########################################
+
+gf_create_task -name DynamicRail
+gf_use_voltus
+
+# Want for extraction and power analysis to complete
+gf_want_tasks DynamicPower -variable DYNAMIC_POWER_TASK
+
+# Design data directory
+gf_choose_file_dir_task -variable DATA_OUT_DIR -keep -prompt "Choose design data directory:" -dirs '
+    ../work_*/*/out/InnovusOut*
+' -want -active -task_to_file '$RUN/out/$TASK' -tasks '
+    ../work_*/*/tasks/InnovusOut*
+'
+
+# Select PGV to analyze if empty
+gf_choose_file_dir_task -variable VOLTUS_PGV_LIBS -keep -prompt "Choose PGV libraries:" -dirs '
+    ../work_*/*/out/TechPGV*/*.cl
+'
+
+# TCL commands
+gf_add_tool_commands '
+
+    # Current design variables
+    set LEF_FILES {`$CADENCE_TLEF_FILES` `$LEF_FILES` `$PARTITIONS_LEF_FILES -optional`}
+    set DATA_OUT_DIR {`$DATA_OUT_DIR`}
+
+    set DESIGN_NAME {`$DESIGN_NAME`} 
+    set POWER_TASK_NAME {`$DYNAMIC_POWER_TASK`}
+    
+    set SPEF_OUT_DIR {`$SPEF_OUT_DIR`}
+    set TWF_OUT_DIR {`$TWF_OUT_DIR -optional`}
+    set PARTITIONS_NETLIST_FILES {`$PARTITIONS_NETLIST_FILES -optional`}
+    set PARTITIONS_DEF_FILES {`$PARTITIONS_DEF_FILES -optional`}
+    
+    # Start metric collection
+    `@collect_metrics`
+
+    # Use separate Generic Config script
+    source ./scripts/$TASK_NAME.gconfig.tcl
+
+    # Design variables
+    `@voltus_pre_init_design_variables`
+
+    # Link design files
+    exec ln -nsf $DATA_OUT_DIR/$DESIGN_NAME.v.gz ./in/$TASK_NAME.v.gz
+    exec ln -nsf $DATA_OUT_DIR/$DESIGN_NAME.full.def.gz ./in/$TASK_NAME.def.gz
+
+    # Load MMMC configuration
+    puts "Analysis view: {$DYNAMIC_RAIL_VIEW}"
+
+    # Read physical files
+    read_physical -lefs [join $LEF_FILES]
+    
+    # Read netlist files
+    set files $DATA_OUT_DIR/$DESIGN_NAME.v.gz
+    foreach file $PARTITIONS_NETLIST_FILES {lappend files $file}
+    foreach file $files {
+        if {[file exists $file]} {
+            puts "Netlist file: $file"
+        } else {
+            puts "\033\[41m \033\[0m Netlist file $file not found"
+            suspend
+        }
+    }
+    read_netlist $files -top $DESIGN_NAME
+    puts "Netlist files: [join $files]"
+
+    # Design initialization
+    init_design
+    `@voltus_post_init_design_project`
+    `@voltus_post_init_design_variables`
+    `@voltus_post_init_design`
+
+    # Read design physical files
+    set files $DATA_OUT_DIR/$DESIGN_NAME.full.def.gz
+    foreach file $PARTITIONS_DEF_FILES {lappend files $file}
+    foreach file $files {
+        if {[file exists $file]} {
+            puts "DEF file: $file"
+        } else {
+            puts "\033\[41m \033\[0m DEF file $file not found"
+            suspend
+        }
+    }
+    # set_power_def_files $files
+    read_def $files -skip_signal_nets 
+
     # Run rail analysis
     exec rm -Rf ./out/$TASK_NAME.rail/
-    set POWER_TASK_NAME $TASK_NAME
     `@voltus_run_report_rail_dynamic`
 
     # Report collected metrics

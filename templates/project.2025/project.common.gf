@@ -1,5 +1,5 @@
 ################################################################################
-# Generic Flow v5.5.1 (February 2025)
+# Generic Flow v5.5.2 (February 2025)
 ################################################################################
 #
 # Copyright 2011-2025 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
@@ -69,6 +69,9 @@ gf_create_step -name init_shell_environment '
 
     # Bypass OpenAccess issues
     unset OA_HOME
+
+    # Bypass OS check
+    export W3264_NO_HOST_CHECK=1
 
     # License options
     <PLACEHOLDER>

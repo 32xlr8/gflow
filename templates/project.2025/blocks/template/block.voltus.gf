@@ -517,6 +517,16 @@ gf_create_step -name voltus_run_report_rail_static '
     set_power_pads -reset
     set_power_data -reset
 
+    # EM rules (-ict_em_models with high priority)
+    set VOLTUS_EM_OPTION "-ict_em_models"
+    set VOLTUS_EM_RULES [join {`$VOLTUS_ICT_EM_MODELS -optional`}]
+    if {$VOLTUS_EM_RULES == ""} {
+        set VOLTUS_EM_RULES [join {`$VOLTUS_EM_MODELS -optional`}]
+        if {$VOLTUS_EM_RULES != ""} {
+            set VOLTUS_EM_OPTION "-em_models"
+        }
+    }
+
     # Static rail analysis settings
     set_rail_analysis_config \
         -extraction_tech_file [gconfig::get_files qrc -view $STATIC_RAIL_VIEW] \
@@ -529,8 +539,7 @@ gf_create_step -name voltus_run_report_rail_static '
             -process_techgen_em_rules false \
             -em_temperature $EM_TEMPERATURE \
             -em_threshold $EM_THRESHOLD \
-            -em_models [join {`$VOLTUS_EM_MODELS -optional`}] \
-            -ict_em_models [join {`$VOLTUS_ICT_EM_MODELS -optional`}] \
+            $VOLTUS_EM_OPTION $VOLTUS_EM_RULES \
             -lifetime $EM_LIFE_TIME \
         -enable_manufacturing_effects true \
         -enable_rlrp_analysis true \

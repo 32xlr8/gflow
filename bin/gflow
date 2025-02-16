@@ -4890,8 +4890,10 @@ function gf_set_flow_options {
                 gf_check_option "$gf_forbidden_source" '-task\|-tasks\|-enable\|-disable\|-ask' '-' "$key $1"
                 if [ $GF_CHECK_OPTION_LAST_STATUS == 1 ]; then
                     local gf_task
-                    GF_TASK_OPTIONS+="gf_set_task_option>$GF_TASK_OPTIONS_PRIORITY>*>-enable"$'\n'"0"$'\n'
-                    gf_info "${GFC4}Specific${GFC0} tasks selected in command line."
+                    if [ -z "$(echo "$GF_TASK_OPTIONS" | grep -Fx "gf_set_task_option>$GF_TASK_OPTIONS_PRIORITY>*>-enable")" ]; then
+                        GF_TASK_OPTIONS+="gf_set_task_option>$GF_TASK_OPTIONS_PRIORITY>*>-enable"$'\n'"0"$'\n'
+                        gf_info "${GFC4}Specific${GFC0} tasks selected in command line."
+                    fi
                     for gf_task in $1; do
                         GF_TASK_OPTIONS+="gf_set_task_option>$GF_TASK_OPTIONS_PRIORITY>$gf_task>-enable"$'\n'"1"$'\n'
                         # if [ -z "$GF_CONTROL_TASKS_CMD_LINE" ]; then

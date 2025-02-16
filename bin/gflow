@@ -6852,28 +6852,29 @@ function gf_wait_tasks {
                                 gf_choose_task_candidate gf_task gf_task_status "$gf_task" "$gf_wait_run_dir_current/tasks/run.info" "wait task"
                             fi
 
-                            # # Not wait skipped or disabled task
-                            # if [ "$gf_task_status" == "disabled" -o "$gf_task_status" == "skipped" ]; then
-                            #     gf_warning "Will not wait for $gf_task_status ${GFC4}$gf_task${GFC0} task."
-                            #
-                            # # Wait for the task
-                            # else
-                            #     GF_WAIT_TASKS+="$gf_action=$gf_task=\$GF_I_RUN_DIR/tasks/run.info"$'\n'
-                            #     gf_tasks+="$gf_task "
-                            #     if [ "$gf_task_status" == "chosen" ]; then
-                            #         gf_info "Task will wait for ${GFC4}$gf_task${GFC0} task$gf_suffix in other session."
-                            #     else
-                            #         gf_info "Task will wait for ${GFC4}$gf_task${GFC0} task$gf_suffix."
-                            #     fi
-                            # fi
+                            # Not wait skipped or disabled task
+                            if [ "$gf_task_status" == "disabled" -o "$gf_task_status" == "skipped" ]; then
 
+                                # Skip current task if wanted task skipped or disabled
+                                if [ "$gf_action" == "WANT" ]; then
+                                    gf_warning "Task ${GFH3}$TASK_NAME${GFC0} skipped because it's wanted task ${GFC4}$gf_task${GFC0} $gf_task_status.\n"
+                                    GF_TASK_STATUSES+="$TASK_NAME $GF_TASK_BASE skipped"$'\n'
+                                    GF_SKIP_TASK=skipped
+
+                                # Not wait skipped or disabled task 
+                                else
+                                    gf_warning "Will not wait for $gf_task_status ${GFC4}$gf_task${GFC0} task."
+                                fi
+                            
                             # Wait for the task
-                            GF_WAIT_TASKS+="$gf_action=$gf_task=\$GF_I_RUN_DIR/tasks/run.info"$'\n'
-                            gf_tasks+="$gf_task "
-                            if [ "$gf_task_status" == "chosen" ]; then
-                                gf_info "Task will wait for ${GFC4}$gf_task${GFC0} task$gf_suffix in other session."
                             else
-                                gf_info "Task will wait for ${GFC4}$gf_task${GFC0} task$gf_suffix."
+                                GF_WAIT_TASKS+="$gf_action=$gf_task=\$GF_I_RUN_DIR/tasks/run.info"$'\n'
+                                gf_tasks+="$gf_task "
+                                if [ "$gf_task_status" == "chosen" ]; then
+                                    gf_info "Task will wait for ${GFC4}$gf_task${GFC0} task$gf_suffix in other session."
+                                else
+                                    gf_info "Task will wait for ${GFC4}$gf_task${GFC0} task$gf_suffix."
+                                fi
                             fi
                         done
                     fi

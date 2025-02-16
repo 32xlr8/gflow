@@ -170,8 +170,8 @@ gf_create_step -name gconfig_project_settings '
         -views {* * 1p540v * * *} {$pvt_v {1p540v 1.540 1p540 1.54 1p54}}
 
         # Temperature variants to use in file name patterns
-        -views {* * * m60 * *} {$pvt_t {-60 -60c m60}}
-        -views {* * * m40 * *} {$pvt_t {-40 -40c m40}}
+        -views {* * * m60 * *} {$pvt_t {-60 m60 n60 M60 N60}}
+        -views {* * * m40 * *} {$pvt_t {-40 m40 n40 M60 N60}}
         -views {* * *   0 * *} {$pvt_t {0 00 000}}
         -views {* * *  25 * *} {$pvt_t {25 025}}
         -views {* * *  85 * *} {$pvt_t {85 085}}

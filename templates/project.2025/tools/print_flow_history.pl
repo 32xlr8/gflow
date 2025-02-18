@@ -58,7 +58,10 @@ sub get_file_id {
 # Next run directory to parse
 sub next_run {
     my $dir = abs_path(shift);
-    $parsed{R}{$dir} = 0 if (!defined $parsed{R}{$dir});
+    if (!defined $parsed{R}{$dir}) {
+        $parsed{R}{$dir} = 0;
+        print STDERR "Run $dir not found.\n" if (!-e $dir);
+    }
     return get_file_id($dir);
 }
 
@@ -82,14 +85,13 @@ sub parse_run {
 
     # Parse only once
     if (!$parsed{R}{$run}) {
-
         # Parse run logs
         my %index = ();
         foreach my $file (glob "$run/logs/run.*.log") {
             if ($file =~ m|/logs/run\.(\d+)\.log$|) {
                 my $index = $1;
                 if (open FILE, $file) {
-                    print STDERR "Run: $file ...\n";
+                    print "Run: $file ...\n";
                     my $task = "";
                     my %tasks = (); my @tasks = ();
                     while (<FILE>) {
@@ -120,8 +122,10 @@ sub parse_run {
                         }
                     }        
                     close FILE;
-                    print STDERR "  Tasks: ".(join ",", @tasks)."\n" if ($#tasks >= 0);
-                    print STDERR "\n";
+                    print "  Tasks: ".(join ", ", @tasks)."\n" if ($#tasks >= 0);
+                    print "\n";
+                } else {
+                    print STDERR "Cannot open file ".$file." for read.\n";
                 }
             }
         }
@@ -151,10 +155,16 @@ sub parse_run {
                     } else {
                         $record{M} = "unknown";
                     }
-                    push @{$record{L}}, next_log("$run/logs/$task.log");
-                    push @{$record{L}}, next_log("$run/scripts/$task.sh");
-                    push @{$record{L}}, next_log("$run/scripts/$task.tcl");
-                    push @{$record{L}}, next_log($_) foreach (glob "$run/in/$task.mmmc.tcl");
+                    foreach my $pattern (
+                        "$run/logs/$task.log",
+                        "$run/scripts/$task.sh",
+                        "$run/scripts/$task.tcl",
+                        "$run/in/$task.mmmc.tcl"
+                    ) {
+                        foreach my $file (glob $pattern) {
+                            push @{$record{L}}, next_log($file) if (-e "$file");
+                        }
+                    }
 
                     push @tasks, \%record;
                     $tasks{$run}{$task} = $#tasks;
@@ -174,7 +184,7 @@ sub parse_log {
         my $root = $log;
         $root =~ s:/(in|out|tasks|logs|scripts)/.*::;
         if (open FILE, $log) {
-            print STDERR "Log: $log ...";
+            print "  Log: $log ...";
             my $log_id = get_file_id($log);
             while (<FILE>) {
                 my $line = $_;
@@ -224,8 +234,10 @@ sub parse_log {
                     $files[$log_id]{EF}{get_file_id($file)}++;
                 }
             }
-            print STDERR "\n";
+            print "\n";
             close FILE;
+        } else {
+            print STDERR "Cannot open file ".$log." for read.\n";
         }
     }
     return (++$parsed{L}{$log});
@@ -248,12 +260,15 @@ sub parse {
         }
 
         # Parse next log files
+        my $count = 0;
         foreach my $file (keys %{$parsed{L}}) {
             if ($parsed{L}{$file} == 0) {
                 parse_log($file);
                 $is_done = 0;
+                $count++;
             }
         }
+        print "\n" if ($count);
     }
 }
 
@@ -275,7 +290,7 @@ sub print_html {
     }
     
     # Header
-    $html = '<!DOCTYPE HTML>
+    my $content = '<!DOCTYPE HTML>
         <html>
             <head>
                 <meta charset="utf-8">
@@ -402,106 +417,106 @@ sub print_html {
                 </style>
             </head>
             <body>
-    '; $html =~ s|^\s{12}||; print $html;
+    '; $content =~ s|^\s{12}||; $html .= $content;
 
     # Header
-    $html = "<h1>Generic Flow History</h1>\n";
-    # $html .= "<h2>$r_count runs, $t_count tasks</h2>\n";
+    $content = "<h1>Generic Flow History</h1>\n";
+    # $content .= "<h2>$r_count runs, $t_count tasks</h2>\n";
     
     # Control banner
-    $html .= "<div id=control>\n";
+    $content .= "<div id=control>\n";
 
-    $html .= "<p class=L1>";
-        # $html .= "<input type=checkbox id=cbR autocomplete='off' onclick=\"if (this.checked) {click_class('p.R0');} else {click_class('p.R1');};\"/>";
-        # $html .= "<span class=L1 onclick=\"click_class('p.R0');\">&#9660;</span>";
-        # $html .= "<span class=L1 onclick=\"click_class('p.R1');\">&#8689;</span>";
-        $html .= "<span class=L1 onclick=\"set_class_visibility('p.R0',false);\">&#10006;</span>";
-        $html .= "<span class=L1 onclick=\"set_class_visibility('p.R0',true);\">&#10226;</span>";
-    $html .= " Runs</p>\n";
+    $content .= "<p class=L1>";
+        # $content .= "<input type=checkbox id=cbR autocomplete='off' onclick=\"if (this.checked) {click_class('p.R0');} else {click_class('p.R1');};\"/>";
+        # $content .= "<span class=L1 onclick=\"click_class('p.R0');\">&#9660;</span>";
+        # $content .= "<span class=L1 onclick=\"click_class('p.R1');\">&#8689;</span>";
+        $content .= "<span class=L1 onclick=\"set_class_visibility('p.R0',false);\">&#10006;</span>";
+        $content .= "<span class=L1 onclick=\"set_class_visibility('p.R0',true);\">&#10226;</span>";
+    $content .= " Runs</p>\n";
 
-    $html .= "<p id=R class=L2>";
-        $html .= "<input type=checkbox id=cbTG autocomplete='off' onclick=\"if (this.checked) {click_class('p.R0');} else {click_class('p.R1');};\"/>";
-    $html .= " All</p>\n";
+    $content .= "<p id=R class=L2>";
+        $content .= "<input type=checkbox id=cbTG autocomplete='off' onclick=\"if (this.checked) {click_class('p.R0');} else {click_class('p.R1');};\"/>";
+    $content .= " All</p>\n";
 
-    $html .= "<p class=L1>";
-        # $html .= "<input type=checkbox id=cbT autocomplete='off' onclick=\"if (this.checked) {click_class('p.TG0');click_class('p.TR0');} else {click_class('p.TG1');click_class('p.TR1');};\"/>";
-        # $html .= "<span class=L1 onclick=\"click_class('p.TG0');click_class('p.TR0');\">&#9660;</span>";
-        # $html .= "<span class=L1 onclick=\"click_class('p.TG1');click_class('p.TR1');\">&#8689;</span>";
-        $html .= "<span class=L1 onclick=\"set_class_visibility('p.TG0',false);set_class_visibility('p.TR0',false);\">&#10006;</span>";
-        $html .= "<span class=L1 onclick=\"set_class_visibility('p.TG0',true);set_class_visibility('p.TR0',true);\">&#10226;</span>";
-    $html .= " Tasks</p>\n";
+    $content .= "<p class=L1>";
+        # $content .= "<input type=checkbox id=cbT autocomplete='off' onclick=\"if (this.checked) {click_class('p.TG0');click_class('p.TR0');} else {click_class('p.TG1');click_class('p.TR1');};\"/>";
+        # $content .= "<span class=L1 onclick=\"click_class('p.TG0');click_class('p.TR0');\">&#9660;</span>";
+        # $content .= "<span class=L1 onclick=\"click_class('p.TG1');click_class('p.TR1');\">&#8689;</span>";
+        $content .= "<span class=L1 onclick=\"set_class_visibility('p.TG0',false);set_class_visibility('p.TR0',false);\">&#10006;</span>";
+        $content .= "<span class=L1 onclick=\"set_class_visibility('p.TG0',true);set_class_visibility('p.TR0',true);\">&#10226;</span>";
+    $content .= " Tasks</p>\n";
 
-    $html .= "<p id=TG class=L2>";
-        $html .= "<input type=checkbox id=cbTG autocomplete='off' onclick=\"if (this.checked) {click_class('p.TG0');} else {click_class('p.TG1');};\"/>";
-    $html .= " Done</p>\n";
+    $content .= "<p id=TG class=L2>";
+        $content .= "<input type=checkbox id=cbTG autocomplete='off' onclick=\"if (this.checked) {click_class('p.TG0');} else {click_class('p.TG1');};\"/>";
+    $content .= " Done</p>\n";
 
-    $html .= "<p id=TR class=L2>";
-        $html .= "<input type=checkbox id=cbTR autocomplete='off' onclick=\"if (this.checked) {click_class('p.TR0');} else {click_class('p.TR1');};\"/>";
-    $html .= " Failed</p>\n";
+    $content .= "<p id=TR class=L2>";
+        $content .= "<input type=checkbox id=cbTR autocomplete='off' onclick=\"if (this.checked) {click_class('p.TR0');} else {click_class('p.TR1');};\"/>";
+    $content .= " Failed</p>\n";
 
-    # $html .= "<p id=TS class=L2>";
-    #     $html .= "<span class=L2 onclick=\"click_class('p.TS0');\">&#9660;</span>";
-    #     $html .= "<span class=L2 onclick=\"click_class('p.TS1');\">&#8689;</span>";
-    #     $html .= "<span class=L2 onclick=\"set_class_visibility('p.TS0',false);\">&#10006;</span>";
-    #     $html .= "<span class=L2 onclick=\"set_class_visibility('p.TS0',true);\">&#10226;</span>";
-    # $html .= " Statuses</p>\n";
+    # $content .= "<p id=TS class=L2>";
+    #     $content .= "<span class=L2 onclick=\"click_class('p.TS0');\">&#9660;</span>";
+    #     $content .= "<span class=L2 onclick=\"click_class('p.TS1');\">&#8689;</span>";
+    #     $content .= "<span class=L2 onclick=\"set_class_visibility('p.TS0',false);\">&#10006;</span>";
+    #     $content .= "<span class=L2 onclick=\"set_class_visibility('p.TS0',true);\">&#10226;</span>";
+    # $content .= " Statuses</p>\n";
 
-    $html .= "<p class=L1>";
-        # $html .= "<span class=L1 onclick=\"click_class('p.TFL0');click_class('p.TFI0');click_class('p.TFE0');click_class('p.TFM0');\">&#9660;</span>";
-        # $html .= "<span class=L1 onclick=\"click_class('p.TFL1');click_class('p.TFI1');click_class('p.TFE1');click_class('p.TFM1');\">&#8689;</span>";
-        $html .= "<span class=L1 onclick=\"set_class_visibility('p.TS0',false);set_class_visibility('p.TFL0',false);set_class_visibility('p.TFI0',false);set_class_visibility('p.TFE0',false);set_class_visibility('p.TFM0',false);\">&#10006;</span>";
-        $html .= "<span class=L1 onclick=\"set_class_visibility('p.TS0',true);set_class_visibility('p.TFL0',true);set_class_visibility('p.TFI0',true);set_class_visibility('p.TFE0',true);set_class_visibility('p.TFM0',true);\">&#10226;</span>";
-    $html .= " Files</p>\n";
+    $content .= "<p class=L1>";
+        # $content .= "<span class=L1 onclick=\"click_class('p.TFL0');click_class('p.TFI0');click_class('p.TFE0');click_class('p.TFM0');\">&#9660;</span>";
+        # $content .= "<span class=L1 onclick=\"click_class('p.TFL1');click_class('p.TFI1');click_class('p.TFE1');click_class('p.TFM1');\">&#8689;</span>";
+        $content .= "<span class=L1 onclick=\"set_class_visibility('p.TS0',false);set_class_visibility('p.TFL0',false);set_class_visibility('p.TFI0',false);set_class_visibility('p.TFE0',false);set_class_visibility('p.TFM0',false);\">&#10006;</span>";
+        $content .= "<span class=L1 onclick=\"set_class_visibility('p.TS0',true);set_class_visibility('p.TFL0',true);set_class_visibility('p.TFI0',true);set_class_visibility('p.TFE0',true);set_class_visibility('p.TFM0',true);\">&#10226;</span>";
+    $content .= " Files</p>\n";
 
-    # $html .= "<p id=TFL class=L2>";
-    #     $html .= "<span class=L2 onclick=\"click_class('p.TFL0');\">&#9660;</span>";
-    #     $html .= "<span class=L2 onclick=\"click_class('p.TFL1');\">&#8689;</span>";
-    #     $html .= "<span class=L2 onclick=\"set_class_visibility('p.TFL0',false);\">&#10006;</span>";
-    #     $html .= "<span class=L2 onclick=\"set_class_visibility('p.TFL0',true);\">&#10226;</span>";
-    # $html .= " Analyzed</p>\n";
+    # $content .= "<p id=TFL class=L2>";
+    #     $content .= "<span class=L2 onclick=\"click_class('p.TFL0');\">&#9660;</span>";
+    #     $content .= "<span class=L2 onclick=\"click_class('p.TFL1');\">&#8689;</span>";
+    #     $content .= "<span class=L2 onclick=\"set_class_visibility('p.TFL0',false);\">&#10006;</span>";
+    #     $content .= "<span class=L2 onclick=\"set_class_visibility('p.TFL0',true);\">&#10226;</span>";
+    # $content .= " Analyzed</p>\n";
     # 
-    # $html .= "<p id=TFI class=L2>";
-    #     $html .= "<span class=L2 onclick=\"click_class('p.TFI0');\">&#9660;</span>";
-    #     $html .= "<span class=L2 onclick=\"click_class('p.TFI1');\">&#8689;</span>";
-    #     $html .= "<span class=L2 onclick=\"set_class_visibility('p.TFI0',false);\">&#10006;</span>";
-    #     $html .= "<span class=L2 onclick=\"set_class_visibility('p.TFI0',true);\">&#10226;</span>";
-    # $html .= " Internal</p>\n";
+    # $content .= "<p id=TFI class=L2>";
+    #     $content .= "<span class=L2 onclick=\"click_class('p.TFI0');\">&#9660;</span>";
+    #     $content .= "<span class=L2 onclick=\"click_class('p.TFI1');\">&#8689;</span>";
+    #     $content .= "<span class=L2 onclick=\"set_class_visibility('p.TFI0',false);\">&#10006;</span>";
+    #     $content .= "<span class=L2 onclick=\"set_class_visibility('p.TFI0',true);\">&#10226;</span>";
+    # $content .= " Internal</p>\n";
     # 
-    # $html .= "<p id=TFE class=L2>";
-    #     $html .= "<span class=L2 onclick=\"click_class('p.TFE0');\">&#9660;</span>";
-    #     $html .= "<span class=L2 onclick=\"click_class('p.TFE1');\">&#8689;</span>";
-    #     $html .= "<span class=L2 onclick=\"set_class_visibility('p.TFE0',false);\">&#10006;</span>";
-    #     $html .= "<span class=L2 onclick=\"set_class_visibility('p.TFE0',true);\">&#10226;</span>";
-    # $html .= " External</p>\n";
+    # $content .= "<p id=TFE class=L2>";
+    #     $content .= "<span class=L2 onclick=\"click_class('p.TFE0');\">&#9660;</span>";
+    #     $content .= "<span class=L2 onclick=\"click_class('p.TFE1');\">&#8689;</span>";
+    #     $content .= "<span class=L2 onclick=\"set_class_visibility('p.TFE0',false);\">&#10006;</span>";
+    #     $content .= "<span class=L2 onclick=\"set_class_visibility('p.TFE0',true);\">&#10226;</span>";
+    # $content .= " External</p>\n";
     # 
-    # $html .= "<p id=TFM class=L2>";
-    #     $html .= "<span class=L2 onclick=\"click_class('p.TFM0');\">&#9660;</span>";
-    #     $html .= "<span class=L2 onclick=\"click_class('p.TFM1');\">&#8689;</span>";
-    #     $html .= "<span class=L2 onclick=\"set_class_visibility('p.TFM0',false);\">&#10006;</span>";
-    #     $html .= "<span class=L2 onclick=\"set_class_visibility('p.TFM0',true);\">&#10226;</span>";
-    # $html .= " Missing</p>\n";
+    # $content .= "<p id=TFM class=L2>";
+    #     $content .= "<span class=L2 onclick=\"click_class('p.TFM0');\">&#9660;</span>";
+    #     $content .= "<span class=L2 onclick=\"click_class('p.TFM1');\">&#8689;</span>";
+    #     $content .= "<span class=L2 onclick=\"set_class_visibility('p.TFM0',false);\">&#10006;</span>";
+    #     $content .= "<span class=L2 onclick=\"set_class_visibility('p.TFM0',true);\">&#10226;</span>";
+    # $content .= " Missing</p>\n";
 
-    $html .= "<p id=TS class=L2>";
-        $html .= "<input type=checkbox id=cbTS autocomplete='off' onclick=\"if (this.checked) {click_class('p.TS0');} else {click_class('p.TS1');};\"/>";
-    $html .= " Statuses</p>\n";
+    $content .= "<p id=TS class=L2>";
+        $content .= "<input type=checkbox id=cbTS autocomplete='off' onclick=\"if (this.checked) {click_class('p.TS0');} else {click_class('p.TS1');};\"/>";
+    $content .= " Statuses</p>\n";
 
-    $html .= "<p id=TFL class=L2>";
-        $html .= "<input type=checkbox id=cbTFL autocomplete='off' onclick=\"if (this.checked) {click_class('p.TFL0');} else {click_class('p.TFL1');};\"/>";
-    $html .= " Analyzed</p>\n";
+    $content .= "<p id=TFL class=L2>";
+        $content .= "<input type=checkbox id=cbTFL autocomplete='off' onclick=\"if (this.checked) {click_class('p.TFL0');} else {click_class('p.TFL1');};\"/>";
+    $content .= " Analyzed</p>\n";
 
-    $html .= "<p id=TFI class=L2>";
-        $html .= "<input type=checkbox id=cbTFI autocomplete='off' onclick=\"if (this.checked) {click_class('p.TFI0');} else {click_class('p.TFI1');};\"/>";
-    $html .= " Internal</p>\n";
+    $content .= "<p id=TFI class=L2>";
+        $content .= "<input type=checkbox id=cbTFI autocomplete='off' onclick=\"if (this.checked) {click_class('p.TFI0');} else {click_class('p.TFI1');};\"/>";
+    $content .= " Internal</p>\n";
 
-    $html .= "<p id=TFE class=L2>";
-        $html .= "<input type=checkbox id=cbTFE autocomplete='off' onclick=\"if (this.checked) {click_class('p.TFE0');} else {click_class('p.TFE1');};\"/>";
-    $html .= " External</p>\n";
+    $content .= "<p id=TFE class=L2>";
+        $content .= "<input type=checkbox id=cbTFE autocomplete='off' onclick=\"if (this.checked) {click_class('p.TFE0');} else {click_class('p.TFE1');};\"/>";
+    $content .= " External</p>\n";
 
-    $html .= "<p id=TFM class=L2>";
-        $html .= "<input type=checkbox id=cbTFM autocomplete='off' onclick=\"if (this.checked) {click_class('p.TFM0');} else {click_class('p.TFM1');};\"/>";
-    $html .= " Missing</p>\n";
+    $content .= "<p id=TFM class=L2>";
+        $content .= "<input type=checkbox id=cbTFM autocomplete='off' onclick=\"if (this.checked) {click_class('p.TFM0');} else {click_class('p.TFM1');};\"/>";
+    $content .= " Missing</p>\n";
 
-    $html .= "</div>\n";
+    $content .= "</div>\n";
 
     # Directory creation order
     my %stat = ();
@@ -514,21 +529,25 @@ sub print_html {
     
     # Runs
     my $r_counter = 0;
-    foreach my $run (sort {$files[$files{$a}]{M}<=>$files[$files{$b}]{M}} keys %tasks) {
+    my %history = ();
+    my @history = sort {$files[$files{$a}]{M}<=>$files[$files{$b}]{M}} keys %tasks;
+    foreach my $run (@history) {
+        $history{$run} = 1;
+
         $r_counter++;
         my $t_counter = 0;
 
         # Run
-        $html .= "<p id=RP_$files{$run} class=R0 onclick=\"toggle_id_class('R','$files{$run}');\"><span class=N>$r_counter</span>";
+        $content .= "<p id=RP_$files{$run} class=R0 onclick=\"toggle_id_class('R','$files{$run}');\"><span class=N>$r_counter</span>";
         if ($run =~ m|^(.*/)([^/]+)$|) {
-            $html .= "$1<b>$2</b>";
+            $content .= "$1<b>$2</b>";
         } else {
-            $html .= "$run";
+            $content .= "$run";
         }
-        $html .= "</p>\n";
+        $content .= "</p>\n";
         
         # Tasks
-        $html .= "<div id=RD_$files{$run} class=R0>\n";
+        $content .= "<div id=RD_$files{$run} class=R0>\n";
         foreach my $task (sort {$tasks{$run}{$a}<=>$tasks{$run}{$b}} keys %{$tasks{$run}}) {
             $t_counter++;
 
@@ -540,19 +559,19 @@ sub print_html {
                 $class = "TG";
                 $value = 0;
             }
-            $html .= "<p id=TP_$task_id class=${class}${value} onclick=\"toggle_id_class('T','$task_id');\"><span class=N>$r_counter.$t_counter</span>$task - $$record{M}</p>\n";
+            $content .= "<p id=TP_$task_id class=${class}${value} onclick=\"toggle_id_class('T','$task_id');\"><span class=N>$r_counter.$t_counter</span>$task - $$record{M}</p>\n";
 
             # Task content
-            $html .= "<div id=TD_$task_id class=${class}${value}>\n";
+            $content .= "<div id=TD_$task_id class=${class}${value}>\n";
             
             # # Task logs
             # foreach my $log_id (@{$$record{L}}) {
-            #     $html .= "<p id=TLP_${task_id}_${log_id} class=TL1 onclick=\"toggle_id_class('TL','${task_id}_${log_id}');\">Log: $files[$log_id]{F}</p>\n";
-            #     $html .= "<div id=TLD_${task_id}_${log_id} class=TL1>\n";
-            #     $html .= "<p id=TIFP_${task_id}_${_} class=TIF>$files[$_]{F}</p>\n" foreach (sort keys %{$files[$log_id]{IF}});
-            #     $html .= "<p id=TEFP_${task_id}_${_} class=TEF>$files[$_]{F}</p>\n" foreach (sort keys %{$files[$log_id]{EF}});
-            #     $html .= "<p id=TIRP_${task_id}_${_} class=TIR onclick=\"toggle_id_class('R','".$files{$files[$_]{F}}."',1,1);\">$files[$_]{F}</p>\n" foreach (sort keys %{$files[$log_id]{R}});
-            #     $html .= "</div>\n";
+            #     $content .= "<p id=TLP_${task_id}_${log_id} class=TL1 onclick=\"toggle_id_class('TL','${task_id}_${log_id}');\">Log: $files[$log_id]{F}</p>\n";
+            #     $content .= "<div id=TLD_${task_id}_${log_id} class=TL1>\n";
+            #     $content .= "<p id=TIFP_${task_id}_${_} class=TIF>$files[$_]{F}</p>\n" foreach (sort keys %{$files[$log_id]{IF}});
+            #     $content .= "<p id=TEFP_${task_id}_${_} class=TEF>$files[$_]{F}</p>\n" foreach (sort keys %{$files[$log_id]{EF}});
+            #     $content .= "<p id=TIRP_${task_id}_${_} class=TIR onclick=\"toggle_id_class('R','".$files{$files[$_]{F}}."',1,1);\">$files[$_]{F}</p>\n" foreach (sort keys %{$files[$log_id]{R}});
+            #     $content .= "</div>\n";
             # }
             
             # # Parent runs
@@ -562,19 +581,19 @@ sub print_html {
             #         $runs{$_} = 1 if ($files[$_]{F} ne $run);
             #     }
             #     if (keys %runs > 0) {
-            #         $html .= "<p id=TIRP_${task_id}_${log_id} class=TIR1 onclick=\"toggle_id_class('TIR','${task_id}_${log_id}');\"><span class=N>".(keys %runs)."</span>Parent runs: $files[$log_id]{F}</p>\n";
-            #         $html .= "<div id=TIRD_${task_id}_${log_id} class=TIR1>\n";
-            #         $html .= "<p id=TIRL_${task_id}_${_} class=TIRL onclick=\"toggle_id_class('R','".$files{$files[$_]{F}}."',1,1);window.location.href='#RP_".$files{$files[$_]{F}}."';\">$files[$_]{F}</p>\n" foreach (sort keys %runs);
-            #         $html .= "</div>\n";
+            #         $content .= "<p id=TIRP_${task_id}_${log_id} class=TIR1 onclick=\"toggle_id_class('TIR','${task_id}_${log_id}');\"><span class=N>".(keys %runs)."</span>Parent runs: $files[$log_id]{F}</p>\n";
+            #         $content .= "<div id=TIRD_${task_id}_${log_id} class=TIR1>\n";
+            #         $content .= "<p id=TIRL_${task_id}_${_} class=TIRL onclick=\"toggle_id_class('R','".$files{$files[$_]{F}}."',1,1);window.location.href='#RP_".$files{$files[$_]{F}}."';\">$files[$_]{F}</p>\n" foreach (sort keys %runs);
+            #         $content .= "</div>\n";
             #     }
             # }
 
             # Task status
             if ($$record{S} eq "") {
-                $html .= "<p id=TSP_$task_id class=TSN);\">Log: $$record{F}</p>\n";
+                $content .= "<p id=TSP_$task_id class=TSN);\">Log: $$record{F}</p>\n";
             } else {
-                $html .= "<p id=TSP_$task_id class=TS0 onclick=\"toggle_id_class('TS','$task_id');\">Status: $$record{F}</p>\n";
-                $html .= "<div id=TSD_$task_id class=TS0><pre>$$record{S}</pre></div>\n";
+                $content .= "<p id=TSP_$task_id class=TS0 onclick=\"toggle_id_class('TS','$task_id');\">Status: $$record{F}</p>\n";
+                $content .= "<div id=TSD_$task_id class=TS0><pre>$$record{S}</pre></div>\n";
             }
 
             # Run files
@@ -599,18 +618,18 @@ sub print_html {
             
             # Log files
             if (keys %{$grouped_files{L}}) {
-                $html .= "<p id=TFLP_${task_id} class=TFL0 onclick=\"toggle_id_class('TFL','${task_id}');\"><span class=N>".(keys %{$grouped_files{L}})."</span>Analyzed run files</p>\n";
-                $html .= "<div id=TFLD_${task_id} class=TFL0>\n";
+                $content .= "<p id=TFLP_${task_id} class=TFL0 onclick=\"toggle_id_class('TFL','${task_id}');\"><span class=N>".(keys %{$grouped_files{L}})."</span>Analyzed run files</p>\n";
+                $content .= "<div id=TFLD_${task_id} class=TFL0>\n";
                 foreach my $file_id (sort {$files[$a]{M} <=> $files[$b]{M}} keys %{$grouped_files{L}}) {
-                    $html .= "<p id=TFLL_${task_id}_${file_id} class=TFLN>$files[$file_id]{F}</p>\n";
+                    $content .= "<p id=TFLL_${task_id}_${file_id} class=TFLN>$files[$file_id]{F}</p>\n";
                 }
-                $html .= "</div>\n";
+                $content .= "</div>\n";
             }
             
             # Internal files
             if (keys %{$grouped_files{I}}) {
-                $html .= "<p id=TFIP_${task_id} class=TFI0 onclick=\"toggle_id_class('TFI','${task_id}');\"><span class=N>".(keys %{$grouped_files{I}})."</span>Internal flow files</p>\n";
-                $html .= "<div id=TFID_${task_id} class=TFI0>\n";
+                $content .= "<p id=TFIP_${task_id} class=TFI0 onclick=\"toggle_id_class('TFI','${task_id}');\"><span class=N>".(keys %{$grouped_files{I}})."</span>Internal flow files</p>\n";
+                $content .= "<div id=TFID_${task_id} class=TFI0>\n";
                 foreach my $file_id (sort {$files[$a]{M} <=> $files[$b]{M}} keys %{$grouped_files{I}}) {
                     my $file_run = $files[$file_id]{F};
                     my $file_task = $files[$file_id]{F};
@@ -621,45 +640,45 @@ sub print_html {
                     }
                     if (defined $files{$file_run}) {
                         if (defined $tasks{$file_run}{$file_task}) {
-                            $html .= "<p id=TFIL_${task_id}_${file_id} class=TFIL onclick=\"toggle_id_class('R','".$files{$file_run}."',1,1);toggle_id_class('T', '".$tasks{$file_run}{$file_task}."',1,1)\">$files[$file_id]{F}</p>\n";
+                            $content .= "<p id=TFIL_${task_id}_${file_id} class=TFIL onclick=\"toggle_id_class('R','".$files{$file_run}."',1,1);toggle_id_class('T', '".$tasks{$file_run}{$file_task}."',1,1)\">$files[$file_id]{F}</p>\n";
                         } else {
-                            $html .= "<p id=TFIL_${task_id}_${file_id} class=TFIL onclick=\"toggle_id_class('R','".$files{$file_run}."',1,1);\">$files[$file_id]{F}</p>\n";
+                            $content .= "<p id=TFIL_${task_id}_${file_id} class=TFIL onclick=\"toggle_id_class('R','".$files{$file_run}."',1,1);\">$files[$file_id]{F}</p>\n";
                         }
                     } else {
-                            $html .= "<p id=TFIL_${task_id}_${file_id} class=TFIN>$files[$file_id]{F}</p>\n";
+                            $content .= "<p id=TFIL_${task_id}_${file_id} class=TFIN>$files[$file_id]{F}</p>\n";
                     }
                 }
-                $html .= "</div>\n";
+                $content .= "</div>\n";
             }
             
             # External files
             if (keys %{$grouped_files{E}}) {
-                $html .= "<p id=TFEP_${task_id} class=TFE0 onclick=\"toggle_id_class('TFE','${task_id}');\"><span class=N>".(keys %{$grouped_files{E}})."</span>External project files</p>\n";
-                $html .= "<div id=TFED_${task_id} class=TFE0>\n";
+                $content .= "<p id=TFEP_${task_id} class=TFE0 onclick=\"toggle_id_class('TFE','${task_id}');\"><span class=N>".(keys %{$grouped_files{E}})."</span>External project files</p>\n";
+                $content .= "<div id=TFED_${task_id} class=TFE0>\n";
                 foreach my $file_id (sort {$files[$a]{M} <=> $files[$b]{M}} keys %{$grouped_files{E}}) {
-                    $html .= "<p id=TFEL_${task_id}_${file_id} class=TFEN>$files[$file_id]{F}</p>\n";
+                    $content .= "<p id=TFEL_${task_id}_${file_id} class=TFEN>$files[$file_id]{F}</p>\n";
                 }
-                $html .= "</div>\n";
+                $content .= "</div>\n";
             }
             
             # Missing files
             if (keys %{$grouped_files{M}}) {
-                $html .= "<p id=TFMP_${task_id} class=TFM0 onclick=\"toggle_id_class('TFM','${task_id}');\"><span class=N>".(keys %{$grouped_files{M}})."</span>Missing files</p>\n";
-                $html .= "<div id=TFMD_${task_id} class=TFM0>\n";
+                $content .= "<p id=TFMP_${task_id} class=TFM0 onclick=\"toggle_id_class('TFM','${task_id}');\"><span class=N>".(keys %{$grouped_files{M}})."</span>Missing files</p>\n";
+                $content .= "<div id=TFMD_${task_id} class=TFM0>\n";
                 foreach my $file_id (sort {$files[$a]{F} cmp $files[$b]{F}} keys %{$grouped_files{M}}) {
-                    $html .= "<p id=TFML_${task_id}_${file_id} class=TFMN>$files[$file_id]{F}</p>\n";
+                    $content .= "<p id=TFML_${task_id}_${file_id} class=TFMN>$files[$file_id]{F}</p>\n";
                 }
-                $html .= "</div>\n";
+                $content .= "</div>\n";
             }
 
             # Task content
-            $html .= "</div>\n";
+            $content .= "</div>\n";
         }
-        $html .= "</div>\n";
+        $content .= "</div>\n";
     }
-    print $html;
+    $html .= $content;
 
-    $html = '
+    $content = '
         <script>
             function click_class (query_class_name) {
                 var elements = document.querySelectorAll(query_class_name);
@@ -695,19 +714,87 @@ sub print_html {
                 }
             }
         </script>
-    '; $html =~ s|^\s{20}||; print $html;
+    '; $content =~ s|^\s{20}||; $html .= $content;
     
-    $html = '
+    $content = '
             </body>
-        </html>
-    '; $html =~ s|^\s{12}||; print $html;
+        </content>
+    '; $content =~ s|^\s{12}||; $html .= $content;
+
+    # Check not included runs
+    my %dirs = ();
+    my @other = ();
+    foreach my $run (@history) {
+        my $dir = $run;
+        $dir =~ s|/[^/]+$||;
+        if (!defined $dirs{$dir}) {
+            if (opendir DIR, $dir) {
+                foreach my $name (readdir DIR) {
+                    next if (($name eq ".") || ($name eq ".."));
+                    if (!defined $history{"$dir/$name"}) {
+                        $history{"$dir/$name"}++;
+                        push @other, "$dir/$name";
+                    }
+                }
+                closedir DIR;
+            }
+        }
+        $dirs{$dir}++;
+    }
+
+    # Runs not included into history
+    if ($#other >= 0) {
+        print "Runs not in the history: ".($#other+1)."\n\n";
+        print "  $_\n" foreach (sort @other);
+        print "\n";
+    }
+
+    # Runs not included into history
+    if ($#history >= 0) {
+        print "Runs in the history: ".($#history+1)."\n\n";
+        print "  $_\n" foreach (@history);
+        print "\n";
+    } else {
+        print STDERR "No runs in the history.\n";
+        exit(1);
+    }
+
+    # Print HTML content
+    if ($file ne "") {
+        if (open FILE, ">".$file) {
+            print FILE $content;
+            close FILE;
+            print "HTML report ".abs_path($file)." written.\n";
+
+        # Html file creation error
+        } else {
+            print STDERR "Cannot open file ".$file." for write.\n";
+        }
+    }
 }
 
 # Quene runs from command line arguments
-next_run($_) foreach (@ARGV);
+my $key = "";
+my $html = "";
+foreach (@ARGV) {
+    if ($key eq "-html") {
+        $html = $_;
+        $key = "";
+    } elsif ($_ eq "-html") {
+        $key = $_;
+    } else {
+        if (-d $_) {
+            next_run($_);
+        } else {
+            print STDERR "Cannot open directory ".$_."\n";
+        }
+    }
+}
 
 # Perform parsing
+print "\n";
 parse();
 
 # Print flow history HTML
-print_html();
+print_html($html);
+print "\n";

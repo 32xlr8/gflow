@@ -19,8 +19,8 @@
 # limitations under the License.
 #
 ################################################################################
-# Filename: templates/project.2025/blocks/template/git.clone.gf
-# Purpose:  Git repositories clone
+# Filename: templates/project.2025/blocks/template/bash.in.gf
+# Purpose:  Bash data-in flow
 ################################################################################
 
 ########################################

@@ -762,7 +762,7 @@ sub print_html {
     # Print HTML content
     if ($file ne "") {
         if (open FILE, ">".$file) {
-            print FILE $content;
+            print FILE $html;
             close FILE;
             print "HTML report ".abs_path($file)." written.\n";
 

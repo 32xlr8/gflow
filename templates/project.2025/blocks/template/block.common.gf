@@ -52,6 +52,25 @@ GROUND_NETS_CORE='VSS'
 # GROUND_NETS_OTHER='VSSA VSSPST'
 
 ################################################################################
+# External git repositories
+################################################################################
+
+# Bash script to crete snapshot of input data
+gf_create_step -name bash_data_in '
+    
+    # # Clone Git repository
+    # git clone -v -b main https://github.com/32xlr8/gflow.git ./out/gflow
+    # git clone -v -b BRANCH /PATH/TO/REPOSITORY.git ./out/DIR/
+    
+    # # Copy or link data
+    # cp -vR /PATH/FROM/ ./out/
+    # ln -vs /PATH/FROM/ ./out/
+    
+    # # Calculate MD5 of important files
+    # md5sum ./out/gflow/bin/*
+'
+
+################################################################################
 # Physical files
 ################################################################################
 

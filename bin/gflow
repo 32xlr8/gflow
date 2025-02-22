@@ -10021,7 +10021,7 @@ elif [ -n "$GF_INTERACTIVE_MODE" -o -z "$GF_SCRIPT" ]; then
     trap -- SIGHUP
     trap 'gf_restore_title' EXIT
     gf_show_cursor
-    gf_set_window_title "Generic Flow Utilities v5.5.1 (February 2025)" "GF utilities"
+    gf_set_window_title "Generic Flow Utilities" "GF utilities"
 
     # Environment initialization
     export PATH="$GF_UTILS:$(gf_full_path "$GF_BIN/.."):${PATH}"

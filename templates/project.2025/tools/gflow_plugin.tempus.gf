@@ -24,7 +24,7 @@
 gf_info "Loading Tempus plugin ..."
 
 ##################################################
-gf_help_section "Tempus Common UI plugin v5.5.1"
+gf_help_section "Tempus Common UI plugin"
 ##################################################
 
 ##################################################

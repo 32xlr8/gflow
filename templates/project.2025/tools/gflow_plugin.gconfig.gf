@@ -24,7 +24,7 @@
 gf_info "Loading generic Config plugin ..."
 
 ##################################################
-gf_help_section "Generic Config plugin v5.5.1"
+gf_help_section "Generic Config plugin"
 ##################################################
 
 ##################################################

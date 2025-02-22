@@ -52,10 +52,10 @@ GROUND_NETS_CORE='VSS'
 # GROUND_NETS_OTHER='VSSA VSSPST'
 
 ################################################################################
-# External git repositories
+# Shell steps
 ################################################################################
 
-# Bash script to crete snapshot of input data
+# Bash script to create snapshot of input data
 gf_create_step -name bash_data_in '
     
     # # Clone Git repository

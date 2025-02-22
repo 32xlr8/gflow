@@ -51,7 +51,9 @@ gf_choose_file_dir_task -variable GDS_OUT_FILE -keep -prompt "Choose GDS to use:
 
 # Create rules file with substituted values
 gf_check_files $CALIBRE_DRC_RULES
-gf_add_tool_commands -comment '' -ext rul "$(cat $CALIBRE_DRC_RULES)"
+if [ -n "$(echo $CALIBRE_DRC_RULES)" ]; then
+    gf_add_tool_commands -comment '' -ext rul "$(cat $CALIBRE_DRC_RULES)"
+fi
 
 # Fix relative paths in reports
 gf_add_shell_commands -post "
@@ -90,7 +92,9 @@ gf_choose_file_dir_task -variable GDS_OUT_FILE -keep -prompt "Choose GDS to use:
 
 # Create rules file with substituted values
 gf_check_files $CALIBRE_ANT_RULES
-gf_add_tool_commands -comment '' -ext rul "$(cat $CALIBRE_ANT_RULES)"
+if [ -n "$(echo $CALIBRE_ANT_RULES)" ]; then
+    gf_add_tool_commands -comment '' -ext rul "$(cat $CALIBRE_ANT_RULES)"
+fi
 
 # Fix relative paths in reports
 gf_add_shell_commands -post "
@@ -128,7 +132,9 @@ gf_choose_file_dir_task -variable GDS_OUT_FILE -keep -prompt "Choose GDS to use:
 
 # Create rules file with substituted values
 gf_check_files $CALIBRE_BUMP_RULES
-gf_add_tool_commands -comment '' -ext rul "$(cat $CALIBRE_BUMP_RULES)"
+if [ -n "$(echo $CALIBRE_BUMP_RULES)" ]; then
+    gf_add_tool_commands -comment '' -ext rul "$(cat $CALIBRE_BUMP_RULES)"
+fi
 
 # Fix relative paths in reports
 gf_add_shell_commands -post "

@@ -69,6 +69,12 @@ gf_add_tool_commands '
     set VOLTUS_RAIL_DATA {`$VOLTUS_RAIL_DATA`} 
     set DESIGN_NAME {`$DESIGN_NAME`} 
 
+    # Files base
+    set files_base [regsub {/out/(.*)\.rail/.*?$} $VOLTUS_RAIL_DATA {/in/\1}]
+    if {![llength $files_base]} {
+        set files_base [regsub {/out/(.*)\.power/.*?$} $VOLTUS_POWER_DATA {/in/\1}]
+    }
+
     # Start metric collection
     `@collect_metrics`
 
@@ -77,9 +83,8 @@ gf_add_tool_commands '
 
     # Load design files
     read_physical -lefs [join $LEF_FILES]
-    set files [regsub {/out/(.*)\.rail/.*?$} $VOLTUS_RAIL_DATA {/in/\1.v.gz}]
-    read_netlist $files -top $DESIGN_NAME
-    puts "Netlist files: [join $files]"
+    read_netlist $files_base.v.gz -top $DESIGN_NAME
+    puts "Netlist files: [join $files_base.v.gz]"
     
     # Design initialization
     init_design
@@ -88,10 +93,10 @@ gf_add_tool_commands '
     `@voltus_post_init_design`
     
     # Load physical data
-    read_def [regsub {/out/(.*)\.rail/.*?$} $VOLTUS_RAIL_DATA {/in/\1.def.gz}] -skip_signal_nets 
+    read_def $files_base.def.gz -skip_signal_nets 
 
     # Open power and rail results
-    if {[llength $VOLTUS_POWER_DATA]} {
+    if {[llength $VOLTUS_POWER_DATA] && [llength $VOLTUS_RAIL_DATA]} {
         ::read_power_rail_results \
             -power_db $VOLTUS_POWER_DATA \
             -rail_directory $VOLTUS_RAIL_DATA \
@@ -99,9 +104,16 @@ gf_add_tool_commands '
             -instance_voltage_method {worst best avg worstavg}
 
     # Rail results only
-    } else {
+    } elseif {[llength $VOLTUS_RAIL_DATA]} {
         ::read_power_rail_results \
             -rail_directory $VOLTUS_RAIL_DATA \
+            -instance_voltage_window {timing whole} \
+            -instance_voltage_method {worst best avg worstavg}
+
+    # Power results only
+    } elseif {[llength $VOLTUS_POWER_DATA]} {
+        ::read_power_rail_results \
+            -power_db $VOLTUS_POWER_DATA \
             -instance_voltage_window {timing whole} \
             -instance_voltage_method {worst best avg worstavg}
     }

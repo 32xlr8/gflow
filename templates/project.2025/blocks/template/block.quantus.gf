@@ -115,75 +115,75 @@ gf_create_step -name quantus_pre_init_design '
     
     # # Option 2.1.2: LEF to GDS manual layer mapping without DPT layers
     # extraction_setup -gds_layer_map \
-    #    <PLACEHOLDER>LEF_layer GDS_layer_num GDS_data_type \
-    #    PO    17  0  \
-    #    CO    30  0  \
-    #    M1    31  0  \
-    #    VIA1  51  0  \
-    #    RV    85  0  \
-    #    AP    74  0
+    #     <PLACEHOLDER>LEF_layer GDS_layer_num GDS_data_type \
+    #     PO    17  0  \
+    #     CO    30  0  \
+    #     M1    31  0  \
+    #     VIA1  51  0  \
+    #     RV    85  0  \
+    #     AP    74  0
     #
     # # Option 2.1.3: LEF to GDS manual layer mapping with DPT layers
     # extraction_setup -gds_layer_map_by_color \
-    #    - M0 180 250 \
-    #    1 M0 180 255 \
-    #    2 M0 180 256 \
-    #    <PLACEHOLDER>mask LEF_layer GDS_layer_num GDS_data_type \
-    #    - AP 74 0 \
-    #    - VIA0 159 250 \
-    #    - VIA1 51 250 \
-    #    1 VIA1 51 255 \
-    #    2 VIA1 51 256 \
-    #    <PLACEHOLDER>mask LEF_layer GDS_layer_num GDS_data_type \
-    #    - RV 85 0
+    #     - M0 180 250 \
+    #     1 M0 180 255 \
+    #     2 M0 180 256 \
+    #     <PLACEHOLDER>mask LEF_layer GDS_layer_num GDS_data_type \
+    #     - AP 74 0 \
+    #     - VIA0 159 250 \
+    #     - VIA1 51 250 \
+    #     1 VIA1 51 255 \
+    #     2 VIA1 51 256 \
+    #     <PLACEHOLDER>mask LEF_layer GDS_layer_num GDS_data_type \
+    #     - RV 85 0
     #
     # # Option 2.2.2: LEF to GDS metal fill manual layer mapping without DPT layers
     # extraction_setup -gds_fill_layer_map \
-    #    OD 6 1 \
-    #    OD 6 7 \
-    #    PO 17 1 \
-    #    PO 17 7 \
-    #    PO 17 11 \
-    #    PO 17 12 \
-    #    M1 31 1 \
-    #    M1 31 7 \
-    #    M1 31 209 \
-    #    M2 32 1 \
-    #    M2 32 7 \
-    #    M2 32 209 \
-    #    M3 33 1 \
-    #    M3 33 7 \
-    #    M4 34 1 \
-    #    M4 34 7 \
-    #    <PLACEHOLDER>LEF_layer GDS_layer_num GDS_data_type \
-    #    VIA1 51 1 \
-    #    VIA2 52 1 \
-    #    VIA3 53 1 \
+    #     OD 6 1 \
+    #     OD 6 7 \
+    #     PO 17 1 \
+    #     PO 17 7 \
+    #     PO 17 11 \
+    #     PO 17 12 \
+    #     M1 31 1 \
+    #     M1 31 7 \
+    #     M1 31 209 \
+    #     M2 32 1 \
+    #     M2 32 7 \
+    #     M2 32 209 \
+    #     M3 33 1 \
+    #     M3 33 7 \
+    #     M4 34 1 \
+    #     M4 34 7 \
+    #     <PLACEHOLDER>LEF_layer GDS_layer_num GDS_data_type \
+    #     VIA1 51 1 \
+    #     VIA2 52 1 \
+    #     VIA3 53 1 \
     #    <PLACEHOLDER>LEF_layer GDS_layer_num GDS_data_type
     #  
     # # Option 2.2.3: LEF to GDS metal fill manual layer mapping with DPT layers
     # extraction_setup -gds_fill_layer_map_by_color \
-    #    - OD 6 1 \
-    #    - OD 6 7 \
-    #    - OD 6 21 \
-    #    - OD 6 22 \
-    #    - OD 6 25 \
-    #    - COD_H 6 26 \
-    #    - COD_V 6 27 \
-    #    - COD_BLOCK 6 28 \
-    #    - PO 17 1 \
-    #    - PO 17 7 \
-    #    - PO 17 8 \
-    #    - CPO 17 23 \
-    #    - M1 31 2 \
-    #    - M1 31 3 \
-    #    1 M2 32 72 \
-    #    2 M2 32 73 \
-    #    1 M3 33 72 \
-    #    2 M3 33 73 \
-    #    - M4 34 151 \
-    #    - M4 34 157 \
-    #    <PLACEHOLDER>mask LEF_layer GDS_layer_num GDS_data_type \
-    #    - VIA1 51 71 \
-    #    <PLACEHOLDER>mask LEF_layer GDS_layer_num GDS_data_type
+    #     - OD 6 1 \
+    #     - OD 6 7 \
+    #     - OD 6 21 \
+    #     - OD 6 22 \
+    #     - OD 6 25 \
+    #     - COD_H 6 26 \
+    #     - COD_V 6 27 \
+    #     - COD_BLOCK 6 28 \
+    #     - PO 17 1 \
+    #     - PO 17 7 \
+    #     - PO 17 8 \
+    #     - CPO 17 23 \
+    #     - M1 31 2 \
+    #     - M1 31 3 \
+    #     1 M2 32 72 \
+    #     2 M2 32 73 \
+    #     1 M3 33 72 \
+    #     2 M3 33 73 \
+    #     - M4 34 151 \
+    #     - M4 34 157 \
+    #     <PLACEHOLDER>mask LEF_layer GDS_layer_num GDS_data_type \
+    #     - VIA1 51 71 \
+    #     <PLACEHOLDER>mask LEF_layer GDS_layer_num GDS_data_type
 '

@@ -261,7 +261,7 @@ gf_add_tool_commands '
         }
         
         # Global nets
-        puts $FH "global_nets -nets [regsub -all {([\[\]])} [concat $POWER_NETS $GROUND_NETS] {\\\1}]\n"    
+        puts $FH "global_nets -nets [regsub -all {([\[\]])} [join [concat $POWER_NETS $GROUND_NETS]] {\\\1}]\n"    
 
         # Corners to extract
         puts $FH "process_technology \\\n    -technology_library_file ./lib.defs \\\n    -technology_name qrc_tech_lib \\"

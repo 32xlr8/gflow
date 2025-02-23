@@ -25,13 +25,15 @@
 
 # Usage: $0 <CPU> <RAM> <remote command to run> </path/to/config.grid> </path/to/queue.grid>
 
-# File config.grid should contain information about available resources
+# File config.grid should contain information about available resources (see ./gflow/templates/config.grid).
 # It should contain at least one line with following syntax, 
-# definind available CPU and RAM resurces to use on HOSTNAME:
-#    * HOST HOSTNAME CPU RAM LOAD
-#    * 01 ssh-host01 32 512 +0.000
+# defining available CPU and RAM resurces to use on HOSTNAME:
+#    * SSH_HOST NAME CPU RAM LOAD_OFFSET [SSH_OPTIONS]
+#    * 127.0.0.1 ssh-host01 32 512 +0.000 -p 22 -X
 
-# File queue.grid used to store information on running tasks
+# File queue.grid used to store information on running tasks (see ./gflow/templates/queue.grid).
+# Please give write permissions for all users who suppose to use it
+#    chmod a+x queue.grid
 
 # Number of CPUs and required amount of RAM for new task
 CPU="$1"; shift
@@ -58,7 +60,7 @@ sleep 0.${RANDOM:0:1}
 while [ "$STAT2" != "$STAT" ]; do
 
     # Parse log file
-    RESULT=$(cat $LOGS | perl -e '
+    COMMANDS=$(cat $LOGS | perl -e '
 
         # Analyze log file
         my %hosts; my %hostnames; my %tasks;
@@ -67,16 +69,18 @@ while [ "$STAT2" != "$STAT" ]; do
             next if (/^\s*\#/);
 
             # Host resources definition
-            if (/^\s*\*\s+(\S+)\s+(\S+)\s+(\d+)\s+(\d+)\s+([\+\-]?\d+\.?\d*)\s*$/) {
+            if (/^\s*\*\s+(\S+)\s+(\S+)\s+(\d+)\s+(\d+)\s+([\+\-]?\d+\.?\d*)\s*(.*?)$/) {
                 my $host = $1;
                 my $hostname = $2;
                 my $cpu = $3;
                 my $ram = $4;
                 my $load = $5;
+                my $options = $6;
                 $hosts{$hostname}{host} = $host;
                 $hosts{$hostname}{cpu_total} = $cpu;
                 $hosts{$hostname}{ram_total} = $ram;
                 $hosts{$hostname}{load} = $load;
+                $hosts{$hostname}{options} = $options;
                 $hostnames{$hostname} = $hostname;
                 $hostnames{$host} = $hostname;
 
@@ -140,9 +144,11 @@ while [ "$STAT2" != "$STAT" ]; do
         # Sort host by available score
         foreach my $hostname (sort {$scores{$b} <=> $scores{$a}} keys %scores) {
             print STDERR "\e[32;42m \e[0m Host ".$hosts{$hostname}{host}." (".$hosts{$hostname}{cpu_total}." CPU, ".$hosts{$hostname}{ram_total}."G RAM) usage score is ".sprintf("%0.3f", $scores{$hostname})."\n";
-            print $hosts{$hostname}{host}." ".sprintf("%0.3f", $scores{$hostname})."\n";
+            print "=1=".$hosts{$hostname}{host}."\n";
+            print "=2=".sprintf("%0.3f", $scores{$hostname})."\n";
+            print "=3=".$hosts{$hostname}{options}."\n";
         }
-    ' | tail -1)
+    ')
 
     # Wait on changes
     STAT2="$STAT"
@@ -158,17 +164,21 @@ while [ "$STAT2" != "$STAT" ]; do
 done
 
 # Check host candidate
-if [ -z "$RESULT" ]; then
+if [ -z "$COMMANDS" ]; then
     >&2 echo "No hosts detected to submit task to"
     exit 2
-else
-    RESULT_HOST=$(echo $RESULT | cut -d' ' -f1)
-    RESULT_SCORE=$(echo $RESULT | cut -d' ' -f2)
-    >&2 echo $'\n\e[32;42m \e[0m '"Host $RESULT_HOST chosen for $LOG queue"
-fi
-    
-# Release resources when task completed
-trap "echo \"- \$(date '+%d.%m.%y %H:%M:%S') $USER@$RESULT_HOST $CPU $RAM $HOSTNAME:$$\" >> \"$LOG\"" EXIT
 
-# Run task on chosen host
-echo "+ $(date '+%d.%m.%y %H:%M:%S') $USER@$RESULT_HOST $CPU $RAM $HOSTNAME:$$ $RESULT_SCORE $PWD" >> "$LOG" && ssh $RESULT_HOST "cd \"$PWD\"; $COMMAND"
+else
+    echo "$COMMANDS"
+    RESULT_HOST=$(echo "$COMMANDS" | sed -ne 's|^=1=||p' | tail -1)
+    RESULT_SCORE=$(echo "$COMMANDS" | sed -ne 's|^=2=||p' | tail -1)
+    RESULT_OPTIONS=$(echo "$COMMANDS" | sed -ne 's|^=3=||p' | tail -1)
+    >&2 echo $'\n\e[32;42m \e[0m '"Host $RESULT_HOST chosen for $LOG queue"
+    
+    # Release resources when task completed
+    trap "echo \"- \$(date '+%d.%m.%y %H:%M:%S') $USER@$RESULT_HOST $CPU $RAM $HOSTNAME:$$\" >> \"$LOG\"" EXIT
+
+    # Run task on chosen host
+    echo "ssh $RESULT_OPTIONS $RESULT_HOST cd \"$PWD\"; $COMMAND"
+    echo "+ $(date '+%d.%m.%y %H:%M:%S') $USER@$RESULT_HOST $CPU $RAM $HOSTNAME:$$ $RESULT_SCORE $PWD" >> "$LOG" && ssh $RESULT_OPTIONS $RESULT_HOST "cd \"$PWD\"; $COMMAND"
+fi

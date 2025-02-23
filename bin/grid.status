@@ -23,20 +23,26 @@
 # Purpose:  Generic Flow grid status tool
 ################################################################################
 
-# Usage: $0 <HOST> </path/to/config.grid> </path/to/queue.grid>
+# Usage: $0 </path/to/config.grid> </path/to/queue.grid>
 
-# File config.grid should contain information about available resources
+# File config.grid should contain information about available resources (see ./gflow/templates/config.grid).
 # It should contain at least one line with following syntax, 
-# definind available CPU and RAM resurces to use on HOSTNAME:
-#    * HOST HOSTNAME CPU RAM LOAD
-#    * 01 ssh-host01 32 512 +0.000
+# defining available CPU and RAM resurces to use on HOSTNAME:
+#    * SSH_HOST NAME CPU RAM LOAD_OFFSET [SSH_OPTIONS]
+#    * 127.0.0.1 ssh-host01 32 512 +0.000 -p 22 -X
 
-# File queue.grid used to store information on running tasks
-# Several files can be used
+# File queue.grid used to store information on running tasks (see ./gflow/templates/queue.grid).
+# Please give write permissions for all users who suppose to use it
+#    chmod a+x queue.grid
 
 # Host to report
-HOST=$1; shift;
 LOG="$1"; shift
+
+# Check log to 
+if [ ! -e "$LOG" ]; then
+    >&2 echo $'\n\e[32;42m \e[0m '"Usage: $0 </path/to/config.grid> </path/to/queue.grid>"
+    exit 1
+fi
 
 cat "$LOG" "$@" | perl -e '
 
@@ -47,16 +53,18 @@ cat "$LOG" "$@" | perl -e '
         next if (/^\s*\#/);
 
         # Host resources definition
-        if (/^\s*\*\s+(\S+)\s+(\S+)\s+(\d+)\s+(\d+)\s+([\+\-]?\d+\.?\d*)\s*$/) {
+        if (/^\s*\*\s+(\S+)\s+(\S+)\s+(\d+)\s+(\d+)\s+([\+\-]?\d+\.?\d*)\s*(.*?)$/) {
             my $host = $1;
             my $hostname = $2;
             my $cpu = $3;
             my $ram = $4;
             my $load = $5;
+            my $options = $6;
             $hosts{$hostname}{host} = $host;
             $hosts{$hostname}{cpu_total} = $cpu;
             $hosts{$hostname}{ram_total} = $ram;
             $hosts{$hostname}{load} = $load;
+            $hosts{$hostname}{options} = $options;
             $hostnames{$hostname} = $hostname;
             $hostnames{$host} = $hostname;
 
@@ -92,8 +100,8 @@ cat "$LOG" "$@" | perl -e '
 
     # Report host availability
     my $is_ok = 0;
-    my $hosts = "'"$HOST"'";
-    foreach my $host (split /\s+/, $hosts) {
+    print STDERR "\n";
+    foreach my $host (sort keys %hosts) {
         my $hostname = $hostnames{$host};
         
         if ($hostname) {
@@ -124,10 +132,8 @@ cat "$LOG" "$@" | perl -e '
             $score += 0.50 * $cpu / $hosts{$hostname}{cpu_total} if ($hosts{$hostname}{cpu_total});
             $score += 0.50 * $ram / $hosts{$hostname}{ram_total} if ($hosts{$hostname}{ram_total});
 
-            # print STDERR "\e[34;44m \e[0m Load score in grid is ".sprintf("%0.3f", $score)."\n\n";
-            print STDERR "\e[34;44m \e[0m Utilization in grid is ".sprintf("%0.0f%%", $score*100)."\n\n";
-            
-            print STDERR "$status\n" if ($status);
+            print STDERR "\e[34;44m \e[0m Host $hostname: utilization in grid is ".sprintf("%0.0f%%", $score*100)."\n";
+            print STDERR "$status\n" if ($status ne "");
         }
     }
 '

@@ -1,0 +1,5 @@
+# File config.grid should contain information about available resources
+# It should contain at least one line with following syntax, 
+# defining available CPU and RAM resurces to use on HOSTNAME:
+#    * SSH_HOST NAME CPU RAM LOAD_OFFSET [SSH_OPTIONS]
+#    * 127.0.0.1 ssh-host01 32 512 +0.000 -p 22 -X

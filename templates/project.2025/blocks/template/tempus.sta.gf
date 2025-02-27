@@ -167,6 +167,7 @@ gf_add_tool_commands '
     }
 
     # Timing analysis
+    set TASK_NAME_JOINED $TASK_NAME
     exec mkdir -p ./reports/$TASK_NAME
     `@tempus_sta_reports`
     

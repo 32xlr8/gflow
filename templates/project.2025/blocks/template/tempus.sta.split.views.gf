@@ -245,11 +245,8 @@ gf_add_tool_commands '
     }
 
     # Timing analysis
-    set ORIGINAL_TASK_NAME $TASK_NAME
-    set TASK_NAME [regsub {_\w+} $TASK_NAME {}]
-    exec mkdir -p ./reports/$TASK_NAME
+    set TASK_NAME_JOINED [regsub {_\w+} $TASK_NAME {}]
     `@tempus_sta_reports`
-    set TASK_NAME $ORIGINAL_TASK_NAME
     
     # Report collected metrics
     `@report_metrics`

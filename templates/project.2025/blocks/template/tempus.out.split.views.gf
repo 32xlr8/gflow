@@ -239,11 +239,8 @@ gf_add_tool_commands '
     update_timing -full
 
     # Write out STA files
-    set ORIGINAL_TASK_NAME $TASK_NAME
-    set TASK_NAME [regsub {_\w+} $TASK_NAME {}]
-    exec mkdir -p ./reports/$TASK_NAME
+    set TASK_NAME_JOINED [regsub {_\w+} $TASK_NAME {}]
     `@tempus_data_out`
-    set TASK_NAME $ORIGINAL_TASK_NAME
     
     # Report collected metrics
     `@report_metrics`

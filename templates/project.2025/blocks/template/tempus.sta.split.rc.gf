@@ -19,8 +19,8 @@
 # limitations under the License.
 #
 ################################################################################
-# Filename: templates/project.2025/blocks/template/tempus.sta.split.views.gf
-# Purpose:  Batch signoff STA flow with several tasks splitted by analysis view
+# Filename: templates/project.2025/blocks/template/tempus.sta.split.rc.gf
+# Purpose:  Batch signoff STA flow with several tasks splitted by RC corner
 ################################################################################
 
 ########################################
@@ -67,7 +67,7 @@ gf_add_tool_commands -file "./tasks/$TASK_NAME/run.tcl" '
     set groups {}
     set grouped_masks {}
     foreach mask $MMMC_VIEWS {
-        set group [join [list [lindex $mask 0]_ [lindex $mask 1] [lindex $mask 2] [lindex $mask 3] [lindex $mask 4] _[lindex $mask 5]] ""]
+        set group [join [list [lindex $mask 4] _[lindex $mask 3]] ""]
         if {[lsearch -exact $groups $group] < 0} {
             lappend groups $group
         }

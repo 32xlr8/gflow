@@ -94,7 +94,6 @@ gf_create_step -name innovus_gconfig_design_variables '
     set SDF_VIEWS [regsub -all -line {^\s*\#.*\n} {
         {func ss 0p900v m40 rcwt s}
         {func ff 1p100v m40 cw h}
-        {func tt 1p000v 85 rcw p}
     } {}]
 '
 
@@ -1571,12 +1570,12 @@ gf_create_step -name innovus_data_out '
     if {[llength $exclude_cells] > 0} {
         write_netlist -keep_all_backslash -flatten_bus -exclude_leaf_cells \
             -exclude_insts_of_cells $exclude_cells  \
-            -phys -include_pg_ports -export_top_pg_nets -include_phys_insts \
+            -phys -include_pg_ports -include_phys_insts \
             -top_module $DESIGN_NAME \
             ./out/$TASK_NAME/$DESIGN_NAME.physical.v.gz
     } else {
         write_netlist -keep_all_backslash -flatten_bus -exclude_leaf_cells \
-            -phys -include_pg_ports -export_top_pg_nets -include_phys_insts \
+            -phys -include_pg_ports -include_phys_insts \
             -top_module $DESIGN_NAME \
             ./out/$TASK_NAME/$DESIGN_NAME.physical.v.gz
     }

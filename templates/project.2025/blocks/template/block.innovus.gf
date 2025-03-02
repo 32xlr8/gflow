@@ -91,9 +91,11 @@ gf_create_step -name innovus_gconfig_design_variables '
     } {}]
     
     # SDF views
-    set SDF_MAX_VIEW {func ss 0p900v m40 rcwt s}
-    set SDF_MIN_VIEW {func ff 1p100v m40 cw h}
-    set SDF_TYP_VIEW {func tt 1p000v 85 rcw p}
+    set SDF_VIEWS [regsub -all -line {^\s*\#.*\n} {
+        {func ss 0p900v m40 rcwt s}
+        {func ff 1p100v m40 cw h}
+        {func tt 1p000v 85 rcw p}
+    } {}]
 '
 
 # MMMC and OCV settings
@@ -1490,12 +1492,16 @@ gf_create_step -name innovus_design_reports_post_route '
     }
 
     # Write out SDF for block level simulation
-    write_sdf ./out/$TASK_NAME/$DESIGN_NAME.sdf.gz \
-        -min_view [gconfig::get analysis_view_name -view $SDF_MIN_VIEW] \
-        -typical_view [gconfig::get analysis_view_name -view $SDF_TYP_VIEW] \
-        -max_view [gconfig::get analysis_view_name -view $SDF_MAX_VIEW] \
-        -edges noedge -interconnect all -no_derate \
-        -version 3.0
+    foreach view $SDF_VIEWS {
+        set view [gconfig::get analysis_view_name -view $view]
+        puts "Writing ./out/$TASK_NAME/$DESIGN_NAME.$view.sdf.gz ..."
+        if {[get_db analysis_views $view] != ""} {
+            write_sdf ./out/$TASK_NAME/$DESIGN_NAME.$view.sdf.gz \
+                -edges noedge -interconnect all -no_derate \
+                -version 3.0 \
+                -view $view
+        }
+    }
 
     # Write out RC factors for pre to post route correlation
     report_rc_factors -blocks_template medium -pre_route true -out_file ./out/$TASK_NAME.rc_factors.tcl
@@ -1535,11 +1541,6 @@ gf_create_step -name innovus_design_reports_post_route '
 
 # Commands to create block-specific data
 gf_create_step -name innovus_data_out '
-    set PHYSICAL_NETLIST_EXCLUDE_CELLS {`$PHYSICAL_NETLIST_EXCLUDE_CELLS -optional`}
-    set LOGICAL_NETLIST_EXCLUDE_CELLS {`$LOGICAL_NETLIST_EXCLUDE_CELLS -optional`}
-    set INNOVUS_GDS_UNITS {`$INNOVUS_GDS_UNITS`}
-    set INNOVUS_GDS_LAYER_MAP_FILE [join {`$INNOVUS_GDS_LAYER_MAP_FILE`}]
-    set GDS_FILES [join {`$GDS_FILES` `$PARTITIONS_GDS_FILES -optional`}]
 
     ##################################################
     # Netlist manipulations
@@ -1566,7 +1567,7 @@ gf_create_step -name innovus_data_out '
     write_netlist ./out/$TASK_NAME/$DESIGN_NAME.v.gz
     
     # Write physical netlist for LVS
-    set exclude_cells [get_db [get_db base_cells $PHYSICAL_NETLIST_EXCLUDE_CELLS] .name]
+    set exclude_cells [get_db [get_db base_cells {`$PHYSICAL_NETLIST_EXCLUDE_CELLS -optional`}] .name]
     if {[llength $exclude_cells] > 0} {
         write_netlist -keep_all_backslash -flatten_bus -exclude_leaf_cells \
             -exclude_insts_of_cells $exclude_cells  \
@@ -1581,7 +1582,7 @@ gf_create_step -name innovus_data_out '
     }
 
     # Write logical netlist for STA
-    set exclude_cells [get_db [get_db base_cells $LOGICAL_NETLIST_EXCLUDE_CELLS] .name]
+    set exclude_cells [get_db [get_db base_cells {`$LOGICAL_NETLIST_EXCLUDE_CELLS -optional`}] .name]
     if {[llength $exclude_cells] > 0} {
         write_netlist -keep_all_backslash -flatten_bus -exclude_leaf_cells \
             -exclude_insts_of_cells $exclude_cells \
@@ -1624,9 +1625,9 @@ gf_create_step -name innovus_data_out '
     
     # Write out GDS for LVS
     write_stream -mode ALL -output_macros -uniquify_cell_names -die_area_as_boundary \
-        -unit $INNOVUS_GDS_UNITS \
-        -map_file $INNOVUS_GDS_LAYER_MAP_FILE \
-        -merge $GDS_FILES \
+        -unit {`$INNOVUS_GDS_UNITS`} \
+        -map_file [join {`$INNOVUS_GDS_LAYER_MAP_FILE`}] \
+        -merge [join {`$GDS_FILES` `$PARTITIONS_GDS_FILES -optional`}] \
         ./out/$TASK_NAME/$DESIGN_NAME.gds.gz
     
     # Write out hcell file and pin locations for LVS

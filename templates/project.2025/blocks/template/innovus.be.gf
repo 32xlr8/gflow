@@ -127,13 +127,6 @@ gf_add_tool_commands '
     # Apply power intent
     if {[file exists $CPF_FILE] || [file exists $UPF_FILE]} {
         commit_power_intent
-        foreach delay_corner [get_db delay_corners] {
-            set timing_condition [get_db $delay_corner .late_timing_condition.name]
-            foreach power_domain [get_db power_domains] {
-                append timing_condition " [get_db $power_domain .name]@[get_db $delay_corner .late_timing_condition.name]"
-            }
-            update_delay_corner -name [get_db $delay_corner .name] -timing_condition $timing_condition
-        }
         
     # Error if CPF is incorrect
     } elseif {$CPF_FILE != {}} {

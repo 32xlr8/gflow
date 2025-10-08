@@ -47,22 +47,24 @@ gf_choose_file_dir_task -variable DATA_OUT_DIR -keep -prompt "Choose design data
     ../work_*/*/tasks/InnovusOut*
 '
 
-# Select dummy fill to use when empty
-if [ -n "$QUANTUS_DUMMY_TOP" -a -z "$QUANTUS_DUMMY_GDS" ]; then
+# Select to use dummy when top cell defined
+if [ -n "$QUANTUS_DUMMY_TOP" ]; then
     gf_spacer
     gf_choose -variable USE_DUMMY_GDS -keep -keys YN -time 30 -default Y -prompt "Use dummy fill GDS (Y/N)?"
-
-    # Dummy fill GDS
-    if [ "$USE_DUMMY_GDS" == "Y" ]; then
-        gf_spacer
-        gf_choose_file_dir_task -variable QUANTUS_DUMMY_GDS -keep -prompt "Choose dummy fill to use:" -files '
-            ../work_*/*/out/Dummy*.gds.gz
-        ' -want -active -task_to_file '$RUN/out/$TASK.gds.gz' -tasks '
-            ../work_*/*/tasks/Dummy*
-        '
-    fi
 fi
-[[ "$USE_DUMMY_GDS" != "Y" ]] && QUANTUS_DUMMY_GDS=""
+
+# Select dummy fill to use when empty
+if [ -n "$QUANTUS_DUMMY_TOP" -a "$USE_DUMMY_GDS" == "Y" ]; then
+    gf_spacer
+    gf_choose_file_dir_task -variable QUANTUS_DUMMY_GDS -keep -prompt "Choose dummy fill to use:" -files '
+        ../work_*/*/out/Dummy*.gds.gz
+    ' -want -active -task_to_file '$RUN/out/$TASK.gds.gz' -tasks '
+        ../work_*/*/tasks/Dummy*
+    '
+else
+    QUANTUS_DUMMY_GDS=""
+fi
+
 
 # Shell commands to initialize environment
 gf_add_shell_commands -init "
@@ -172,7 +174,7 @@ gf_add_tool_commands '
         puts $FH "input_db -type def -design_file \\\n    $DATA_OUT_DIR/$DESIGN_NAME.full.def.gz\n"
 
         # Command to read in metal fill
-        if {$QUANTUS_DUMMY_GDS != {}} {
+        if {($QUANTUS_DUMMY_TOP != {}) && ($QUANTUS_DUMMY_GDS != {})} {
             puts $FH "graybox -type layout"
             puts $FH "input_db -type metal_fill -metal_fill_top_cell $QUANTUS_DUMMY_TOP -gds_file \\\n    $QUANTUS_DUMMY_GDS\n"
             puts $FH "metal_fill -type \"floating\""

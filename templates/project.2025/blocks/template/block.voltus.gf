@@ -583,7 +583,7 @@ gf_create_step -name voltus_run_report_rail_static '
     # Power data
     set power_files {}
     foreach net [concat $VOLTUS_POWER_NETS $VOLTUS_GROUND_NETS] {
-        lappend power_files ./out/$POWER_TASK_NAME.power/static_${net}.pti${STATIC_POWER_CURRENT_METHOD}
+        lappend power_files ./out/$POWER_TASK_NAME.power/static_[regsub -all {/} $net {_}].pti${STATIC_POWER_CURRENT_METHOD}
     }
     set_power_data -format current -scale 1 $power_files
 
@@ -776,7 +776,7 @@ gf_create_step -name voltus_run_report_rail_dynamic '
     # Power data
     set power_files {}
     foreach net [concat $VOLTUS_POWER_NETS $VOLTUS_GROUND_NETS] {
-        lappend power_files ./out/$POWER_TASK_NAME.power/dynamic_${net}.pti${DYNAMIC_POWER_CURRENT_METHOD}
+        lappend power_files ./out/$POWER_TASK_NAME.power/dynamic_[regsub -all {/} $net {_}].pti${DYNAMIC_POWER_CURRENT_METHOD}
     }
     set_power_data -format current -scale 1 $power_files
 

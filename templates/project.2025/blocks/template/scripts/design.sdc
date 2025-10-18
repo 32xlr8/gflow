@@ -17,9 +17,10 @@
 # limitations under the License.
 #
 ################################################################################
-# Filename: templates/project.2025/blocks/template/data/design.sdc
-# Purpose:  Design constraints
+# Filename: templates/project.2025/blocks/template/scripts/design.sdc
 ################################################################################
+
+# Design constraints
 
 # Drivers and loads
 set_driving_cell -lib_cell "PATTERN" [all_inputs]

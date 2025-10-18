@@ -17,9 +17,10 @@
 # limitations under the License.
 #
 ################################################################################
-# Filename: templates/project.2025/blocks/template/data/func.sdc
-# Purpose:  Functional constraints
+# Filename: templates/project.2025/blocks/template/scripts/func.sdc
 ################################################################################
+
+# Functional constraints
 
 ##################################################
 # Clocks

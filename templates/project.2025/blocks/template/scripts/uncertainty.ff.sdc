@@ -18,8 +18,9 @@
 #
 ################################################################################
 # Filename: templates/project.2025/blocks/template/data/uncertainty.ff.sdc
-# Purpose:  Corner-specific margins
 ################################################################################
+
+# Corner-specific margins
 
 # Primary clocks uncertainty
 set_clock_uncertainty -setup 0.050 [get_clocks "fast_clk"]

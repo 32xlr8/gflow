@@ -16,6 +16,9 @@ be:
 ig:
 	../template/innovus.gui.gf
 
+cg:
+	../template/calibre.gui.gf
+
 sta:
 	export GENUS_FE=N; \
 	export INNOVUS_BE=N; \

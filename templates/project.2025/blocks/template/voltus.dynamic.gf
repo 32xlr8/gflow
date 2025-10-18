@@ -288,5 +288,5 @@ gf_submit_task
 ########################################
 
 gf_create_task -name HistoryDynamicRail -mother DynamicRail
-gf_set_task_command "../../../../../../tools/print_runs_history_html.pl ../.. > ./reports/$TASK_NAME.html"
+gf_set_task_command "../../../../../../tools/print_flow_history.pl ../.. -html ./reports/$TASK_NAME.html"
 gf_submit_task -silent

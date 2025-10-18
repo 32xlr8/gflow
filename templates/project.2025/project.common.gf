@@ -33,11 +33,17 @@ gf_set_flow_options -dir ./work_$USER
 # Use new run directory name every day
 gf_set_flow_options -today
 
-# # Run tasks in SGE mode
+# Option 1 - Run tasks at local host
+gf_set_flow_options -local
+
+# # Option 2 - Run tasks in SSH mode
+# gf_set_flow_options -grid -grid_command '../../../../../../gflow/bin/grid.submit "${GF_TASK_COMMAND}" ${GF_TASK_CPU} ${GF_TASK_MEM}'
+#
+# # Option 3 - Run tasks in SGE mode
 # gf_set_flow_options -sge -sge_options '-q all.q -pe servers ${GF_TASK_CPU} -l mem=${GF_TASK_MEM}G,arch=lx24-amd64,os_rel=RH7'
 # gf_set_flow_options -sge
-
-# # Run tasks in LSF mode
+#
+# # Option 4 - Run tasks in LSF mode
 # gf_set_flow_options -lsf -lsf_options '-n ${GF_TASK_CPU} -R rusage[mem=${GF_TASK_MEM}000]'
 # gf_set_flow_options -lsf
 

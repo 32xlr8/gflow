@@ -100,7 +100,9 @@ gf_add_tool_commands -comment '' -file "./scripts/$TASK_NAME.runset" '
 
 # Create rules file with substituted values
 gf_check_files $CALIBRE_FILL_RULES
-gf_add_tool_commands -comment '' -ext rul "$(cat $CALIBRE_FILL_RULES)"
+if [ -n "$(echo $CALIBRE_FILL_RULES)" ]; then
+    gf_add_tool_commands -comment '' -ext rul "$(cat $CALIBRE_FILL_RULES)"
+fi
 
 # Check if task successfull
 gf_add_success_marks 'DRC-H COMPLETED'
@@ -164,5 +166,5 @@ gf_submit_task
 ########################################
 
 gf_create_task -name HistoryMerge -mother Merge
-gf_set_task_command "../../../../../../tools/print_runs_history_html.pl ../.. > ./reports/$TASK_NAME.html"
+gf_set_task_command "../../../../../../tools/print_flow_history.pl ../.. -html ./reports/$TASK_NAME.html"
 gf_submit_task -silent

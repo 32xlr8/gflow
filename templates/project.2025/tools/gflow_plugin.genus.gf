@@ -24,7 +24,7 @@
 gf_info "Loading Genus plugin ..."
 
 ##################################################
-gf_help_section "Genus Common UI plugin v5.5.1"
+gf_help_section "Genus Common UI plugin"
 ##################################################
 
 ##################################################

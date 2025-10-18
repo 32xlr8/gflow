@@ -19,8 +19,8 @@
 # limitations under the License.
 #
 ################################################################################
-# Filename: templates/project.2025/blocks/template/tempus.sta.gf
-# Purpose:  Batch signoff STA flow
+# Filename: templates/project.2025/blocks/template/tempus.sta.split.rc.gf
+# Purpose:  Batch signoff STA flow with several tasks splitted by RC corner
 ################################################################################
 
 ########################################
@@ -33,12 +33,90 @@ gf_source -once "../../project.tempus.gf"
 gf_source -once "./block.common.gf"
 gf_source -once "./block.tempus.gf"
 
+# Run tasks in silent mode
+gf_set_task_options 'STA_*' -silent
+
+########################################
+# Split tasks
+########################################
+
+# Spread tasks in time
+[[ -n "$TEMPUS_WAIT_TIME_STEP" ]] && WAIT_TIME=0
+
+gf_create_task -name SplitSTA -restart
+gf_set_task_command "sleep 10; grep -H set ./in/$TASK_NAME/*.tcl"
+
+# Generic Config MMMC generation
+gf_use_gconfig
+gf_add_tool_commands -file "./tasks/$TASK_NAME/run.tcl" '
+    set TASK_NAME {`$TASK_NAME`}
+    set DIR "`$GF_RUN_DIR`/tasks/$TASK_NAME"
+    cd $DIR
+
+    # Initialize Generic Config 
+    source "../../../../../../gflow/bin/gconfig.tcl"
+
+    # Load MMMC procedures
+    `@init_gconfig_mmmc`
+    `@gconfig_project_settings`
+    `@gconfig_settings_common`
+    `@gconfig_cadence_mmmc_files`
+    `@tempus_gconfig_design_settings`
+
+    # Create groups based on input files
+    set groups {}
+    set grouped_masks {}
+    foreach mask $MMMC_VIEWS {
+        set group [join [list [lindex $mask 4] _[lindex $mask 3]] ""]
+        if {[lsearch -exact $groups $group] < 0} {
+            lappend groups $group
+        }
+        lappend grouped_masks [list $group $mask]
+    }
+    
+    # Generate timing configuration
+    exec mkdir -p ../../in/$TASK_NAME
+    set FG [open ../../in/$TASK_NAME.groups "w"]
+    foreach group $groups {
+        set masks {}
+        foreach grouped_mask $grouped_masks {
+            if {[lindex $grouped_mask 0] == $group} {
+                lappend masks [lindex $grouped_mask 1]
+            }
+        }
+        set file "../../in/$TASK_NAME/$group.tcl"
+        set FH [open $file "w"]
+        puts $FH "set MMMC_VIEWS {$masks}"
+        close $FH
+        puts $FG "$group"
+    }
+    close $FG
+'
+if [ -z "$GF_SKIP_TASK" ]; then
+    rm -f $GF_RUN_DIR/in/$TASK_NAME/*.tcl $GF_RUN_DIR/in/$TASK_NAME.*.init.tcl
+    tclsh $GF_RUN_DIR/tasks/$TASK_NAME/run.tcl
+fi
+
+# Statuses
+gf_add_status_marks 'tcl:set'
+
+# Run task
+SPLIT_TASK_NAME=$TASK_NAME
+gf_submit_task
+
 ########################################
 # Tempus STA
 ########################################
+for GROUP in $(cat $GF_RUN_DIR/in/$SPLIT_TASK_NAME.groups); do
 
-gf_create_task -name STA
+gf_create_task -name STA_$GROUP -mother SplitSTA
 gf_use_tempus
+
+# Spread tasks in time
+if [ -n "$TEMPUS_WAIT_TIME_STEP" -a -z "$GF_SKIP_TASK" ]; then
+    gf_wait_time $WAIT_TIME
+    WAIT_TIME=$((WAIT_TIME+$TEMPUS_WAIT_TIME_STEP))
+fi
 
 # Design data directory
 gf_choose_file_dir_task -variable DATA_OUT_DIR -keep -prompt "Choose design data directory:" -dirs '
@@ -167,8 +245,7 @@ gf_add_tool_commands '
     }
 
     # Timing analysis
-    set TASK_NAME_JOINED $TASK_NAME
-    exec mkdir -p ./reports/$TASK_NAME
+    set TASK_NAME_JOINED [regsub {_\w+} $TASK_NAME {}]
     `@tempus_sta_reports`
     
     # Report collected metrics
@@ -190,10 +267,13 @@ gf_add_tool_commands '
     gconfig::show_variables
     gconfig::show_switches
 
+    # Load split configuration
+    source ./in/`$MOTHER_TASK_NAME`/`$GROUP`.tcl
+
     # Generate timing configuration
     try {
         gconfig::get_ocv_commands -views $MMMC_VIEWS -dump_to_file ./in/$TASK_NAME.ocv.tcl
-        gconfig::get_mmmc_commands -views $MMMC_VIEWS -dump_to_file ./in/$TASK_NAME.mmmc.tcl
+        gconfig::get_mmmc_commands -views $MMMC_VIEWS -all_active -dump_to_file ./in/$TASK_NAME.mmmc.tcl
 
     # Suspend on error
     } on error {result options} {
@@ -210,10 +290,51 @@ gf_add_tool_commands -comment '#' -file ./scripts/$TASK_NAME.procs.tcl '
 '
 
 # Statuses
-gf_add_status_marks '^\s*Writing'
+gf_add_status_marks '^\w+\s+file:'
 
 # Failed if some files not found
 gf_add_failed_marks '^\*\*ERROR:.+file\s+not'
+
+# Run task
+gf_submit_task
+
+done
+
+########################################
+# Summary task
+########################################
+
+gf_create_task -name STA -mother SplitSTA
+gf_want_tasks STA_*
+gf_set_task_command "tclsh ./scripts/$TASK_NAME.tcl"
+
+# Generic Config MMMC generation
+gf_add_tool_commands -file "./scripts/$TASK_NAME.tcl" -comment '#' '
+    set TASK_NAME {`$TASK_NAME`}
+
+    # Initialize Generic Config 
+    source "../../../../../../gflow/bin/gconfig.tcl"
+
+    # Load MMMC procedures
+    `@init_gconfig_mmmc`
+    `@gconfig_project_settings`
+    `@gconfig_settings_common`
+    `@gconfig_cadence_mmmc_files`
+    `@tempus_gconfig_design_settings`
+
+    # Print report_timing summary
+    `@procs_tempus_reports`
+    foreach view $MMMC_VIEWS {
+        catch {
+            foreach file [glob ./reports/$TASK_NAME/*.gba.reg2reg.[gconfig::get analysis_view_name -view $view].tarpt] {
+                puts "[gf_print_report_timing_summary $file] @ [file tail $file]"
+            }
+        }
+    }
+'
+
+# Statuses
+gf_add_status_marks '^[^\"]*WNS .* AVG .* of .* violated'
 
 # Run task
 gf_submit_task

@@ -24,7 +24,7 @@
 gf_info "Loading Calibre plugin ..."
 
 ##################################################
-gf_help_section "Calibre plugin v5.5.1"
+gf_help_section "Calibre plugin"
 ##################################################
 
 gf_help_command '

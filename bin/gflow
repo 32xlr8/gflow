@@ -4890,9 +4890,11 @@ function gf_set_flow_options {
                 gf_check_option "$gf_forbidden_source" '-task\|-tasks\|-enable\|-disable\|-ask' '-' "$key $1"
                 if [ $GF_CHECK_OPTION_LAST_STATUS == 1 ]; then
                     local gf_task
-                    GF_TASK_OPTIONS+="gf_set_task_option>$GF_TASK_OPTIONS_PRIORITY>*>-enable"$'\n'"0"$'\n'
-                    gf_info "${GFC4}Specific${GFC0} tasks selected in command line."
-                    for gf_task in "$1"; do
+                    if [ -z "$(echo "$GF_TASK_OPTIONS" | grep -Fx "gf_set_task_option>$GF_TASK_OPTIONS_PRIORITY>*>-enable")" ]; then
+                        GF_TASK_OPTIONS+="gf_set_task_option>$GF_TASK_OPTIONS_PRIORITY>*>-enable"$'\n'"0"$'\n'
+                        gf_info "${GFC4}Specific${GFC0} tasks selected in command line."
+                    fi
+                    for gf_task in $1; do
                         GF_TASK_OPTIONS+="gf_set_task_option>$GF_TASK_OPTIONS_PRIORITY>$gf_task>-enable"$'\n'"1"$'\n'
                         # if [ -z "$GF_CONTROL_TASKS_CMD_LINE" ]; then
                             # GF_CONTROL_TASKS_CMD_LINE+="NE=* "
@@ -6852,28 +6854,29 @@ function gf_wait_tasks {
                                 gf_choose_task_candidate gf_task gf_task_status "$gf_task" "$gf_wait_run_dir_current/tasks/run.info" "wait task"
                             fi
 
-                            # # Not wait skipped or disabled task
-                            # if [ "$gf_task_status" == "disabled" -o "$gf_task_status" == "skipped" ]; then
-                            #     gf_warning "Will not wait for $gf_task_status ${GFC4}$gf_task${GFC0} task."
-                            #
-                            # # Wait for the task
-                            # else
-                            #     GF_WAIT_TASKS+="$gf_action=$gf_task=\$GF_I_RUN_DIR/tasks/run.info"$'\n'
-                            #     gf_tasks+="$gf_task "
-                            #     if [ "$gf_task_status" == "chosen" ]; then
-                            #         gf_info "Task will wait for ${GFC4}$gf_task${GFC0} task$gf_suffix in other session."
-                            #     else
-                            #         gf_info "Task will wait for ${GFC4}$gf_task${GFC0} task$gf_suffix."
-                            #     fi
-                            # fi
+                            # Not wait skipped or disabled task
+                            if [ "$gf_task_status" == "disabled" -o "$gf_task_status" == "skipped" ]; then
 
+                                # Skip current task if wanted task skipped or disabled
+                                if [ "$gf_action" == "WANT" ]; then
+                                    gf_warning "Task ${GFH3}$TASK_NAME${GFC0} skipped because it's wanted task ${GFC4}$gf_task${GFC0} $gf_task_status.\n"
+                                    GF_TASK_STATUSES+="$TASK_NAME $GF_TASK_BASE skipped"$'\n'
+                                    GF_SKIP_TASK=skipped
+
+                                # Not wait skipped or disabled task 
+                                else
+                                    gf_warning "Will not wait for $gf_task_status ${GFC4}$gf_task${GFC0} task."
+                                fi
+                            
                             # Wait for the task
-                            GF_WAIT_TASKS+="$gf_action=$gf_task=\$GF_I_RUN_DIR/tasks/run.info"$'\n'
-                            gf_tasks+="$gf_task "
-                            if [ "$gf_task_status" == "chosen" ]; then
-                                gf_info "Task will wait for ${GFC4}$gf_task${GFC0} task$gf_suffix in other session."
                             else
-                                gf_info "Task will wait for ${GFC4}$gf_task${GFC0} task$gf_suffix."
+                                GF_WAIT_TASKS+="$gf_action=$gf_task=\$GF_I_RUN_DIR/tasks/run.info"$'\n'
+                                gf_tasks+="$gf_task "
+                                if [ "$gf_task_status" == "chosen" ]; then
+                                    gf_info "Task will wait for ${GFC4}$gf_task${GFC0} task$gf_suffix in other session."
+                                else
+                                    gf_info "Task will wait for ${GFC4}$gf_task${GFC0} task$gf_suffix."
+                                fi
                             fi
                         done
                     fi
@@ -10018,7 +10021,7 @@ elif [ -n "$GF_INTERACTIVE_MODE" -o -z "$GF_SCRIPT" ]; then
     trap -- SIGHUP
     trap 'gf_restore_title' EXIT
     gf_show_cursor
-    gf_set_window_title "Generic Flow Utilities v5.5.1 (February 2025)" "GF utilities"
+    gf_set_window_title "Generic Flow Utilities" "GF utilities"
 
     # Environment initialization
     export PATH="$GF_UTILS:$(gf_full_path "$GF_BIN/.."):${PATH}"

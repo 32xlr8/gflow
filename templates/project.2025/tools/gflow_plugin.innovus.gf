@@ -24,7 +24,7 @@
 gf_info "Loading Innovus plugin ..."
 
 ##################################################
-gf_help_section "Innovus Common UI plugin v5.5.1"
+gf_help_section "Innovus Common UI plugin"
 ##################################################
 
 ##################################################

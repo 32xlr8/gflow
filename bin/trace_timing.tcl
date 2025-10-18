@@ -31,7 +31,6 @@ variable header \
 # Generic Flow - Trace timing utility                                       #
 #############################################################################
 # Command:     trace_timing                                                 #
-# Version:     v5.5.1 (February 2025)                                       #
 # Developer:   Gennady Kirpichev <32xlr8\@gmail.com>                         #
 #############################################################################"
 

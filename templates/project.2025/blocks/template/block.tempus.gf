@@ -86,42 +86,55 @@ gf_create_step -name tempus_gconfig_design_variables '
     # Choose analysis views patterns:
     # - {mode process voltage temperature rc_corner timing_check}
     set MMMC_VIEWS [regsub -all -line {^\s*\#.*\n} {
-        {func tt 1p000v 85 ct s}
-        {func tt 1p000v 85 ct h}
 
-        {func ss 0p900v m40 cwt s} 
-        {func ss 0p900v m40 rcwt s} 
+        # Mandatory timing views
+
+        {func ss 0p900v m40 cwt s}
         {func ss 0p900v 125 cwt s}
-        {func ss 0p900v 125 rcwt s} 
-        
-        {func ss 0p900v m40 cw h} 
-        {func ss 0p900v m40 rcw h} 
-        {func ss 0p900v 125 cw h} 
-        {func ss 0p900v 125 rcw h} 
-        
-        {func ff 1p100v m40 cb h} 
-        {func ff 1p100v m40 cw h} 
-        {func ff 1p100v 0 cb h} 
-        {func ff 1p100v 0 cw h} 
-        {func ff 1p100v 125 cb h} 
-        {func ff 1p100v 125 cw h} 
-        
-        {func ff 1p100v m40 rcb h} 
-        {func ff 1p100v m40 rcw h} 
-        {func ff 1p100v 125 rcb h} 
-        {func ff 1p100v 125 rcw h}
-        
-        {func ff 1p100v 0 rcb h} 
-        {func ff 1p100v 0 rcw h}
 
-        {func tt 1p000v 85 rcw p}
+        {func ss 0p900v m40 cw h}
+        {func ss 0p900v 125 cw h}
+
+        {func ff 1p100v m40 cb h}
+        {func ff 1p100v m40 cw h}
+        {func ff 1p100v 125 cb h}
+        {func ff 1p100v 125 cw h}
+
+        # Optional timing views
+
+        # {func ss 0p900v m40 rcwt s} 
+        # {func ss 0p900v 125 rcwt s} 
+
+        # {func ss 0p900v m40 rcw h} 
+        # {func ss 0p900v 125 rcw h} 
+
+        # {func ff 1p100v 0 cb h} 
+        # {func ff 1p100v 0 cw h} 
+
+        # {func ff 1p100v m40 rcb h} 
+        # {func ff 1p100v m40 rcw h} 
+        # {func ff 1p100v 125 rcb h} 
+        # {func ff 1p100v 125 rcw h}
+
+        # {func ff 1p100v 0 rcb h} 
+        # {func ff 1p100v 0 rcw h}
+
+        # {func tt 1p000v 85 ct s}
+        # {func tt 1p000v 85 ct h}
+
+        # Power views
+
+        # {func tt 1p000v 85 rcw p}
         {func ff 1p100v 125 rcw p}
+
     } {}]
     
     # SDF views
-    set SDF_MAX_VIEW {func ss 0p900v m40 rcwt s}
-    set SDF_MIN_VIEW {func ff 1p100v m40 cb h}
-    set SDF_TYP_VIEW {func tt 1p000v 85 rcw p}
+    set SDF_VIEWS [regsub -all -line {^\s*\#.*\n} {
+        {func ss 0p900v m40 rcwt s}
+        {func ff 1p100v m40 cb h}
+        {func tt 1p000v 85 rcw p}
+    } {}]
 '
 
 # MMMC and OCV settings
@@ -393,25 +406,169 @@ gf_create_step -name init_cells_tempus '
 
 # STA analysis
 gf_create_step -name tempus_sta_reports '
-    exec mkdir -p ./reports/$TASK_NAME
+    exec mkdir -p ./reports/$TASK_NAME ./reports/$TASK_NAME_JOINED
 
     # Include SI into ECODB
     set_db opt_signoff_fix_glitch true
     set_db opt_signoff_fix_xtalk true
 
-    # Create reports
-    gf_check_timing
-    gf_report_timing_late 150
-    gf_report_timing_early 150
-    gf_report_timing_late_pba 150
-    gf_report_timing_early_pba 150
-    gf_report_constraint_late
-    gf_report_constraint_early
-    # gf_report_noise
-    # gf_report_timing_summary
+    # Basic design health checks
+    if {1} {
+
+        # Reports that check design health
+        check_netlist -out_file ./reports/$TASK_NAME/check.netlist.rpt
+        check_timing -verbose > ./reports/$TASK_NAME/check.timing.rpt
+        report_analysis_coverage > ./reports/$TASK_NAME/check.coverage.rpt
+        report_analysis_coverage -verbose violated > ./reports/$TASK_NAME/check.coverage.violated.rpt
+        report_analysis_coverage -verbose untested > ./reports/$TASK_NAME/check.coverage.untested.rpt
+        report_annotated_parasitics > ./reports/$TASK_NAME/check.annotation.rpt
+
+        # Reports that describe constraints
+        report_clocks > ./reports/$TASK_NAME/check.clocks.rpt
+        report_case_analysis > ./reports/$TASK_NAME/check.case_analysis.rpt
+        #report_inactive_arcs > ./reports/$TASK_NAME/check.inactive_arcs.rpt
+    }
+
+    # Create late timing reports
+    if {1} {
+
+        # GBA timing reports
+        report_timing -late -max_paths 150 -path_type full_clock -split_delay > ./reports/$TASK_NAME/timing.late.gba.all.tarpt
+        report_timing -late -max_paths 1000 -max_slack 0.0 -path_type summary > ./reports/$TASK_NAME/timing.late.gba.all.violated.tarpt
+        puts "GBA late timing: [gf_print_report_timing_summary ./reports/$TASK_NAME/timing.late.gba.all.violated.tarpt]"
+        
+        # GBA timing by path group
+        catch { foreach group reg2reg {
+            report_timing -late -max_paths 150 -path_type full_clock -split_delay -group $group > ./reports/$TASK_NAME/timing.late.gba.$group.tarpt
+            report_timing -late -max_paths 1000 -max_slack 0.0 -path_type summary -group $group > ./reports/$TASK_NAME/timing.late.gba.$group.violated.tarpt
+            report_timing -late -max_paths 150 -output_format gtd -group $group > ./reports/$TASK_NAME/timing.late.gba.$group.mtarpt
+        }}
+
+        # Constraint violations
+        report_constraint -late -drv_violation_type max_capacitance -all_violators > ./reports/$TASK_NAME/drv.max.capacitance.all.rpt
+        report_constraint -late -drv_violation_type max_transition -all_violators > ./reports/$TASK_NAME/drv.max.transition.all.rpt
+
+        # GBA timing by view
+        catch { foreach group reg2reg {
+            foreach view [get_db [get_db analysis_views -if .is_setup] .name] {
+                report_timing -late -max_paths 150 -path_type full_clock -split_delay -group $group -view $view > ./reports/$TASK_NAME_JOINED/timing.late.gba.$group.$view.tarpt
+                puts "  [gf_print_report_timing_summary ./reports/$TASK_NAME_JOINED/timing.late.gba.$group.$view.tarpt] @ $group $view"
+            }
+        }}
+        
+        # DRV by view
+        foreach view [get_db [get_db analysis_views -if .is_setup] .name] {
+            report_constraint -late -drv_violation_type max_capacitance -all_violators -view $view > ./reports/$TASK_NAME_JOINED/drv.max.capacitance.$view.rpt
+            report_constraint -late -drv_violation_type max_transition -all_violators -view $view > ./reports/$TASK_NAME_JOINED/drv.max.transition.$view.rpt
+        }
+
+        # PBA timing by path group
+        catch { foreach group reg2reg {
+            if {[get_db timing_analysis_aocv]} {
+                report_timing -late -max_paths 150 -path_type full_clock -split_delay -group $group -retime aocv_path_slew_propagation > ./reports/$TASK_NAME/timing.late.pba.$group.tarpt
+            } else {
+                report_timing -late -max_paths 150 -path_type full_clock -split_delay -group $group -retime path_slew_propagation > ./reports/$TASK_NAME/timing.late.pba.$group.tarpt
+            }
+            puts "PBA late timing: [gf_print_report_timing_summary ./reports/$TASK_NAME/timing.late.pba.$group.tarpt] @ $group"
+        }}
+    }
+
+    # Create early timing reports
+    if {1} {
+    
+        # GBA timing reports
+        report_timing -early -max_paths 150 -path_type full_clock -split_delay > ./reports/$TASK_NAME/timing.early.gba.all.tarpt
+        report_timing -early -max_paths 1000 -max_slack 0.0 -path_type summary > ./reports/$TASK_NAME/timing.early.gba.all.violated.tarpt
+        puts "GBA early timing: [gf_print_report_timing_summary ./reports/$TASK_NAME/timing.early.gba.all.violated.tarpt]"
+
+        # GBA timing by path group
+        catch { foreach group reg2reg {
+            report_timing -early -max_paths 150 -path_type full_clock -split_delay -group $group > ./reports/$TASK_NAME/timing.early.gba.$group.tarpt
+            report_timing -early -max_paths 1000 -max_slack 0.0 -path_type summary -group $group > ./reports/$TASK_NAME/timing.early.gba.$group.violated.tarpt
+            report_timing -early -max_paths 150 -output_format gtd -group $group > ./reports/$TASK_NAME/timing.early.gba.$group.mtarpt
+        }}
+        
+        # Constraint violations
+        report_constraint -early -drv_violation_type min_capacitance -all_violators > ./reports/$TASK_NAME/drv.min.capacitance.all.rpt
+        report_constraint -early -drv_violation_type min_transition -all_violators > ./reports/$TASK_NAME/drv.min.transition.all.rpt
+
+        # GBA timing by view
+        foreach view [get_db [get_db analysis_views -if .is_hold] .name] {
+            catch { foreach group reg2reg {
+                report_timing -early -max_paths 150 -path_type full_clock -split_delay -group $group -view $view > ./reports/$TASK_NAME_JOINED/timing.early.gba.$group.$view.tarpt
+                puts "  [gf_print_report_timing_summary ./reports/$TASK_NAME_JOINED/timing.early.gba.$group.$view.tarpt] @ $group $view"
+            }}
+            report_constraint -early -drv_violation_type min_capacitance -all_violators -view $view > ./reports/$TASK_NAME_JOINED/drv.min.capacitance.$view.rpt
+            report_constraint -early -drv_violation_type min_transition -all_violators -view $view > ./reports/$TASK_NAME_JOINED/drv.min.transition.$view.rpt
+        }
+    
+        # PBA timing by path group
+        catch { foreach group reg2reg {
+            if {[get_db timing_analysis_aocv]} {
+                report_timing -early -max_paths 150 -path_type full_clock -split_delay -group $group -retime aocv_path_slew_propagation > ./reports/$TASK_NAME/timing.early.pba.$group.tarpt
+            } else {
+                report_timing -early -max_paths 150 -path_type full_clock -split_delay -group $group -retime path_slew_propagation > ./reports/$TASK_NAME/timing.early.pba.$group.tarpt
+            }
+            puts "PBA early timing: [gf_print_report_timing_summary ./reports/$TASK_NAME/timing.early.pba.$group.tarpt] @ $group"
+        }}
+    }
+
+    # Create late constraint reports
+    if {1} {
+
+        # Summary constraint reports
+        report_constraint -drv_violation_type {max_transition max_capacitance max_fanout pulse_clock_max_transition} > ./reports/$TASK_NAME/constraint.late.gba.rpt
+        report_constraint -check_type {clock_period skew pulse_width pulse_clock_max_width} -verbose >> ./reports/$TASK_NAME/constraint.late.gba.rpt
+        gf_print_report_contraint_summary ./reports/$TASK_NAME/constraint.late.gba.rpt "GBA late constraint violations:"
+        
+        # Violated summary
+        report_constraint -drv_violation_type max_transition -all_violators > ./reports/$TASK_NAME/constraint.late.gba.max_transition.violated.rpt
+        report_constraint -drv_violation_type max_capacitance -all_violators > ./reports/$TASK_NAME/constraint.late.gba.max_capacitance.violated.rpt
+        report_constraint -drv_violation_type max_fanout -all_violators > ./reports/$TASK_NAME/constraint.late.gba.max_fanout.violated.rpt
+        report_constraint -drv_violation_type pulse_clock_max_transition -all_violators > ./reports/$TASK_NAME/constraint.late.gba.pulse_clock_max_transition.violated.rpt
+        report_constraint -check_type clock_period -all_violators > ./reports/$TASK_NAME/constraint.late.gba.clock_period.violated.rpt
+        report_constraint -check_type skew -all_violators > ./reports/$TASK_NAME/constraint.late.gba.skew.violated.rpt
+        report_constraint -check_type pulse_width -all_violators > ./reports/$TASK_NAME/constraint.late.gba.pulse_width.violated.rpt
+        report_constraint -check_type pulse_clock_max_width -all_violators > ./reports/$TASK_NAME/constraint.late.gba.pulse_clock_max_width.violated.rpt
+    }
+
+    # Create early constraint reports
+    if {1} {
+
+        # Summary constraint reports
+        report_constraint -drv_violation_type {min_transition min_capacitance min_fanout pulse_clock_min_transition} > ./reports/$TASK_NAME/constraint.early.gba.rpt
+        report_constraint -check_type {pulse_clock_min_width} -verbose >> ./reports/$TASK_NAME/constraint.early.gba.rpt
+        gf_print_report_contraint_summary ./reports/$TASK_NAME/constraint.early.gba.rpt "GBA early constraint violations:"
+        
+        # Violated summary
+        report_constraint -drv_violation_type min_transition -all_violators > ./reports/$TASK_NAME/constraint.early.gba.min_transition.violated.rpt
+        report_constraint -drv_violation_type min_capacitance -all_violators > ./reports/$TASK_NAME/constraint.early.gba.min_capacitance.violated.rpt
+        report_constraint -drv_violation_type min_fanout -all_violators > ./reports/$TASK_NAME/constraint.early.gba.min_fanout.violated.rpt
+        report_constraint -drv_violation_type pulse_clock_min_transition -all_violators > ./reports/$TASK_NAME/constraint.early.gba.pulse_clock_min_transition.violated.rpt
+        report_constraint -check_type pulse_clock_min_width -all_violators > ./reports/$TASK_NAME/constraint.early.gba.pulse_clock_min_width.violated.rpt
+    }
+
+    # Noise reports
+    if {0} {
+        check_noise -all -verbose > ./reports/$TASK_NAME/check.noise.rpt
+        report_noise -out_file ./reports/$TASK_NAME/noise.rpt
+        report_noise -sort_by noise -failure > ./reports/$TASK_NAME/noise.glitch.rpt
+        puts "Glitch summary: [gf_print_report_glitch_summary ./reports/$TASK_NAME/noise.glitch.rpt]"
+
+        # report_noise -sort_by noise -clock > ./reports/$TASK_NAME/noise.clock.rpt
+        # write_noise_eco_nets ./reports/$TASK_NAME/glitch.eco_nets.rpt
+    }
+
+    # Report timing summary
+    if {1} {
+        redirect -tee ./reports/$TASK_NAME/timing.summary {
+            # report_timing_summary -views [get_db -u [concat [get_db analysis_views -if .is_setup] [get_db analysis_views -if .is_hold]] .name]
+            report_timing_summary -groups reg2reg -expand_views
+        }
+    }
 
     # Write ECO timing database for TSO flow
-    set_db opt_signoff_write_eco_opt_db ./out/$TASK_NAME.tempus.eco.db
+    set_db opt_signoff_write_eco_opt_db ./out/$TASK_NAME_JOINED.tempus.eco.db
     write_eco_opt_db
 '
 
@@ -511,8 +668,8 @@ gf_create_step -name run_opt_signoff '
 
 # Commands to create block-specific timing files
 gf_create_step -name tempus_data_out '
-    mkdir -p ./out/$TASK_NAME/
-    mkdir -p ./reports/$TASK_NAME.GTD/
+    exec mkdir -p ./out/$TASK_NAME_JOINED/
+    exec mkdir -p ./reports/$TASK_NAME_JOINED ./reports/$TASK_NAME_JOINED.GTD
 
     # Registers
     set regs [all_registers]
@@ -527,61 +684,65 @@ gf_create_step -name tempus_data_out '
             # Late paths for setup views
             if {[lsearch -exact [gconfig::get check -view $MMMC_VIEW] "s"] >= 0} {
 
-                puts "Writing timing reports ./reports/$TASK_NAME/late.*.$view.tarpt ..."
-                report_timing -late -path_type full_clock -from $regs -to $regs -view $view -max_paths 500 > ./reports/$TASK_NAME/late.gba.reg2reg.$view.tarpt
-                report_timing -late -path_type endpoint -from $regs -to $regs -view $view -max_paths 10000 -max_slack 0 > ./reports/$TASK_NAME/late.violated.reg2reg.$view.tarpt
-                foreach clock [get_db clocks .base_name -u] {report_timing -late -path_type full_clock -from $clock -view $view -max_paths 250 > ./reports/$TASK_NAME/late.clock.full.[regsub -all {/} $clock {.}].$view.tarpt}
-                foreach clock [get_db clocks .base_name -u] {report_timing -late -path_type endpoint -from $clock -view $view -max_paths 10000 -max_slack 0 > ./reports/$TASK_NAME/late.clock.violated.[regsub -all {/} $clock {.}].$view.tarpt}
+                puts "Writing timing reports ./reports/$TASK_NAME_JOINED/late.*.$view.tarpt ..."
+                report_timing -late -path_type full_clock -from $regs -to $regs -view $view -max_paths 500 > ./reports/$TASK_NAME_JOINED/late.gba.reg2reg.$view.tarpt
+                report_timing -late -path_type endpoint -from $regs -to $regs -view $view -max_paths 10000 -max_slack 0 > ./reports/$TASK_NAME_JOINED/late.violated.reg2reg.$view.tarpt
+                foreach clock [get_db clocks .base_name -u] {report_timing -late -path_type full_clock -from $clock -view $view -max_paths 250 > ./reports/$TASK_NAME_JOINED/late.clock.full.[regsub -all {/} $clock {.}].$view.tarpt}
+                foreach clock [get_db clocks .base_name -u] {report_timing -late -path_type endpoint -from $clock -view $view -max_paths 10000 -max_slack 0 > ./reports/$TASK_NAME_JOINED/late.clock.violated.[regsub -all {/} $clock {.}].$view.tarpt}
 
-                puts "Writing timing reports ./reports/$TASK_NAME.GTD/late.*.$view.mtarpt ..."
-                report_timing -late -output_format gtd -from $regs -to $regs -view $view -max_paths 500 > ./reports/$TASK_NAME.GTD/late.worst.reg2reg.$view.mtarpt
-                report_timing -late -output_format gtd -from $regs -to $regs -view $view -max_paths 10000 -max_slack 0 > ./reports/$TASK_NAME.GTD/late.violated.reg2reg.$view.mtarpt
+                puts "Writing timing reports ./reports/$TASK_NAME_JOINED.GTD/late.*.$view.mtarpt ..."
+                report_timing -late -output_format gtd -from $regs -to $regs -view $view -max_paths 500 > ./reports/$TASK_NAME_JOINED.GTD/late.worst.reg2reg.$view.mtarpt
+                report_timing -late -output_format gtd -from $regs -to $regs -view $view -max_paths 10000 -max_slack 0 > ./reports/$TASK_NAME_JOINED.GTD/late.violated.reg2reg.$view.mtarpt
 
-                puts "  [gf_print_report_timing_summary ./reports/$TASK_NAME/late.gba.reg2reg.$view.tarpt] @ late.gba.reg2reg.$view.tarpt"
+                puts "  [gf_print_report_timing_summary ./reports/$TASK_NAME_JOINED/late.gba.reg2reg.$view.tarpt] @ late.gba.reg2reg.$view.tarpt"
             }
 
             # Early paths for hold views
             if {[lsearch -exact [gconfig::get check -view $MMMC_VIEW] "h"] >= 0} {
 
-                puts "Writing timing reports ./reports/$TASK_NAME/early.*.$view.tarpt ..."
-                report_timing -early -path_type full_clock -from $regs -to $regs -view $view -max_paths 500 > ./reports/$TASK_NAME/early.gba.reg2reg.$view.tarpt
-                report_timing -early -path_type endpoint -from $regs -to $regs -view $view -max_paths 10000 -max_slack 0 > ./reports/$TASK_NAME/early.violated.reg2reg.$view.tarpt
-                foreach clock [get_db clocks .base_name -u] {report_timing -early -path_type full_clock -from $clock -view $view -max_paths 250 > ./reports/$TASK_NAME/early.clock.full.[regsub -all {/} $clock {.}].$view.tarpt}
-                foreach clock [get_db clocks .base_name -u] {report_timing -early -path_type endpoint -from $clock -view $view -max_paths 10000 -max_slack 0 > ./reports/$TASK_NAME/early.clock.violated.[regsub -all {/} $clock {.}].$view.tarpt}
+                puts "Writing timing reports ./reports/$TASK_NAME_JOINED/early.*.$view.tarpt ..."
+                report_timing -early -path_type full_clock -from $regs -to $regs -view $view -max_paths 500 > ./reports/$TASK_NAME_JOINED/early.gba.reg2reg.$view.tarpt
+                report_timing -early -path_type endpoint -from $regs -to $regs -view $view -max_paths 10000 -max_slack 0 > ./reports/$TASK_NAME_JOINED/early.violated.reg2reg.$view.tarpt
+                foreach clock [get_db clocks .base_name -u] {report_timing -early -path_type full_clock -from $clock -view $view -max_paths 250 > ./reports/$TASK_NAME_JOINED/early.clock.full.[regsub -all {/} $clock {.}].$view.tarpt}
+                foreach clock [get_db clocks .base_name -u] {report_timing -early -path_type endpoint -from $clock -view $view -max_paths 10000 -max_slack 0 > ./reports/$TASK_NAME_JOINED/early.clock.violated.[regsub -all {/} $clock {.}].$view.tarpt}
 
-                puts "Writing timing reports ./reports/$TASK_NAME.GTD/early.*.$view.mtarpt ..."
-                report_timing -early -output_format gtd -from $regs -to $regs -view $view -max_paths 500 > ./reports/$TASK_NAME.GTD/early.worst.reg2reg.$view.mtarpt
-                report_timing -early -output_format gtd -from $regs -to $regs -view $view -max_paths 10000 -max_slack 0 > ./reports/$TASK_NAME.GTD/early.violated.reg2reg.$view.mtarpt
+                puts "Writing timing reports ./reports/$TASK_NAME_JOINED.GTD/early.*.$view.mtarpt ..."
+                report_timing -early -output_format gtd -from $regs -to $regs -view $view -max_paths 500 > ./reports/$TASK_NAME_JOINED.GTD/early.worst.reg2reg.$view.mtarpt
+                report_timing -early -output_format gtd -from $regs -to $regs -view $view -max_paths 10000 -max_slack 0 > ./reports/$TASK_NAME_JOINED.GTD/early.violated.reg2reg.$view.mtarpt
 
-                puts "  [gf_print_report_timing_summary ./reports/$TASK_NAME/early.gba.reg2reg.$view.tarpt] @ early.gba.reg2reg.$view.tarpt"
+                puts "  [gf_print_report_timing_summary ./reports/$TASK_NAME_JOINED/early.gba.reg2reg.$view.tarpt] @ early.gba.reg2reg.$view.tarpt"
             }
 
             # TWF for power views
             if {[lsearch -exact [gconfig::get check -view $MMMC_VIEW] "p"] >= 0} {
                 set view [gconfig::get analysis_view_name -view $MMMC_VIEW]
-                puts "Writing ./out/$TASK_NAME/$DESIGN_NAME.$view.twf.gz ..."
+                puts "Writing ./out/$TASK_NAME_JOINED/$DESIGN_NAME.$view.twf.gz ..."
                 write_timing_windows \
                     -pin \
                     -power_compatible \
                     -ssta_sigma_multiplier 3 \
-                    -view $view ./out/$TASK_NAME/$DESIGN_NAME.$view.twf.gz
+                    -view $view ./out/$TASK_NAME_JOINED/$DESIGN_NAME.$view.twf.gz
             }
             
             # LIB for timing and power views
-            puts "Writing ./out/$TASK_NAME/$DESIGN_NAME.$view.lib ..."
+            puts "Writing ./out/$TASK_NAME_JOINED/$DESIGN_NAME.$view.lib ..."
             write_timing_model \
                 -include_power_ground \
                 -input_transitions {0.002, 0.010, 0.025, 0.050, 0.100, 0.200, 0.500} \
                 -output_loads {0.000, 0.010, 0.025, 0.050, 0.100, 0.200, 0.500} \
-                -view $view ./out/$TASK_NAME/$DESIGN_NAME.$view.lib
+                -view $view ./out/$TASK_NAME_JOINED/$DESIGN_NAME.$view.lib
         }
     }
 
     # Write out SDF for block level simulation
-    write_sdf ./out/$TASK_NAME/$DESIGN_NAME.sdf.gz \
-        -min_view [gconfig::get analysis_view_name -view $SDF_MIN_VIEW] \
-        -typical_view [gconfig::get analysis_view_name -view $SDF_TYP_VIEW] \
-        -max_view [gconfig::get analysis_view_name -view $SDF_MAX_VIEW] \
-        -edges noedge -interconnect all -no_derate \
-        -version 3.0
+    foreach view $SDF_VIEWS {
+        set view [gconfig::get analysis_view_name -view $view]
+        puts "Writing ./out/$TASK_NAME_JOINED/$DESIGN_NAME.$view.sdf.gz ..."
+        if {[get_db analysis_views $view] != ""} {
+            write_sdf ./out/$TASK_NAME_JOINED/$DESIGN_NAME.$view.sdf.gz \
+                -edges noedge -interconnect all -no_derate \
+                -version 3.0 \
+                -view $view
+        }
+    }
 '

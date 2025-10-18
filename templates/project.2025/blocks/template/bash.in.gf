@@ -19,21 +19,26 @@
 # limitations under the License.
 #
 ################################################################################
-# Filename: templates/project.2025/blocks/template/flow.gf
-# Purpose:  Synthesis, implementation and signoff flow
+# Filename: templates/project.2025/blocks/template/bash.in.gf
+# Purpose:  Bash data-in flow
 ################################################################################
 
 ########################################
-# Settings
+# Main options
 ########################################
 
 # Project and block initialization scripts
 gf_source -once "../../project.common.gf"
+gf_source -once "./block.common.gf"
 
 ########################################
-# Generic Flow history
+# Genus generic synthesis
 ########################################
 
-gf_create_task -name History
-gf_set_task_command "../../../../../../tools/print_flow_history.pl ../../../../work_*/*/ -html ./reports/$TASK_NAME.html"
+gf_create_task -name BashDataIn
+gf_set_task_command "bash run.bash"
+gf_add_tool_commands -comment '#' -file "./tasks/$TASK_NAME/run.bash" '
+   `@bash_data_in`
+'
+gf_add_status_mark '/out/'
 gf_submit_task -silent

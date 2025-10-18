@@ -24,7 +24,7 @@
 gf_info "Loading Tempus plugin ..."
 
 ##################################################
-gf_help_section "Tempus Common UI plugin v5.5.1"
+gf_help_section "Tempus Common UI plugin"
 ##################################################
 
 ##################################################
@@ -86,7 +86,7 @@ function gf_use_tempus {
         
     # Violations statistic
     gf_add_status_marks '^\*info: Total' '^\*info:.*[Tt]otal.*(inst|cell)' '^\*info:.*Could'
-    gf_add_status_marks '^[^\"]*WNS .* AVG .* of .* violated'
+    gf_add_status_marks '^[^\"]*WNS .* AVG .* of .* violated' 'BA \w+ timing:'
     gf_add_status_marks '^[^\"]*Slack = .* \@' '^[^\"]*BA .* constraint violations:'
     gf_add_status_marks '^[^\"]*Glitch summary:' '^[^\"]*nets with violations \@'
     
@@ -154,7 +154,7 @@ function gf_use_tempus_batch {
         
     # Violations statistic
     gf_add_status_marks '^\*info: Total' '^\*info:.*[Tt]otal.*(inst|cell)' '^\*info:.*Could'
-    gf_add_status_marks 'WNS .* AVG .* of .* violated'
+    gf_add_status_marks 'WNS .* AVG .* of .* violated' 'BA \w+ timing:'
     gf_add_status_marks 'Slack = .* \@' 'BA .* constraint violations:'
     gf_add_status_marks 'Glitch summary:' 'nets with violations \@'
     

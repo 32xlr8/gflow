@@ -139,11 +139,6 @@ gf_create_step -name voltus_gconfig_electromigration_design_settings '
     # - ccs_p_libraries - CCS-P (Liberty) files used for precise power calculation
     gconfig::enable_switches ccs_libraries
    
-    # Choose separate variation libraries (optional with ecsm_libraries or ccs_libraries):
-    # - aocv_libraries - AOCV (advanced, SBOCV)
-    # - socv_libraries - SOCV (statistical)
-    gconfig::enable_switches aocv_libraries
-   
     # Choose derating scenarios (additional variations):
     # - flat_derates - used with NLDM (see process node documentation)
     # - no_derates - zero derates (optimistic for prototyping mode)
@@ -588,7 +583,7 @@ gf_create_step -name voltus_run_report_rail_static '
     # Power data
     set power_files {}
     foreach net [concat $VOLTUS_POWER_NETS $VOLTUS_GROUND_NETS] {
-        lappend power_files ./out/$POWER_TASK_NAME.power/static_${net}.pti${STATIC_POWER_CURRENT_METHOD}
+        lappend power_files ./out/$POWER_TASK_NAME.power/static_[regsub -all {/} $net {_}].pti${STATIC_POWER_CURRENT_METHOD}
     }
     set_power_data -format current -scale 1 $power_files
 
@@ -781,7 +776,7 @@ gf_create_step -name voltus_run_report_rail_dynamic '
     # Power data
     set power_files {}
     foreach net [concat $VOLTUS_POWER_NETS $VOLTUS_GROUND_NETS] {
-        lappend power_files ./out/$POWER_TASK_NAME.power/dynamic_${net}.pti${DYNAMIC_POWER_CURRENT_METHOD}
+        lappend power_files ./out/$POWER_TASK_NAME.power/dynamic_[regsub -all {/} $net {_}].pti${DYNAMIC_POWER_CURRENT_METHOD}
     }
     set_power_data -format current -scale 1 $power_files
 

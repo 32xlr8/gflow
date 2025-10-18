@@ -385,5 +385,5 @@ gf_submit_task -silent
 ########################################
 
 gf_create_task -name HistorySynOpt -mother SynOpt
-gf_set_task_command "../../../../../../tools/print_runs_history_html.pl ../.. > ./reports/$TASK_NAME.html"
+gf_set_task_command "../../../../../../tools/print_flow_history.pl ../.. -html ./reports/$TASK_NAME.html"
 gf_submit_task -silent

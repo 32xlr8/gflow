@@ -125,7 +125,7 @@ gf_choose_file_dir_task -variable DATA_OUT_DIR -keep -prompt "Choose design data
     ../work_*/*/tasks/InnovusOut*
 '
 
-# Select dummy fill to use when empty
+# Select to use dummy when top cell defined
 if [ -n "$QUANTUS_DUMMY_TOP" ]; then
     gf_spacer
     gf_choose -variable USE_DUMMY_GDS -keep -keys YN -time 30 -default Y -prompt "Use dummy fill GDS (Y/N)?"
@@ -254,14 +254,14 @@ gf_add_tool_commands '
         puts $FH "input_db -type def -design_file \\\n    $DATA_OUT_DIR/$DESIGN_NAME.full.def.gz\n"
 
         # Command to read in metal fill
-        if {$QUANTUS_DUMMY_GDS != {}} {
+        if {($QUANTUS_DUMMY_TOP != {}) && ($QUANTUS_DUMMY_GDS != {})} {
             puts $FH "graybox -type layout"
             puts $FH "input_db -type metal_fill -metal_fill_top_cell $QUANTUS_DUMMY_TOP -gds_file \\\n    $QUANTUS_DUMMY_GDS\n"
             puts $FH "metal_fill -type \"floating\""
         }
         
         # Global nets
-        puts $FH "global_nets -nets [regsub -all {([\[\]])} [concat $POWER_NETS $GROUND_NETS] {\\\1}]\n"    
+        puts $FH "global_nets -nets [regsub -all {([\[\]])} [join [concat $POWER_NETS $GROUND_NETS]] {\\\1}]\n"    
 
         # Corners to extract
         puts $FH "process_technology \\\n    -technology_library_file ./lib.defs \\\n    -technology_name qrc_tech_lib \\"
@@ -316,5 +316,5 @@ gf_submit_task
 ########################################
 
 gf_create_task -name HistoryQuantusOut -mother QuantusOut
-gf_set_task_command "../../../../../../tools/print_runs_history_html.pl ../.. > ./reports/$TASK_NAME.html"
+gf_set_task_command "../../../../../../tools/print_flow_history.pl ../.. -html ./reports/$TASK_NAME.html"
 gf_submit_task -silent

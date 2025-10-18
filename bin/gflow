@@ -1,7 +1,7 @@
 #!/bin/bash
 
 ################################################################################
-# Generic Flow v5.5.2 (February 2025)
+# Generic Flow v5.5.3 (October 2025)
 ################################################################################
 #
 # Copyright 2011-2025 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
@@ -24,7 +24,7 @@
 ################################################################################
 
 ##################################################
-GF_TITLE="Generic Flow v5.5.2 (February 2025)"
+GF_TITLE="Generic Flow v5.5.3 (October 2025)"
 ##################################################
 
 # Generic Flow binary
@@ -9999,9 +9999,9 @@ if [ -n "$GF_HELP_MODE" ]; then
 
     # Interactive help mode
     if [ -e "$GF_SCRIPT" ]; then
-        gf_set_window_title "Interactive help ($GF_SCRIPT_NAME) - Generic Flow v5.5.2 (February 2025)" "GF help ($GF_SCRIPT_NAME)"
+        gf_set_window_title "Interactive help ($GF_SCRIPT_NAME) - Generic Flow v5.5.3 (October 2025)" "GF help ($GF_SCRIPT_NAME)"
     else
-        gf_set_window_title "Interactive help - Generic Flow v5.5.2 (February 2025)" "GF help"
+        gf_set_window_title "Interactive help - Generic Flow v5.5.3 (October 2025)" "GF help"
     fi
     gf_show_cursor
     echo

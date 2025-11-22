@@ -1503,9 +1503,6 @@ gf_create_step -name innovus_design_reports_post_route '
         }
     }
 
-    # Write out RC factors for pre to post route correlation
-    report_rc_factors -blocks_template medium -pre_route true -out_file ./out/$TASK_NAME.rc_factors.tcl
-
     # SPEF
     foreach rc_corner [get_db rc_corners .name] {
         write_parasitics -spef_file ./out/$TASK_NAME/$DESIGN_NAME.$rc_corner.spef.gz -rc_corner $rc_corner
@@ -1523,6 +1520,10 @@ gf_create_step -name innovus_design_reports_post_route '
     
     # Activate all views
     set_analysis_view -setup $merged_views -hold $merged_views
+
+    # Write out RC factors for pre to post route correlation
+    # reset_db timing_enable_simultaneous_setup_hold_mode
+    # report_rc_factors -post_route medium -out_file ./out/$TASK_NAME.rc_factors.tcl
 
     # Write liberty models
     foreach view $merged_views {

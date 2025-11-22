@@ -77,6 +77,7 @@ gf_create_step -name init_shell_environment '
     unset OA_HOME
 
     # Bypass OS check
+    # export CDS_SKIP_OS_CHECK_ON_STARTUP=1
     export W3264_NO_HOST_CHECK=1
 
     # License options

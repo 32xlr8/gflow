@@ -51,5 +51,5 @@ gf_create_step -name innovus_post_init_design_physical_mode_project '
     # Process related settings
     set_db design_process_node <PLACEHOLDER>
     # set_db design_tech_node <PLACEHOLDER>
-    set_db route_design_process_node <PLACEHOLDER>
+    # set_db route_design_process_node <PLACEHOLDER>
 '

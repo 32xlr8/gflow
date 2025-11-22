@@ -292,19 +292,19 @@ gf_create_step -name innovus_post_init_design_physical_mode '
         [get_db [get_db base_cells DCAP*] .name] \
         [get_db [get_db base_cells FILL*] .name] \
     ]
-    set_db add_fillers_vertical_stack_exception_cell [concat \
-        [get_db [get_db base_cells TAP*] .name] \
-        [get_db [get_db base_cells FILL1BWP*] .name] \
-        [get_db [get_db base_cells BOUNDARY*ROW*] .name] \
-        [get_db [get_db base_cells BOUNDARY_LEFT*] .name] \
-        [get_db [get_db base_cells BOUNDARY_RIGHT*] .name] \
-    ]
 
     # # Precise filler options (see foundry recommendations)
     # <PLACEHOLDER>
     # set_db add_fillers_vertical_stack_repair_cell [get_db base_cells .name FILL1BWP*]
     # set_db add_fillers_vertical_stack_max_length 200
     # set_db add_fillers_avoid_abutment_patterns {1:1}
+    # set_db add_fillers_vertical_stack_exception_cell [concat \
+    #     [get_db [get_db base_cells TAP*] .name] \
+    #     [get_db [get_db base_cells FILL1BWP*] .name] \
+    #     [get_db [get_db base_cells BOUNDARY*ROW*] .name] \
+    #     [get_db [get_db base_cells BOUNDARY_LEFT*] .name] \
+    #     [get_db [get_db base_cells BOUNDARY_RIGHT*] .name] \
+    # ]
     # set_db add_fillers_swap_cell [join {
     #     {{FILL1BWP*EHVT FILL1NOBCMBWP*EHVT}}
     #     {{FILL1BWP*UHVT FILL1NOBCMBWP*UHVT}}
@@ -603,6 +603,7 @@ gf_create_step -name innovus_post_init_design '
         
         # Routing settings
         # set_db add_route_vias_auto true
+        set_db route_design_detail_on_grid_only true
         set_db route_design_with_litho_driven true
         set_db route_design_with_timing_driven true
         set_db route_design_detail_use_multi_cut_via_effort medium
@@ -1090,14 +1091,14 @@ gf_create_step -name innovus_procs_interactive_design '
     # Show external scripts
     proc gf_show_scripts {} {
         puts ""
-        if {[llength [set scripts [glob ../../../../../template/scripts/*.tcl]]]} {
+        if {[llength [set scripts [glob -nocomplain ../../../../../template/scripts/*.tcl]]]} {
             puts "Template scripts\n"
             foreach script [lsort $scripts] {
                 puts "\033\[33;43m \033\[0m source $script"
             }
             puts ""
         }
-        if {[llength [set scripts [glob ../../../../scripts/*.tcl]]]} {
+        if {[llength [set scripts [glob -nocomplain ../../../../scripts/*.tcl]]]} {
             puts "Block scripts\n"
             foreach script [lsort $scripts] {
                 puts "\033\[32;42m \033\[0m source $script"

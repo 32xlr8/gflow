@@ -109,9 +109,9 @@ gf_add_tool_commands '
     
     # Initialize design with MMMC configuration
     init_design
-    
+        
     # Load physical data
-    read_def $DATA_OUT_DIR/$DESIGN_NAME.lite.def.gz
+    read_def $DATA_OUT_DIR/$DESIGN_NAME.def.gz
     
     # Read design parasitics files
     set processed {}; set missing 0

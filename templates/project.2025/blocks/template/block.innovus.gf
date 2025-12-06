@@ -1600,11 +1600,8 @@ gf_create_step -name innovus_data_out '
     set top_layer [lindex [lsort -integer -decreasing [concat [get_db [get_db layers $top_layer] .route_index] [get_db [get_db nets [concat [get_db init_power_nets] [get_db init_ground_nets]]] .special_wires.layer.route_index -u]]] 0]
     write_lef_abstract ./out/$TASK_NAME/$DESIGN_NAME.lef -no_cut_obs -extract_block_obs -top_layer $top_layer -stripe_pins -pg_pin_layers $top_layer
 
-    # Write lite DEF for STA/ECO
-    write_def -netlist ./out/$TASK_NAME/$DESIGN_NAME.lite.def.gz
-
-    # Write full DEF for parasitics extraction and signal electromigration analysis
-    write_def -scan_chain -netlist -floorplan -io_row -routing -routing_to_special_net -with_shield -all_layers ./out/$TASK_NAME/$DESIGN_NAME.full.def.gz
+    # Write physical design information in DEF
+    write_def -scan_chain -netlist -floorplan -io_row -routing -routing_to_special_net -with_shield -all_layers ./out/$TASK_NAME/$DESIGN_NAME.def.gz
 
     ##################################################
     # Design manipulations

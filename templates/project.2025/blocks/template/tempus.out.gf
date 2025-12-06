@@ -67,6 +67,7 @@ gf_add_tool_commands '
     set DATA_OUT_DIR {`$DATA_OUT_DIR`}
     set SPEF_OUT_DIR {`$SPEF_OUT_DIR`}
     set PARTITIONS_NETLIST_FILES {`$PARTITIONS_NETLIST_FILES -optional`}
+    set PARTITIONS_DEF_FILES {`$PARTITIONS_DEF_FILES -optional`}
     
     set IGNORE_IO_TIMING {`$IGNORE_IO_TIMING`}
 
@@ -109,6 +110,19 @@ gf_add_tool_commands '
 
     # Initialize design with MMMC configuration
     init_design
+    
+    # Read design physical files
+    set files $DATA_OUT_DIR/$DESIGN_NAME.def.gz
+    foreach file $PARTITIONS_DEF_FILES {lappend files $file}
+    foreach file $files {
+        if {[file exists $file]} {
+            puts "DEF file: $file"
+        } else {
+            puts "\033\[41m \033\[0m DEF file $file not found"
+            suspend
+        }
+    }
+    read_def $files
     
     # Load OCV configuration
     redirect -tee ./reports/$TASK_NAME.ocv.rpt {

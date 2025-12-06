@@ -171,7 +171,7 @@ gf_add_tool_commands '
         }
         
         # Design DEF file
-        puts $FH "input_db -type def -design_file \\\n    $DATA_OUT_DIR/$DESIGN_NAME.full.def.gz\n"
+        puts $FH "input_db -type def -design_file \\\n    $DATA_OUT_DIR/$DESIGN_NAME.def.gz\n"
 
         # Command to read in metal fill
         if {($QUANTUS_DUMMY_TOP != {}) && ($QUANTUS_DUMMY_GDS != {})} {

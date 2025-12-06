@@ -33,7 +33,7 @@
 
 # File queue.grid used to store information on running tasks (see ./gflow/templates/queue.grid).
 # Please give write permissions for all users who suppose to use it
-#    chmod a+x queue.grid
+#    chmod a+w queue.grid
 
 # Host to report
 LOG="$1"; shift

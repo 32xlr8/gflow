@@ -33,7 +33,7 @@
 
 # File queue.grid used to store information on running tasks (see ./gflow/templates/queue.grid).
 # Please give write permissions for all users who suppose to use it
-#    chmod a+x queue.grid
+#    chmod a+w queue.grid
 
 # Number of CPUs and required amount of RAM for new task
 CPU="$1"; shift

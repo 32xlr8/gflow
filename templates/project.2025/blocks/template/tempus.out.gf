@@ -55,7 +55,7 @@ gf_choose_file_dir_task -variable SPEF_OUT_DIR -keep -prompt "Choose SPEF direct
 '
 
 # Use DEF for analysis
-gf_choose -variable USE_DESIGN_DEF -keep -keys YN -time 30 -default Y -prompt "Use design DEF (Y/N)?"
+gf_choose -variable USE_DESIGN_DEF -keep -keys YN -time 30 -default Y -prompt "Use DEF for physical design information (Y/N)?"
 
 # TCL commands
 gf_add_tool_commands '

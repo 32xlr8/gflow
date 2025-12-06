@@ -49,7 +49,7 @@ LVS_TASK=
 # Create rules file with substituted values
 gf_check_files $CALIBRE_LVS_RULES
 if [ -n "$(echo $CALIBRE_LVS_RULES)" ]; then
-    gf_add_tool_commands -comment '' -ext rul "$(cat $CALIBRE_LVS_RULES)"
+    gf_add_shell_commands -init "cat $(echo $CALIBRE_LVS_RULES) > ./scripts/$TASK_NAME.rul"
 fi
 
 # Data preparation

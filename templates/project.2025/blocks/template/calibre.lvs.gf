@@ -58,7 +58,7 @@ gf_choose_file_dir_task -variable GDS_OUT_FILE -keep -prompt "Choose GDS file:" 
 # Create rules file with substituted values
 gf_check_files $CALIBRE_LVS_RULES
 if [ -n "$(echo $CALIBRE_LVS_RULES)" ]; then
-    gf_add_tool_commands -comment '' -ext rul "$(cat $CALIBRE_LVS_RULES)"
+    gf_add_shell_commands -init "cat $(echo $CALIBRE_LVS_RULES) > ./scripts/$TASK_NAME.rul"
 fi
 
 # Data preparation
@@ -134,6 +134,7 @@ gf_submit_task
 # Generic Flow history
 ########################################
 
-gf_create_task -name HistoryLVS -mother LVS
+gf_create_task -name HistoryLVS
+gf_wait_task LVS
 gf_set_task_command "../../../../../../tools/print_flow_history.pl ../.. -html ./reports/$TASK_NAME.html"
 gf_submit_task -silent

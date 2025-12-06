@@ -101,7 +101,7 @@ gf_add_tool_commands -comment '' -file "./scripts/$TASK_NAME.runset" '
 # Create rules file with substituted values
 gf_check_files $CALIBRE_FILL_RULES
 if [ -n "$(echo $CALIBRE_FILL_RULES)" ]; then
-    gf_add_tool_commands -comment '' -ext rul "$(cat $CALIBRE_FILL_RULES)"
+    gf_add_shell_commands -init "cat $(echo $CALIBRE_FILL_RULES) > ./scripts/$TASK_NAME.rul"
 fi
 
 # Check if task successfull

@@ -132,6 +132,9 @@ gf_choose_file_dir_task -variable SPEF_OUT_DIR -keep -prompt "Choose SPEF direct
     ../work_*/*/tasks/QuantusOut*
 '
 
+# Use DEF for analysis
+gf_choose -variable USE_DESIGN_DEF -keep -keys YN -time 30 -default Y -prompt "Use design DEF (Y/N)?"
+
 # TCL commands
 gf_add_tool_commands '
 
@@ -143,6 +146,7 @@ gf_add_tool_commands '
     set GROUND_NETS {`$GROUND_NETS_CORE` `$GROUND_NETS_OTHER -optional`}
 
     set DATA_OUT_DIR {`$DATA_OUT_DIR`}
+    set USE_DESIGN_DEF {`$USE_DESIGN_DEF`}
     set SPEF_OUT_DIR {`$SPEF_OUT_DIR`}
     set PARTITIONS_NETLIST_FILES {`$PARTITIONS_NETLIST_FILES -optional`}
     set PARTITIONS_DEF_FILES {`$PARTITIONS_DEF_FILES -optional`}
@@ -187,17 +191,19 @@ gf_add_tool_commands '
     init_design
     
     # Read design physical files
-    set files $DATA_OUT_DIR/$DESIGN_NAME.def.gz
-    foreach file $PARTITIONS_DEF_FILES {lappend files $file}
-    foreach file $files {
-        if {[file exists $file]} {
-            puts "DEF file: $file"
-        } else {
-            puts "\033\[41m \033\[0m DEF file $file not found"
-            suspend
+    if {$USE_DESIGN_DEF == "Y"} {
+        set files $DATA_OUT_DIR/$DESIGN_NAME.def.gz
+        foreach file $PARTITIONS_DEF_FILES {lappend files $file}
+        foreach file $files {
+            if {[file exists $file]} {
+                puts "DEF file: $file"
+            } else {
+                puts "\033\[41m \033\[0m DEF file $file not found"
+                suspend
+            }
         }
+        read_def $files
     }
-    read_def $files
     
     # Load OCV configuration
     redirect -tee ./reports/$TASK_NAME.ocv.rpt {

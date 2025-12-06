@@ -55,6 +55,10 @@ TEMPUS_WAIT_TIME_STEP=60
 # Flow variables
 ################################################################################
 
+# # Use DEF in Tempus STA runs (N for fast analysis)
+# USE_DESIGN_DEF=Y
+# USE_DESIGN_DEF=N
+
 # Set to "Y" to ignore IO timing
 IGNORE_IO_TIMING=Y
 

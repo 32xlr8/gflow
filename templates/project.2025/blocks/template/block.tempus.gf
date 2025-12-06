@@ -571,8 +571,10 @@ gf_create_step -name tempus_sta_reports '
     }
 
     # Write ECO timing database for TSO flow
-    set_db opt_signoff_write_eco_opt_db ./out/$TASK_NAME_JOINED.tempus.eco.db
-    write_eco_opt_db
+    if {1} {
+        set_db opt_signoff_write_eco_opt_db ./out/$TASK_NAME_JOINED.tempus.eco.db
+        write_eco_opt_db
+    }
 '
 
 # Tempus ECO scenarios processing

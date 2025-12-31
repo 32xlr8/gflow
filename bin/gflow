@@ -5577,7 +5577,7 @@ function gf_add_status_email {
 
 # Add tool commands
 gf_help_command '
-    {gf_add_tool_commands} [-ext <file_ext>]|[-file <file_name>] [-arg <tool_arg>] [-comment <symbol>] '"'"'<commands>'"'"'
+    {gf_add_tool_commands} [-ext <file_ext>]|[-file <file_name>] [-arg <tool_arg>] [-comment <symbol>] [-exact] '"'"'<commands>'"'"' | -from <files>
     Append tool commands to the task script with multi-line {commands} option.
     File name or extension should be set with
     Use {-file} or {-ext} option to control script file name or extension.
@@ -5587,8 +5587,10 @@ gf_help_command '
     Tool arguments can be specified with {tool_arg} option.
     Optional {-comment} argument can be used to set symbols indicating comment line
         to put additional information like pasted steps info.
+    Optional {-exact} switch can be used to bypass flow steps and variable substitutions.
     Flow steps can be pasted inside {commands} using {`gf_paste_step step`} or {`@step`} syntax.
     Flow or shell variables can be substituted in {commands} using {`$variable`} syntax.
+    As alternative to {commands} use {-from} switch to get commands from external {files}.
     Example:
         gf_add_tool_commands -ext "sh" -arg "-e" -comment "#" '"'"'
             # This is a bash script
@@ -5600,7 +5602,7 @@ function gf_add_tool_commands {
     [[ -n "$GF_SKIP_TASK" ]] && return
     eval "$(gf_update_function gf_add_script_command gf_add_script_commands gf_add_tool_commands)"
 
-    local key
+    local key arg
     local gf_flow_step gf_flow_steps
     local gf_pasted_steps=
 
@@ -5611,6 +5613,9 @@ function gf_add_tool_commands {
     local gf_tool_commands=
     local gf_task_comment=
     local gf_task_comment_new=
+    local gf_copy_mode=
+    local gf_copy_file=
+    local gf_exact_mode=
     while [ $# -gt 0 ]; do
         key="$1"; shift
         case "$key" in
@@ -5635,11 +5640,40 @@ function gf_add_tool_commands {
                 gf_task_comment_new=1
                 gf_task_comment="$1"; shift
             ;;
+            "-exact" )
+                gf_exact_mode=1
+            ;;
+            "-from" )
+                gf_copy_mode=1
+            ;;
             -* )
                 gf_fatal "Incorrect ${GFH7}$key${GFC0} option used."
             ;;
             * )
-                gf_tool_commands+=$'\n'"$key"
+                if [ -n "$gf_copy_mode" ]; then
+                    gf_copy_file="$(for arg in "$PWD" "$PWD" "$key"; do echo "$arg"; done | perl -e "$gf_full_path_perl")"
+                    gf_debug key PWD gf_copy_file
+                    if [ ! -f "$gf_copy_file" ]; then
+                        gf_copy_file="$(for arg in "$PWD" "$GF_SCRIPT_DIR" "$key"; do echo "$arg"; done | perl -e "$gf_full_path_perl")"
+                        gf_debug GF_SCRIPT_DIR gf_copy_file
+                    fi
+                    if [ ! -f "$gf_copy_file" ]; then
+                        gf_copy_file="$(for arg in "$PWD" "$GF_WORK_DIR" "$key"; do echo "$arg"; done | perl -e "$gf_full_path_perl")"
+                        gf_debug GF_WORK_DIR gf_copy_file
+                    fi
+                    if [ ! -f "$gf_copy_file" ]; then
+                        gf_copy_file="$(for arg in "$PWD" "$GF_WORK_DIR/run/tasks/name" "$key"; do echo "$arg"; done | perl -e "$gf_full_path_perl")"
+                        gf_debug GF_WORK_DIR gf_copy_file
+                    fi
+                    if [ -f "$gf_copy_file" ]; then
+                        gf_tool_commands+=$'\n'"$(cat "$gf_copy_file")"
+                        gf_info "File ${GFH7}$key${GFC0} pasted."
+                    else
+                        gf_fatal "File ${GFH7}$key${GFC0} not found."
+                    fi
+                else
+                    gf_tool_commands+=$'\n'"$key"
+                fi
             ;;
         esac
     done
@@ -5702,11 +5736,16 @@ function gf_add_tool_commands {
     fi
     gf_debug gf_file_used GF_TASK_SCRIPTS
 
-    # Expand steps and variables
-    gf_tool_commands="$(gf_expand_content "$GF_TASK_COMMENT" "$gf_tool_commands")"
+    # Perform substitutions
+    if [ -z "$gf_exact_mode" ]; then
 
-    # Tabulate commands
-    gf_tool_commands="$(gf_auto_tab_commands "$gf_tool_commands" $spaces_count)"
+        # Expand steps and variables
+        gf_tool_commands="$(gf_expand_content "$GF_TASK_COMMENT" "$gf_tool_commands")"
+
+        # Tabulate commands
+        gf_tool_commands="$(gf_auto_tab_commands "$gf_tool_commands" $spaces_count)"
+
+    fi
 
     # Command check
     [[ -z "$gf_tool_commands" ]] && gf_error "Commands are empty."

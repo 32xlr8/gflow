@@ -59,10 +59,7 @@ gf_choose_file_dir_task -variable GDS_OUT_FILE -keep -prompt "Choose GDS file:" 
 '
 
 # Create rules file with substituted values
-gf_check_files $CALIBRE_LVS_RULES
-if [ -n "$(echo $CALIBRE_LVS_RULES)" ]; then
-    gf_add_shell_commands -init "cat $(echo $CALIBRE_LVS_RULES) > ./scripts/$TASK_NAME.rul"
-fi
+gf_add_tool_commands -comment '' -ext rul -exact -from $CALIBRE_LVS_RULES
 
 # Data preparation
 gf_create_step -name calibre_pre_lvs_bash "

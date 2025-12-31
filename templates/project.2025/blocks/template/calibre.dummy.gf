@@ -102,10 +102,7 @@ gf_add_tool_commands -comment '' -file "./scripts/$TASK_NAME.runset" '
 '
 
 # Create rules file with substituted values
-gf_check_files $CALIBRE_FILL_RULES
-if [ -n "$(echo $CALIBRE_FILL_RULES)" ]; then
-    gf_add_shell_commands -init "cat $(echo $CALIBRE_FILL_RULES) > ./scripts/$TASK_NAME.rul"
-fi
+gf_add_tool_commands -comment '' -ext rul -exact -from $CALIBRE_FILL_RULES
 
 # Check if task successfull
 gf_add_success_marks 'DRC-H COMPLETED'

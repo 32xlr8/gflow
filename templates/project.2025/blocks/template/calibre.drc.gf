@@ -1,10 +1,13 @@
 #!../../gflow/bin/gflow
 
 ################################################################################
-# Generic Flow v5.5.3 (October 2025)
+# Generic Flow v5.5.4 (December 2025)
 ################################################################################
 #
-# Copyright 2011-2025 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
+# Copyright 2011-2025 Gennady Kirpichev
+#
+#    https://github.com/32xlr8/gflow.git
+#    https://gitflic.ru/project/32xlr8/gflow
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -50,10 +53,7 @@ gf_choose_file_dir_task -variable GDS_OUT_FILE -keep -prompt "Choose GDS to use:
 '
 
 # Create rules file with substituted values
-gf_check_files $CALIBRE_DRC_RULES
-if [ -n "$(echo $CALIBRE_DRC_RULES)" ]; then
-    gf_add_tool_commands -comment '' -ext rul "$(cat $CALIBRE_DRC_RULES)"
-fi
+gf_add_tool_commands -comment '' -ext rul -exact -from $CALIBRE_DRC_RULES
 
 # Fix relative paths in reports
 gf_add_shell_commands -post "
@@ -91,10 +91,7 @@ gf_choose_file_dir_task -variable GDS_OUT_FILE -keep -prompt "Choose GDS to use:
 '
 
 # Create rules file with substituted values
-gf_check_files $CALIBRE_ANT_RULES
-if [ -n "$(echo $CALIBRE_ANT_RULES)" ]; then
-    gf_add_tool_commands -comment '' -ext rul "$(cat $CALIBRE_ANT_RULES)"
-fi
+gf_add_tool_commands -comment '' -ext rul -exact -from $CALIBRE_ANT_RULES
 
 # Fix relative paths in reports
 gf_add_shell_commands -post "
@@ -131,10 +128,7 @@ gf_choose_file_dir_task -variable GDS_OUT_FILE -keep -prompt "Choose GDS to use:
 '
 
 # Create rules file with substituted values
-gf_check_files $CALIBRE_BUMP_RULES
-if [ -n "$(echo $CALIBRE_BUMP_RULES)" ]; then
-    gf_add_tool_commands -comment '' -ext rul "$(cat $CALIBRE_BUMP_RULES)"
-fi
+gf_add_tool_commands -comment '' -ext rul -exact -from $CALIBRE_BUMP_RULES
 
 # Fix relative paths in reports
 gf_add_shell_commands -post "

@@ -1,8 +1,11 @@
 ################################################################################
-# Generic Flow v5.5.3 (October 2025)
+# Generic Flow v5.5.4 (December 2025)
 ################################################################################
 #
-# Copyright 2011-2025 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
+# Copyright 2011-2025 Gennady Kirpichev
+#
+#    https://github.com/32xlr8/gflow.git
+#    https://gitflic.ru/project/32xlr8/gflow
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -292,19 +295,19 @@ gf_create_step -name innovus_post_init_design_physical_mode '
         [get_db [get_db base_cells DCAP*] .name] \
         [get_db [get_db base_cells FILL*] .name] \
     ]
-    set_db add_fillers_vertical_stack_exception_cell [concat \
-        [get_db [get_db base_cells TAP*] .name] \
-        [get_db [get_db base_cells FILL1BWP*] .name] \
-        [get_db [get_db base_cells BOUNDARY*ROW*] .name] \
-        [get_db [get_db base_cells BOUNDARY_LEFT*] .name] \
-        [get_db [get_db base_cells BOUNDARY_RIGHT*] .name] \
-    ]
 
     # # Precise filler options (see foundry recommendations)
     # <PLACEHOLDER>
     # set_db add_fillers_vertical_stack_repair_cell [get_db base_cells .name FILL1BWP*]
     # set_db add_fillers_vertical_stack_max_length 200
     # set_db add_fillers_avoid_abutment_patterns {1:1}
+    # set_db add_fillers_vertical_stack_exception_cell [concat \
+    #     [get_db [get_db base_cells TAP*] .name] \
+    #     [get_db [get_db base_cells FILL1BWP*] .name] \
+    #     [get_db [get_db base_cells BOUNDARY*ROW*] .name] \
+    #     [get_db [get_db base_cells BOUNDARY_LEFT*] .name] \
+    #     [get_db [get_db base_cells BOUNDARY_RIGHT*] .name] \
+    # ]
     # set_db add_fillers_swap_cell [join {
     #     {{FILL1BWP*EHVT FILL1NOBCMBWP*EHVT}}
     #     {{FILL1BWP*UHVT FILL1NOBCMBWP*UHVT}}
@@ -603,6 +606,7 @@ gf_create_step -name innovus_post_init_design '
         
         # Routing settings
         # set_db add_route_vias_auto true
+        set_db route_design_detail_on_grid_only true
         set_db route_design_with_litho_driven true
         set_db route_design_with_timing_driven true
         set_db route_design_detail_use_multi_cut_via_effort medium
@@ -1090,14 +1094,14 @@ gf_create_step -name innovus_procs_interactive_design '
     # Show external scripts
     proc gf_show_scripts {} {
         puts ""
-        if {[llength [set scripts [glob ../../../../../template/scripts/*.tcl]]]} {
+        if {[llength [set scripts [glob -nocomplain ../../../../../template/scripts/*.tcl]]]} {
             puts "Template scripts\n"
             foreach script [lsort $scripts] {
                 puts "\033\[33;43m \033\[0m source $script"
             }
             puts ""
         }
-        if {[llength [set scripts [glob ../../../../scripts/*.tcl]]]} {
+        if {[llength [set scripts [glob -nocomplain ../../../../scripts/*.tcl]]]} {
             puts "Block scripts\n"
             foreach script [lsort $scripts] {
                 puts "\033\[32;42m \033\[0m source $script"
@@ -1502,9 +1506,6 @@ gf_create_step -name innovus_design_reports_post_route '
         }
     }
 
-    # Write out RC factors for pre to post route correlation
-    report_rc_factors -blocks_template medium -pre_route true -out_file ./out/$TASK_NAME.rc_factors.tcl
-
     # SPEF
     foreach rc_corner [get_db rc_corners .name] {
         write_parasitics -spef_file ./out/$TASK_NAME/$DESIGN_NAME.$rc_corner.spef.gz -rc_corner $rc_corner
@@ -1522,6 +1523,10 @@ gf_create_step -name innovus_design_reports_post_route '
     
     # Activate all views
     set_analysis_view -setup $merged_views -hold $merged_views
+
+    # Write out RC factors for pre to post route correlation
+    # reset_db timing_enable_simultaneous_setup_hold_mode
+    # report_rc_factors -post_route medium -out_file ./out/$TASK_NAME.rc_factors.tcl
 
     # Write liberty models
     foreach view $merged_views {
@@ -1598,11 +1603,8 @@ gf_create_step -name innovus_data_out '
     set top_layer [lindex [lsort -integer -decreasing [concat [get_db [get_db layers $top_layer] .route_index] [get_db [get_db nets [concat [get_db init_power_nets] [get_db init_ground_nets]]] .special_wires.layer.route_index -u]]] 0]
     write_lef_abstract ./out/$TASK_NAME/$DESIGN_NAME.lef -no_cut_obs -extract_block_obs -top_layer $top_layer -stripe_pins -pg_pin_layers $top_layer
 
-    # Write lite DEF for STA/ECO
-    write_def -netlist ./out/$TASK_NAME/$DESIGN_NAME.lite.def.gz
-
-    # Write full DEF for parasitics extraction and signal electromigration analysis
-    write_def -scan_chain -netlist -floorplan -io_row -routing -routing_to_special_net -with_shield -all_layers ./out/$TASK_NAME/$DESIGN_NAME.full.def.gz
+    # Write physical design information in DEF
+    write_def -scan_chain -netlist -floorplan -io_row -routing -routing_to_special_net -with_shield -all_layers ./out/$TASK_NAME/$DESIGN_NAME.def.gz
 
     ##################################################
     # Design manipulations

@@ -1,10 +1,13 @@
 #!../../gflow/bin/gflow
 
 ################################################################################
-# Generic Flow v5.5.3 (October 2025)
+# Generic Flow v5.5.4 (December 2025)
 ################################################################################
 #
-# Copyright 2011-2025 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
+# Copyright 2011-2025 Gennady Kirpichev
+#
+#    https://github.com/32xlr8/gflow.git
+#    https://gitflic.ru/project/32xlr8/gflow
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -47,10 +50,7 @@ gf_choose_file_dir_task -variable LVS_TASK_DIR -keep -prompt "Choose LVS task to
 LVS_TASK=
 
 # Create rules file with substituted values
-gf_check_files $CALIBRE_LVS_RULES
-if [ -n "$(echo $CALIBRE_LVS_RULES)" ]; then
-    gf_add_tool_commands -comment '' -ext rul "$(cat $CALIBRE_LVS_RULES)"
-fi
+gf_add_tool_commands -comment '' -ext rul -exact -from $CALIBRE_LVS_RULES
 
 # Data preparation
 gf_add_shell_commands -init "

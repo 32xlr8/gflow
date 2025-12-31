@@ -1,8 +1,11 @@
 ################################################################################
-# Generic Flow v5.5.3 (October 2025)
+# Generic Flow v5.5.4 (December 2025)
 ################################################################################
 #
-# Copyright 2011-2025 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
+# Copyright 2011-2025 Gennady Kirpichev
+#
+#    https://github.com/32xlr8/gflow.git
+#    https://gitflic.ru/project/32xlr8/gflow
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -51,5 +54,5 @@ gf_create_step -name innovus_post_init_design_physical_mode_project '
     # Process related settings
     set_db design_process_node <PLACEHOLDER>
     # set_db design_tech_node <PLACEHOLDER>
-    set_db route_design_process_node <PLACEHOLDER>
+    # set_db route_design_process_node <PLACEHOLDER>
 '

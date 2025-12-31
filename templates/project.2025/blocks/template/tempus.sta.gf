@@ -1,10 +1,13 @@
 #!../../gflow/bin/gflow
 
 ################################################################################
-# Generic Flow v5.5.3 (October 2025)
+# Generic Flow v5.5.4 (December 2025)
 ################################################################################
 #
-# Copyright 2011-2025 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
+# Copyright 2011-2025 Gennady Kirpichev
+#
+#    https://github.com/32xlr8/gflow.git
+#    https://gitflic.ru/project/32xlr8/gflow
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -54,6 +57,9 @@ gf_choose_file_dir_task -variable SPEF_OUT_DIR -keep -prompt "Choose SPEF direct
     ../work_*/*/tasks/QuantusOut*
 '
 
+# Use DEF for analysis
+gf_choose -variable USE_DESIGN_DEF -keep -keys YN -time 30 -default Y -prompt "Use DEF for physical design information (Y/N)?"
+
 # TCL commands
 gf_add_tool_commands '
 
@@ -65,9 +71,11 @@ gf_add_tool_commands '
     set GROUND_NETS {`$GROUND_NETS_CORE` `$GROUND_NETS_OTHER -optional`}
 
     set DATA_OUT_DIR {`$DATA_OUT_DIR`}
+    set USE_DESIGN_DEF {`$USE_DESIGN_DEF`}
     set SPEF_OUT_DIR {`$SPEF_OUT_DIR`}
     set PARTITIONS_NETLIST_FILES {`$PARTITIONS_NETLIST_FILES -optional`}
-    
+    set PARTITIONS_DEF_FILES {`$PARTITIONS_DEF_FILES -optional`}
+
     set IGNORE_IO_TIMING {`$IGNORE_IO_TIMING`}
 
     # Start metric collection
@@ -110,6 +118,21 @@ gf_add_tool_commands '
     # Initialize design with MMMC configuration
     init_design
     
+    # Read design physical files
+    if {$USE_DESIGN_DEF == "Y"} {
+        set files $DATA_OUT_DIR/$DESIGN_NAME.def.gz
+        foreach file $PARTITIONS_DEF_FILES {lappend files $file}
+        foreach file $files {
+            if {[file exists $file]} {
+                puts "DEF file: $file"
+            } else {
+                puts "\033\[41m \033\[0m DEF file $file not found"
+                suspend
+            }
+        }
+        read_def $files
+    }
+
     # Load OCV configuration
     redirect -tee ./reports/$TASK_NAME.ocv.rpt {
         reset_timing_derate

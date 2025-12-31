@@ -1,8 +1,11 @@
 ################################################################################
-# Generic Flow v5.5.3 (October 2025)
+# Generic Flow v5.5.4 (December 2025)
 ################################################################################
 #
-# Copyright 2011-2025 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
+# Copyright 2011-2025 Gennady Kirpichev
+#
+#    https://github.com/32xlr8/gflow.git
+#    https://gitflic.ru/project/32xlr8/gflow
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -54,6 +57,9 @@ TEMPUS_WAIT_TIME_STEP=60
 ################################################################################
 # Flow variables
 ################################################################################
+
+# # Use DEF in Tempus STA runs (N for fast analysis)
+USE_DESIGN_DEF=Y
 
 # Set to "Y" to ignore IO timing
 IGNORE_IO_TIMING=Y
@@ -568,8 +574,10 @@ gf_create_step -name tempus_sta_reports '
     }
 
     # Write ECO timing database for TSO flow
-    set_db opt_signoff_write_eco_opt_db ./out/$TASK_NAME_JOINED.tempus.eco.db
-    write_eco_opt_db
+    if {1} {
+        set_db opt_signoff_write_eco_opt_db ./out/$TASK_NAME_JOINED.tempus.eco.db
+        write_eco_opt_db
+    }
 '
 
 # Tempus ECO scenarios processing

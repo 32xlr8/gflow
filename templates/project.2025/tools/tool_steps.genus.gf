@@ -1,8 +1,11 @@
 ################################################################################
-# Generic Flow v5.5.3 (October 2025)
+# Generic Flow v5.5.4 (December 2025)
 ################################################################################
 #
-# Copyright 2011-2025 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
+# Copyright 2011-2025 Gennady Kirpichev
+#
+#    https://github.com/32xlr8/gflow.git
+#    https://gitflic.ru/project/32xlr8/gflow
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -197,7 +200,9 @@ gf_create_step -name genus_procs_reports '
                     my $body = shift;
                     my @values = (); push @values, $1 while ($body =~ s|(\d+)|\!\*\!|);
                     $messages[$#messages+1]{text} = $header." ".$body."\n";
-                    for (my $i=0; $i<=$#values; $i++) {
+                    for (
+                        my $i=0; $i<=$#values; $i++
+                    ) {
                        $messages[$#messages]{values}[$i] = $values[$i];
                     }
                 }
@@ -223,7 +228,7 @@ gf_create_step -name genus_procs_reports '
                                 print FILE $files[0]{pins}{$prev_pin}{content};
                                 print FILE $files[1]{pins}{$pin}{end};
                             }
-                            $processed = 1 
+                            $processed = 1;
                         }
                         if (!$processed) {
                             if (defined $files[1]{pins}{$pin}) {
@@ -239,7 +244,9 @@ gf_create_step -name genus_procs_reports '
                     
                     # Detect message groups
                     my %messages; my %values;
-                    for (my $i=0; $i<=$#messages; $i++) {
+                    for (
+                        my $i=0; $i<=$#messages; $i++
+                    ) {
                         my $text = $messages[$i]{text};
                         $messages{$text} = 1;
                         my $j=0; foreach my $value (@{$messages[$i]{values}}) {
@@ -250,10 +257,14 @@ gf_create_step -name genus_procs_reports '
                     
                     # Print grouped messages
                     my %index;
-                    for (my $i=0; $i<=$#messages; $i++) {
+                    for (
+                        my $i=0; $i<=$#messages; $i++
+                    ) {
                         my $text = $messages[$i]{text};
                         my $index = $text;
-                        for (my $j=0; $j<=$#{$values{$text}}; $j++) {
+                        for (
+                            my $j=0; $j<=$#{$values{$text}}; $j++
+                        ) {
                             my @values = keys %{$values{$text}[$j]{values}};
                             if ($#values == 0) {
                                 my $value = $values[0];

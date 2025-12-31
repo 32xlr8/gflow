@@ -1,8 +1,11 @@
 ################################################################################
-# Generic Flow v5.5.3 (October 2025)
+# Generic Flow v5.5.4 (December 2025)
 ################################################################################
 #
-# Copyright 2011-2025 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
+# Copyright 2011-2025 Gennady Kirpichev
+#
+#    https://github.com/32xlr8/gflow.git
+#    https://gitflic.ru/project/32xlr8/gflow
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -77,6 +80,7 @@ gf_create_step -name init_shell_environment '
     unset OA_HOME
 
     # Bypass OS check
+    # export CDS_SKIP_OS_CHECK_ON_STARTUP=1
     export W3264_NO_HOST_CHECK=1
 
     # License options

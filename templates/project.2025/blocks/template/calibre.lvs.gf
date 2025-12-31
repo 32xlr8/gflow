@@ -1,10 +1,13 @@
 #!../../gflow/bin/gflow
 
 ################################################################################
-# Generic Flow v5.5.3 (October 2025)
+# Generic Flow v5.5.4 (December 2025)
 ################################################################################
 #
-# Copyright 2011-2025 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
+# Copyright 2011-2025 Gennady Kirpichev
+#
+#    https://github.com/32xlr8/gflow.git
+#    https://gitflic.ru/project/32xlr8/gflow
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -56,10 +59,7 @@ gf_choose_file_dir_task -variable GDS_OUT_FILE -keep -prompt "Choose GDS file:" 
 '
 
 # Create rules file with substituted values
-gf_check_files $CALIBRE_LVS_RULES
-if [ -n "$(echo $CALIBRE_LVS_RULES)" ]; then
-    gf_add_tool_commands -comment '' -ext rul "$(cat $CALIBRE_LVS_RULES)"
-fi
+gf_add_tool_commands -comment '' -ext rul -exact -from $CALIBRE_LVS_RULES
 
 # Data preparation
 gf_create_step -name calibre_pre_lvs_bash "
@@ -134,6 +134,7 @@ gf_submit_task
 # Generic Flow history
 ########################################
 
-gf_create_task -name HistoryLVS -mother LVS
+gf_create_task -name HistoryLVS
+gf_wait_task LVS
 gf_set_task_command "../../../../../../tools/print_flow_history.pl ../.. -html ./reports/$TASK_NAME.html"
 gf_submit_task -silent

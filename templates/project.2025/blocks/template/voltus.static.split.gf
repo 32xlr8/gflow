@@ -1,10 +1,13 @@
 #!../../gflow/bin/gflow
 
 ################################################################################
-# Generic Flow v5.5.3 (October 2025)
+# Generic Flow v5.5.4 (December 2025)
 ################################################################################
 #
-# Copyright 2011-2025 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
+# Copyright 2011-2025 Gennady Kirpichev
+#
+#    https://github.com/32xlr8/gflow.git
+#    https://gitflic.ru/project/32xlr8/gflow
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -105,7 +108,7 @@ gf_add_tool_commands '
 
     # Link design files
     exec ln -nsf $DATA_OUT_DIR/$DESIGN_NAME.v.gz ./in/$TASK_NAME.v.gz
-    exec ln -nsf $DATA_OUT_DIR/$DESIGN_NAME.full.def.gz ./in/$TASK_NAME.def.gz
+    exec ln -nsf $DATA_OUT_DIR/$DESIGN_NAME.def.gz ./in/$TASK_NAME.def.gz
 
     # Read physical files
     read_physical -lefs [join $LEF_FILES]
@@ -161,7 +164,7 @@ gf_add_tool_commands '
     }
        
     # Read design physical files
-    set files $DATA_OUT_DIR/$DESIGN_NAME.full.def.gz
+    set files $DATA_OUT_DIR/$DESIGN_NAME.def.gz
     foreach file $PARTITIONS_DEF_FILES {lappend files $file}
     foreach file $files {
         if {[file exists $file]} {
@@ -288,7 +291,7 @@ gf_add_tool_commands '
 
     # Link design files
     exec ln -nsf $DATA_OUT_DIR/$DESIGN_NAME.v.gz ./in/$TASK_NAME.v.gz
-    exec ln -nsf $DATA_OUT_DIR/$DESIGN_NAME.full.def.gz ./in/$TASK_NAME.def.gz
+    exec ln -nsf $DATA_OUT_DIR/$DESIGN_NAME.def.gz ./in/$TASK_NAME.def.gz
 
     # Load MMMC configuration
     puts "Analysis view: {$STATIC_RAIL_VIEW}"
@@ -317,7 +320,7 @@ gf_add_tool_commands '
     `@voltus_post_init_design`
 
     # Read design physical files
-    set files $DATA_OUT_DIR/$DESIGN_NAME.full.def.gz
+    set files $DATA_OUT_DIR/$DESIGN_NAME.def.gz
     foreach file $PARTITIONS_DEF_FILES {lappend files $file}
     foreach file $files {
         if {[file exists $file]} {

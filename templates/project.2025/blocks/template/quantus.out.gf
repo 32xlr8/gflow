@@ -1,10 +1,13 @@
 #!../../gflow/bin/gflow
 
 ################################################################################
-# Generic Flow v5.5.3 (October 2025)
+# Generic Flow v5.5.4 (December 2025)
 ################################################################################
 #
-# Copyright 2011-2025 Gennady Kirpichev (https://github.com/32xlr8/gflow.git)
+# Copyright 2011-2025 Gennady Kirpichev
+#
+#    https://github.com/32xlr8/gflow.git
+#    https://gitflic.ru/project/32xlr8/gflow
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -171,7 +174,7 @@ gf_add_tool_commands '
         }
         
         # Design DEF file
-        puts $FH "input_db -type def -design_file \\\n    $DATA_OUT_DIR/$DESIGN_NAME.full.def.gz\n"
+        puts $FH "input_db -type def -design_file \\\n    $DATA_OUT_DIR/$DESIGN_NAME.def.gz\n"
 
         # Command to read in metal fill
         if {($QUANTUS_DUMMY_TOP != {}) && ($QUANTUS_DUMMY_GDS != {})} {

@@ -1888,7 +1888,9 @@ gf_create_step -name innovus_procs_db '
             }
             my @command_times = sort keys %commands;
             my $i=0; $i = $#command_times - 20 if ($#command_times >= 20);
-            while ($i <= $#command_times) {
+            while (
+                $i <= $#command_times
+            ) {
                 print $commands{$command_times[$i]};
                 $i++;
             }
